@@ -28,6 +28,17 @@ Read the reference implementation files identified by code-explorer. Understand:
 - Exact file paths, naming patterns, and code organisation
 - DTO shapes, endpoint patterns, component structure
 
+### 1b. Open the change-sites the explorer named
+
+Before any design, **open the actual files the code-explorer surfaced and read the specific line ranges it cited.** The explorer paid for this knowledge in Phase 2 — your job is to carry it forward, not to write a plan that forces the implementer to re-discover it.
+
+For each named file, use the `read` tool at the cited line range and capture, for your own use in step 7:
+- The exact insertion site as a `path:line` anchor (e.g. "between line 27 and line 29 of `src/api/Models/AppointmentLifecycle.cs`")
+- The surrounding code shape so the snippet you later capture is *consistent* with the file's existing style
+- Any imports, namespaces, DI registration, or route wiring the change implies
+
+This step is what earns you the right to write change-site snippets in step 7. Without it, snippets are guesses; with it, they are precise targets the implementer's tests can drive toward.
+
 ### 2. Map All Affected Layers
 
 Determine which layers this feature touches and what changes each needs:
@@ -73,9 +84,19 @@ That is the dispatch unit. Each layer-half becomes one impl-{layer} subagent run
 
 If a slice has more than ~6 ACs covered or both halves look heavy, the slice is too thick — split it. Refer to the vertical-slicing skill for sizing.
 
-### 7. Capture Reference Patterns Per Slice (guidance, not commitments)
+### 7. Capture Per-Slice Reference Patterns AND a Change-Site Map
 
-For each slice, in `03-implementation-plan.md`, list the **closest existing reference patterns** the implementer should look at — files like `RegisterPatientHandler.cs` or `usePatientList.ts` that the implementer can copy-style from. These are *hints*, not pre-listed tasks. The implementer agent will discover the actual files to touch via TDD; the references just shorten the search.
+Two distinct artefacts go into `03-implementation-plan.md` per slice. Do not conflate them.
+
+**(a) Reference patterns** — the closest existing files the implementer should copy-style from (e.g. `RegisterPatientHandler.cs`, `usePatientList.ts`). These are *style hints*; the implementer reads them to absorb naming, layering, and idiom.
+
+**(b) Change-Site Map** — the specific files the slice will touch, each with a `path:line` insertion anchor and a *target shape* (a short snippet for additive edits, or "follow X pattern" for new files). This is **target geography, not task ordering**. It exists because the explorer already mapped these files in Phase 2 and the implementer should not have to re-grep the same surface.
+
+The change-site map carries no implied sequence. The implementer still drives each AC behaviour through TDD red-green-refactor in whatever order the failing tests dictate; the snippet is just where the green-state lands. If a change-site turns out to be wrong once the test goes red, the implementer overrides the map — the test is the spec, the snippet is a target.
+
+**Why both, not just patterns:** patterns alone leave the implementer to re-find files like `AppointmentService.CancelAsync` (lines 398–438) that the explorer already cited. Re-grepping the same surface burns the implementer's headlights on rediscovery instead of on tests. Patterns answer "what idiom"; the change-site map answers "where exactly".
+
+**What is still banned:** a sequenced per-file *task* list ("1. migration → 2. repo → 3. service → 4. handler"). That re-introduces horizontal layering inside the slice and locks in an order before the test red tells you what's next. The change-site map lists targets *unordered*; the slice card's demoable behaviour stays the unit of work.
 
 ## Output Format
 
@@ -109,6 +130,13 @@ Return a blueprint structured for direct use in the plan documents:
 |------|--------|--------|
 | [path] | [what changes] | [why] |
 
+## Change-Site Map (master index)
+[One row per file the feature will touch, with the slice that owns it. This is the table the implementer scans first to see total surface area. Every row here must reappear under the owning slice's `Change sites` subsection below.]
+
+| # | Path | Slice(s) | Change |
+|---|------|----------|--------|
+| 1 | [path] | 01 | [one-line descriptor, e.g. "Add `QueueNumber` property"] |
+
 ## Slices
 
 ### SLICE-01 — [demoable behaviour, one sentence]
@@ -121,6 +149,20 @@ Return a blueprint structured for direct use in the plan documents:
 - Frontend reference patterns: [existing files the FE implementer should copy-style from, e.g. `PatientList.tsx`, `usePatientList.ts`]
 - Rough size: 1 | 2 | 3 | 5 story points
 
+#### Change sites
+[One block per file this slice touches. Order is irrelevant — these are targets, not steps. Snippets are the *target shape* the green-state test should drive toward, not paste-blindly diffs. Use the line anchors you captured in step 1b.]
+
+**`[path]`** — [one-line descriptor]
+- Insertion anchor: [e.g. "after line 47 (`CheckedInAt` property)" or "new file, mirror `CancelAppointmentRequest.cs`"]
+- Target shape:
+  ```[language]
+  [snippet — keep it small; just enough to lock the shape]
+  ```
+- Wiring: [imports / DI / route / namespace — only if non-obvious from the snippet]
+
+**`[path]`** — [next change site in this slice]
+...
+
 ### SLICE-02 — [next demoable increment]
 ...
 
@@ -130,4 +172,6 @@ Return a blueprint structured for direct use in the plan documents:
 [anything that could complicate implementation — surfaced now so the implementer doesn't hit a surprise mid-TDD]
 ```
 
-Be specific where it matters (slice behaviour, AC coverage, reference patterns). **Do not pre-list per-file tasks within a slice** — the implementer subagent discovers files via TDD red-green-refactor against the slice's AC. Pre-listed file-tasks would re-introduce horizontal layering inside the slice and waste design effort the TDD loop will redo anyway.
+Be specific where it matters (slice behaviour, AC coverage, reference patterns, change-site anchors and target shapes).
+
+**The hard line:** sequenced per-file *task lists* are banned ("1. migration → 2. repo → 3. service → 4. handler") because they re-introduce horizontal layering and lock in order before the test red tells you what's needed. *Change-site maps* are required because the explorer already mapped them; making the implementer re-grep the same surface wastes its headlights on rediscovery instead of on tests. The implementer's tests remain the spec; the snippets are targets the tests drive toward, and the implementer overrides any change-site that turns out wrong once a test goes red.

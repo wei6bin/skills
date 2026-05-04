@@ -112,7 +112,7 @@ Write these files using the architecture blueprint from Phase 4:
 | `00-overview.md` | One-page summary: goal, scope, constraints, success criteria |
 | `01-business-plan.md` | Problem statement, acceptance criteria (verbatim), stakeholders, out-of-scope |
 | `02-technical-plan.md` | Architecture decisions, affected layers, API contracts, data changes, security, non-functional requirements |
-| `03-implementation-plan.md` | Per-slice **reference patterns** (existing files the implementer can copy-style from) and any data-model / API-contract notes. **Not** a pre-listed file-task table — the implementer discovers files via TDD. |
+| `03-implementation-plan.md` | A top-level **Change-Site Map** (every touched file × owning slice), then per slice: **reference patterns** (style hints) **and** **change sites** (file `path:line` anchor + target snippet for each touched file) **and** any data-model / API-contract notes. The change-site map carries no implied sequence — it is target geography the explorer already mapped, not a sequenced file-task list. The implementer still drives each AC behaviour through TDD; tests remain the spec, snippets are targets the tests drive toward. |
 | `04-task-plan.md` | **One card per slice** — demoable behaviour, AC coverage, demo steps, type (AFK/HITL), layer-halves (BE / FE / both), blocked-by, rough story-point size. No `SLICE-NN.TASK-NN` table. ADO mapping: each slice = one ADO Task under the parent User Story; each layer-half = one impl-{layer} subagent dispatch. |
 | `05-test-plan.md` | Test cases per AC, grouped by slice. Each slice must have at least one end-to-end test that exercises its demoable behaviour. Type (unit/integration/component/e2e), steps, expected outcome, rollback plan. |
 
