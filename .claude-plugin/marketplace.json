@@ -1,0 +1,61 @@
+{
+  "name": "agentic-coding-workshop",
+  "owner": {
+    "name": "Agentic Coding Workshop"
+  },
+  "metadata": {
+    "description": "Workshop marketplace. Two variants of the dev-workflow plugin: prd-pr-copilot (Copilot CLI, orchestrator entry skill + .agent.md subagents) and prd-pr-claude (Claude Code, orchestrator skill + .md subagents).",
+    "version": "1.2.0"
+  },
+  "plugins": [
+    {
+      "name": "prd-pr-copilot",
+      "description": "Copilot CLI variant — AI-assisted developer workflow with vertical-slice architecture, slice-by-slice implementation, and ADO task creation. Entry skill: orchestrator. Agents use Copilot's .agent.md format.",
+      "source": "./prd-pr-copilot",
+      "agents": [
+        "./agents/code-architect.agent.md",
+        "./agents/code-explorer.agent.md",
+        "./agents/plan-reviewer.agent.md",
+        "./agents/impl-backend.agent.md",
+        "./agents/impl-frontend.agent.md",
+        "./agents/impl-simplify.agent.md"
+      ],
+      "skills": [
+        "./skills/vertical-slicing",
+        "./skills/using-git-worktrees",
+        "./skills/finishing-a-development-branch",
+        "./skills/backend-implementer",
+        "./skills/frontend-implementer",
+        "./skills/codebase-context-builder",
+        "./skills/context-updater",
+        "./skills/react-best-practices",
+        "./skills/restful-api-design"
+      ]
+    },
+    {
+      "name": "prd-pr-claude",
+      "description": "Claude Code variant — orchestrator skill (workshop-dev-workflow) drives the full plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) as needed.",
+      "source": "./prd-pr-claude",
+      "agents": [
+        "./agents/code-architect.md",
+        "./agents/code-explorer.md",
+        "./agents/plan-reviewer.md",
+        "./agents/impl-backend.md",
+        "./agents/impl-frontend.md",
+        "./agents/impl-simplify.md"
+      ],
+      "skills": [
+        "./skills/seed-dev-workflow",
+        "./skills/vertical-slicing",
+        "./skills/using-git-worktrees",
+        "./skills/finishing-a-development-branch",
+        "./skills/backend-implementer",
+        "./skills/frontend-implementer",
+        "./skills/codebase-context-builder",
+        "./skills/context-updater",
+        "./skills/react-best-practices",
+        "./skills/restful-api-design"
+      ]
+    }
+  ]
+}
