@@ -1,0 +1,6 @@
+{
+  "name": "prd-pr-claude",
+  "description": "Claude Code variant of the workshop dev workflow — orchestrator skill plus helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) and the supporting skill suite.",
+  "version": "1.2.0",
+  "keywords": ["dev-workflow", "user-story", "architecture", "vertical-slice", "implementation", "azure-devops", "claude-code", "workshop"]
+}
