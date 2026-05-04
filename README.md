@@ -1,0 +1,77 @@
+# Agentic Coding Workshop — prd-pr workflow plugins
+
+This repository hosts a Claude Code / Copilot CLI plugin marketplace with two variants of the same dev-workflow plugin:
+
+| Plugin name | For | Agent format |
+|---|---|---|
+| `prd-pr-copilot` | Copilot CLI  | `agents/*.agent.md`, frontmatter uses `tools: ['read', 'edit', ...]` |
+| `prd-pr-claude`  | Claude Code  | `agents/*.md` (no `.agent.` suffix), frontmatter uses `tools: Read, Edit, ...` |
+
+Both tools read the same `.claude-plugin/marketplace.json` at the repo root. Skills are shared — `prd-pr-claude/skills` is a symlink to `prd-pr-copilot/skills`, so editing a skill once updates both variants.
+
+---
+
+## Copilot CLI
+
+Run from a normal shell:
+
+```bash
+# 1. Register the marketplace (one-time)
+copilot plugin marketplace add wei6bin/agentic-coding-workshop
+
+# 2. Install the Copilot variant
+copilot plugin install prd-pr-copilot@agentic-coding-workshop
+
+# 3. Verify
+copilot plugin list
+
+# After upstream changes, refresh the installed copy
+copilot plugin update prd-pr-copilot@agentic-coding-workshop
+
+# Uninstall later
+copilot plugin uninstall prd-pr-copilot@agentic-coding-workshop
+copilot plugin marketplace remove agentic-coding-workshop
+```
+
+Plugin contents land at `~/.copilot/installed-plugins/agentic-coding-workshop/prd-pr-copilot/`.
+
+---
+
+## Claude Code
+
+Run inside a Claude Code session (slash commands):
+
+```text
+# 1. Register the marketplace (one-time)
+/plugin marketplace add wei6bin/agentic-coding-workshop
+
+# 2. Install the Claude Code variant (note the `-claude` suffix)
+/plugin install prd-pr-claude@agentic-coding-workshop
+
+# 3. Refresh discovery after edits (no restart needed)
+/reload-plugins
+
+# Browse / verify / manage
+/plugin                                                              # picker, "Installed" tab
+/plugin marketplace list
+/plugin disable   prd-pr-claude@agentic-coding-workshop
+/plugin enable    prd-pr-claude@agentic-coding-workshop
+/plugin uninstall prd-pr-claude@agentic-coding-workshop
+```
+
+Plugin contents land at `~/.claude/plugins/cache/agentic-coding-workshop/prd-pr-claude/`.
+
+---
+
+## Side-by-side
+
+| Step | Copilot CLI (shell) | Claude Code (slash) |
+|---|---|---|
+| Add marketplace | `copilot plugin marketplace add wei6bin/agentic-coding-workshop` | `/plugin marketplace add wei6bin/agentic-coding-workshop` |
+| Install plugin | `copilot plugin install prd-pr-copilot@agentic-coding-workshop` | `/plugin install prd-pr-claude@agentic-coding-workshop` |
+| Refresh after edit | `copilot plugin update prd-pr-copilot@agentic-coding-workshop` | `/reload-plugins` |
+| List installed | `copilot plugin list` | `/plugin` → Installed tab |
+| Install location | `~/.copilot/installed-plugins/agentic-coding-workshop/prd-pr-copilot/` | `~/.claude/plugins/cache/agentic-coding-workshop/prd-pr-claude/` |
+| Uninstall | `copilot plugin uninstall prd-pr-copilot@agentic-coding-workshop` | `/plugin uninstall prd-pr-claude@agentic-coding-workshop` |
+
+Both tools **copy** on install (not symlink). After editing the plugin source, refresh on each side: `copilot plugin update ...` for Copilot, `/reload-plugins` for Claude Code.
