@@ -11,6 +11,20 @@ Both tools read the same `.claude-plugin/marketplace.json` at the repo root. Ski
 
 ---
 
+## Prerequisites
+
+Before installing either plugin, make sure your machine has:
+
+1. **Azure CLI signed in to your ADO organisation** — required for ADO ticket lookups and task creation in the workflow.
+   ```bash
+   az login
+   az account show          # verify the right tenant/subscription
+   az devops configure --defaults organization=https://dev.azure.com/<your-org> project=<your-project>
+   ```
+2. **Git** — required by the `git-worktrees` and `raise-pr` skills. Confirm with `git --version`; ensure `user.name` and `user.email` are set (`git config --global --list`).
+
+---
+
 ## Copilot CLI
 
 Run inside a Copilot CLI session (slash commands):

@@ -22,8 +22,8 @@
       ],
       "skills": [
         "./skills/vertical-slicing",
-        "./skills/using-git-worktrees",
-        "./skills/finishing-a-development-branch",
+        "./skills/git-worktrees",
+        "./skills/raise-pr",
         "./skills/backend-implementer",
         "./skills/frontend-implementer",
         "./skills/codebase-context-builder",
@@ -45,10 +45,10 @@
         "./agents/impl-simplify.md"
       ],
       "skills": [
-        "./skills/seed-dev-workflow",
+        "./skills/orchestrator",
         "./skills/vertical-slicing",
-        "./skills/using-git-worktrees",
-        "./skills/finishing-a-development-branch",
+        "./skills/git-worktrees",
+        "./skills/raise-pr",
         "./skills/backend-implementer",
         "./skills/frontend-implementer",
         "./skills/codebase-context-builder",

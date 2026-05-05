@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-description: Reviews enhancement plan documents (not code) for completeness, consistency, and gaps — checks that ACs are fully covered, tasks are correctly ordered, security is considered, and the implementation plan matches the technical design. Invoked in parallel pairs as a subagent during Phase 6 of the seed-dev-workflow.
+description: Reviews enhancement plan documents (not code) for completeness, consistency, and gaps — checks that ACs are fully covered, tasks are correctly ordered, security is considered, and the implementation plan matches the technical design. Invoked in parallel pairs as a subagent during Phase 6 of the orchestrator.
 tools: ['read', 'search/codebase']
 model: claude-haiku-4.5
 user-invocable: false
