@@ -1,5 +1,5 @@
 ---
-name: seed-dev-workflow
+name: orchestrator
 description: Entry point for new feature or enhancement work. Runs the full 9-phase new-enhancement workflow — discovery, parallel codebase exploration, clarifying questions, architecture design, document creation, plan review, summary, slice-by-slice implementation, and branch completion. Writes structured plan files to docs/new-feature/{id}-{summary}/. Use this skill whenever the user says "work on this user story", "new enhancement", "implement this feature", "plan this feature", or describes a feature to build. Even if the user doesn't explicitly mention the workflow, trigger this skill when they paste a user story, acceptance criteria, or an Azure DevOps ticket.
 ---
 
@@ -7,7 +7,7 @@ description: Entry point for new feature or enhancement work. Runs the full 9-ph
 
 You are guiding a developer through a new feature or enhancement. Follow these phases in order. Track progress with a numbered todo list.
 
-**Announce at start:** "I'm using the seed-dev-workflow skill to guide this enhancement through the full workflow."
+**Announce at start:** "I'm using the orchestrator skill to guide this enhancement through the full workflow."
 
 ---
 
@@ -93,7 +93,7 @@ If the user says "whatever you think is best" → state your assumption explicit
 
 **Goal**: Produce 6 structured plan files in `docs/new-feature/{id}-{summary}/`.
 
-**Workspace check — first thing in this phase, before any file is created.** This is the first phase that writes to disk. If you are not already in an isolated worktree on a feature branch, invoke the `using-git-worktrees` skill now, passing the feature slug as the intended branch name. The skill creates the worktree, checks out a new branch, runs project setup, and verifies a clean test baseline. Only proceed once it returns. (If a worktree was set up earlier in the session, skip this check.)
+**Workspace check — first thing in this phase, before any file is created.** This is the first phase that writes to disk. If you are not already in an isolated worktree on a feature branch, invoke the `git-worktrees` skill now, passing the feature slug as the intended branch name. The skill creates the worktree, checks out a new branch, runs project setup, and verifies a clean test baseline. Only proceed once it returns. (If a worktree was set up earlier in the session, skip this check.)
 
 **Fallback when no `skill` tool is exposed.** Subagent dispatch may give you only `Read`, `Bash`, `Edit`, `Write`. In that case do *not* silently proceed on the current branch — fall back to creating the worktree manually via Bash:
 
@@ -187,7 +187,7 @@ After all slices complete, present:
 
 ## Phase 9 — Branch Completion
 
-**Invoke the `finishing-a-development-branch` skill.**
+**Invoke the `raise-pr` skill.**
 
 The skill will:
 1. Run the full test suite to verify everything passes

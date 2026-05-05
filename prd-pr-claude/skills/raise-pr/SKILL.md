@@ -1,5 +1,5 @@
 ---
-name: finishing-a-development-branch
+name: raise-pr
 description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
 allowed-tools: Read, Bash, AskUserQuestion
 ---
@@ -12,7 +12,7 @@ Guide completion of development work by presenting clear options and handling ch
 
 **Core principle:** Verify tests → Present options → Execute choice → Clean up.
 
-**Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
+**Announce at start:** "I'm using the raise-pr skill to complete this work."
 
 ## The Process
 
@@ -116,5 +116,5 @@ For Option 3: keep worktree.
 
 ## Integration
 
-Pairs with `using-git-worktrees` — cleans up the worktree that skill created.
-Called at the end of the `seed-dev-workflow` Phase 8 after all tasks are complete.
+Pairs with `git-worktrees` — cleans up the worktree that skill created.
+Called at the end of the `orchestrator` Phase 8 after all tasks are complete.
