@@ -1,40 +1,16 @@
 {
-  "name": "agentic-coding-workshop",
+  "name": "skills",
   "owner": {
-    "name": "Agentic Coding Workshop"
+    "name": "wei6bin"
   },
   "metadata": {
-    "description": "Workshop marketplace. Two variants of the dev-workflow plugin: prd-pr-copilot (Copilot CLI, orchestrator entry skill + .agent.md subagents) and prd-pr-claude (Claude Code, orchestrator skill + .md subagents).",
-    "version": "1.2.0"
+    "description": "Claude Code marketplace hosting the prd-pr-claude dev-workflow plugin: orchestrator skill drives the full plan-then-build flow with vertical-slice architecture and slice-by-slice implementation, dispatching helper subagents as needed.",
+    "version": "2.0.0"
   },
   "plugins": [
     {
-      "name": "prd-pr-copilot",
-      "description": "Copilot CLI variant — AI-assisted developer workflow with vertical-slice architecture, slice-by-slice implementation, and ADO task creation. Entry skill: orchestrator. Agents use Copilot's .agent.md format.",
-      "source": "./prd-pr-copilot",
-      "agents": [
-        "./agents/code-architect.agent.md",
-        "./agents/code-explorer.agent.md",
-        "./agents/plan-reviewer.agent.md",
-        "./agents/impl-backend.agent.md",
-        "./agents/impl-frontend.agent.md",
-        "./agents/impl-simplify.agent.md"
-      ],
-      "skills": [
-        "./skills/vertical-slicing",
-        "./skills/git-worktrees",
-        "./skills/raise-pr",
-        "./skills/backend-implementer",
-        "./skills/frontend-implementer",
-        "./skills/codebase-context-builder",
-        "./skills/context-updater",
-        "./skills/react-best-practices",
-        "./skills/restful-api-design"
-      ]
-    },
-    {
       "name": "prd-pr-claude",
-      "description": "Claude Code variant — orchestrator skill (workshop-dev-workflow) drives the full plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) as needed.",
+      "description": "Claude Code dev-workflow plugin — orchestrator skill (workshop-dev-workflow) drives the full plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) as needed.",
       "source": "./prd-pr-claude",
       "agents": [
         "./agents/code-architect.md",
