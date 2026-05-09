@@ -82,7 +82,7 @@ flowchart TD
 
 | Type | Examples | Where defined |
 |---|---|---|
-| **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify` | `prd-pr-claude/agents/*.md` |
+| **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify` | `prd-pr/agents/*.md` |
 | **Skill** (orange) | `orchestrator`, `codebase-context-builder`, `vertical-slicing`, `git-worktrees`, `raise-pr`, `react-best-practices`, `restful-api-design`, `backend-implementer`, `frontend-implementer`, `context-updater` | `*/skills/<name>/SKILL.md` |
 | **Artifact** (purple) | The 6 plan files written in Phase 5 | `docs/new-feature/{id}-{summary}/` |
 

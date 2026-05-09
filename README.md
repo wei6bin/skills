@@ -1,10 +1,10 @@
-# skills — prd-pr-claude dev-workflow plugin
+# skills — prd-pr dev-workflow plugin
 
-Claude Code plugin marketplace hosting the **prd-pr-claude** dev-workflow plugin.
+Claude Code plugin marketplace hosting the **prd-pr** dev-workflow plugin.
 
 | Plugin name | For | Agent format |
 |---|---|---|
-| `prd-pr-claude` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
+| `prd-pr` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 
@@ -33,7 +33,7 @@ Run inside a Claude Code session (slash commands):
 /plugin marketplace add wei6bin/skills
 
 # 2. Install the plugin
-/plugin install prd-pr-claude@skills
+/plugin install prd-pr@skills
 
 # 3. Refresh discovery after edits (no restart needed)
 /reload-plugins
@@ -41,11 +41,11 @@ Run inside a Claude Code session (slash commands):
 # Browse / verify / manage
 /plugin                                       # picker, "Installed" tab
 /plugin marketplace list
-/plugin disable   prd-pr-claude@skills
-/plugin enable    prd-pr-claude@skills
-/plugin uninstall prd-pr-claude@skills
+/plugin disable   prd-pr@skills
+/plugin enable    prd-pr@skills
+/plugin uninstall prd-pr@skills
 ```
 
-Plugin contents land at `~/.claude/plugins/cache/skills/prd-pr-claude/`.
+Plugin contents land at `~/.claude/plugins/cache/skills/prd-pr/`.
 
 After editing the plugin source, refresh with `/reload-plugins`.

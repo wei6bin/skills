@@ -4,14 +4,14 @@
     "name": "wei6bin"
   },
   "metadata": {
-    "description": "Claude Code marketplace hosting the prd-pr-claude dev-workflow plugin: orchestrator skill drives the full plan-then-build flow with vertical-slice architecture and slice-by-slice implementation, dispatching helper subagents as needed.",
+    "description": "Claude Code marketplace hosting the prd-pr dev-workflow plugin: orchestrator skill drives the full plan-then-build flow with vertical-slice architecture and slice-by-slice implementation, dispatching helper subagents as needed.",
     "version": "2.0.0"
   },
   "plugins": [
     {
-      "name": "prd-pr-claude",
+      "name": "prd-pr",
       "description": "Claude Code dev-workflow plugin — orchestrator skill (workshop-dev-workflow) drives the full plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) as needed.",
-      "source": "./prd-pr-claude",
+      "source": "./prd-pr",
       "agents": [
         "./agents/code-architect.md",
         "./agents/code-explorer.md",

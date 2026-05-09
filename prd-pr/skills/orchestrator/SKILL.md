@@ -34,7 +34,7 @@ You are guiding a developer through a new feature or enhancement. Follow these p
    - If missing or empty → invoke the `codebase-context-builder` skill to generate it, then continue.
    - If populated → read `docs/project_context/00_index.md` and load 2–4 relevant files.
 
-2. Launch **2–3 `code-explorer` subagents in parallel** using the task tool with `agent_type: "prd-pr-claude:code-explorer"`, each targeting a different aspect:
+2. Launch **2–3 `code-explorer` subagents in parallel** using the task tool with `agent_type: "prd-pr:code-explorer"`, each targeting a different aspect:
    - Subagent 1: *"Find features similar to [feature] and trace through their full implementation — entry points, handlers, services, data access, frontend. Return 5–10 key files."*
    - Subagent 2: *"Map the architecture and patterns for [domain area] — layers, naming conventions, DTO shapes, error handling, auth. Return 5–10 key files."*
    - Subagent 3 (if full-stack): *"Trace the frontend patterns for [feature area] — component structure, data fetching usage, form patterns, state. Return 5–10 key files."*
@@ -73,7 +73,7 @@ If the user says "whatever you think is best" → state your assumption explicit
 
 **Goal**: Design a concrete implementation plan, sliced vertically, before writing any documents.
 
-1. Launch **1 `code-architect` subagent** using the task tool with `agent_type: "prd-pr-claude:code-architect"`, providing full context from Phases 2–3:
+1. Launch **1 `code-architect` subagent** using the task tool with `agent_type: "prd-pr:code-architect"`, providing full context from Phases 2–3:
    - Feature description, extracted ACs, answers from Phase 3
    - Reference implementation found in Phase 2
    - Loaded context files from `docs/project_context/`
@@ -124,7 +124,7 @@ Update or create `docs/new-feature/README.md` with an index entry for this enhan
 
 **Goal**: Catch gaps and inconsistencies before handing off to development.
 
-Launch **2 `plan-reviewer` subagents in parallel** using the task tool with `agent_type: "prd-pr-claude:plan-reviewer"`, each reviewing from a different angle:
+Launch **2 `plan-reviewer` subagents in parallel** using the task tool with `agent_type: "prd-pr:plan-reviewer"`, each reviewing from a different angle:
 - Reviewer 1: *"Review `docs/new-feature/{folder}/` focusing on AC coverage, security, edge cases, and business/technical plan consistency."*
 - Reviewer 2: *"Review `docs/new-feature/{folder}/` focusing on task completeness, dependency ordering, test coverage, and estimate reasonableness."*
 
@@ -156,12 +156,12 @@ Present:
 For each slice in `04-task-plan.md`, in order:
 
 1. **Implement backend half, then frontend half.** Per the slice's `Layers:` field, dispatch the relevant implementer subagent(s) using the task tool:
-   - If `BE + FE`: dispatch `agent_type: "prd-pr-claude:impl-backend"` with scope `"SLICE-NN backend half"`; wait; then dispatch `agent_type: "prd-pr-claude:impl-frontend"` with scope `"SLICE-NN frontend half"`.
+   - If `BE + FE`: dispatch `agent_type: "prd-pr:impl-backend"` with scope `"SLICE-NN backend half"`; wait; then dispatch `agent_type: "prd-pr:impl-frontend"` with scope `"SLICE-NN frontend half"`.
    - If `BE only` or `FE only`: dispatch only that implementer.
 
    Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
 
-2. **Simplify within the slice.** Dispatch `agent_type: "prd-pr-claude:impl-simplify"` scoped to `"stay within SLICE-NN"`, passing the files changed during this slice.
+2. **Simplify within the slice.** Dispatch `agent_type: "prd-pr:impl-simplify"` scoped to `"stay within SLICE-NN"`, passing the files changed during this slice.
 3. **Verify the slice is demoable.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
 4. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
 
