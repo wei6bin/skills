@@ -147,6 +147,15 @@ Return a blueprint structured for direct use in the plan documents:
 - Backend reference patterns: [existing files the BE implementer should copy-style from, e.g. `RegisterPatientHandler.cs`]
 - Frontend reference patterns: [existing files the FE implementer should copy-style from, e.g. `PatientList.tsx`, `usePatientList.ts`]
 - Rough size: 1 | 2 | 3 | 5 story points
+- Smoke: [curl sequence (or FE component test for pure-FE slices) — happy path plus at least one auth/role check, with expected status codes inline. Example:
+    ```
+    # 1. Login as admin (expect 200 + Set-Cookie)
+    curl -i -c jar -X POST localhost:5000/api/auth/login -d '{"email":"...","password":"..."}'
+    # 2. Hit role-gated endpoint (expect 200, NOT 403)
+    curl -i -b jar localhost:5000/api/staff
+    # 3. Same endpoint without cookie (expect 401)
+    curl -i localhost:5000/api/staff
+    ```]
 
 #### Change sites
 [One block per file this slice touches. Order is irrelevant — these are targets, not steps. Snippets are the *target shape* the green-state test should drive toward, not paste-blindly diffs. Use the line anchors you captured in step 1b.]

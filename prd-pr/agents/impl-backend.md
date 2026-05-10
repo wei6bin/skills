@@ -46,12 +46,6 @@ When you finish, return one message with all six sections (write "none" where em
 5. **Stop reasons** — lint hook, missing dep, ambiguity, sandboxing, classifier denial — or "none".
 6. **Flagged for orchestrator / FE half / next slice** — anything noticed but not acted on, including out-of-scope conditions.
 
-## After the Slice's Backend Half Is Complete
+## After your half is complete
 
-**Invoke the `context-updater` skill** to capture product knowledge from this session into `docs/project_context/prod_spec/`. Pass a summary of:
-- What feature was implemented
-- Domain rules enforced
-- Config decisions made
-- Any design decisions that are not obvious from reading the code
-
-The `context-updater` skill does **not** record source code — only the product/domain knowledge an engineer carries in their head.
+Return your Return Report and stop. The orchestrator runs the slice smoke and dispatches `context-updater` at the slice boundary — do not invoke it from here.
