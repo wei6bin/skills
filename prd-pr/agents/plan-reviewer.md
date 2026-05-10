@@ -81,6 +81,18 @@ You are reviewing the documents in `docs/new-feature/{folder-name}/`.
 - Is the rollback plan realistic?
 - If DB migrations exist, is the migration reversible?
 
+**Test-claim verification (sample-based)**
+
+After listing your other findings, pick **3 random ACs** from `01-business-plan.md` and verify in `05-test-plan.md` that each has a test which would *actually fail* if the AC were unimplemented — not just "covered by lint" or a sibling-AC test that asserts something else.
+
+Report each sampled AC as:
+
+```
+[AC-NN] verified | gap: <one-line reason>
+```
+
+Raise any gap as a **Critical** issue (≥ 90 confidence) with a concrete suggested test.
+
 ---
 
 ## Confidence Scoring

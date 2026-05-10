@@ -44,6 +44,14 @@ Report back when the slice's frontend half is complete. Include: which ACs are n
 - **Testing implementation details** (component state, hook internals). Test what the user sees and does.
 - **Pre-creating components before a test demands them.**
 
+## Driving forms programmatically (tests, demos, agent-browser)
+
+If the codebase uses React Hook Form (or any library that listens for native `InputEvent`s):
+
+- `agent-browser fill`, `fireEvent.change`, and synthetic `click`s on submit buttons do **not** reliably trigger RHF's `onChange` / `onSubmit` — RHF reacts to native `InputEvent`s through React's internal value setter.
+- Use the React-compatible value setter (get the native setter, call it, dispatch `new InputEvent('input', { bubbles: true })`), then submit via `form.requestSubmit()` — not `submitButton.click()`.
+- In integration tests, use `userEvent.type` (real keystrokes), not `fireEvent.change`.
+
 ## Stack Conventions
 
 <!-- Fill in for your project before using this skill -->
