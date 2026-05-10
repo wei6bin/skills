@@ -161,9 +161,17 @@ For each slice in `04-task-plan.md`, in order:
 
    Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
 
+   **Verify the implementer's Return Report** before moving on — confirm AC coverage and test counts match the slice card. If a section is missing or tests weren't actually run, re-dispatch the implementer with the gap, or finish the work directly and note the takeover.
+
 2. **Simplify within the slice.** Dispatch `agent_type: "prd-pr:impl-simplify"` scoped to `"stay within SLICE-NN"`, passing the files changed during this slice.
-3. **Verify the slice is demoable.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
-4. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
+
+3. **Run the slice's API smoke.** Execute the `Smoke:` sequence from the slice card against the running stack. If it fails, stop — do **not** proceed to e2e or context-updater. Re-dispatch the implementer with the failure, fix directly, or escalate. This catches the bug class unit tests miss (auth config, claim mapping, query binding, role-claim type) before HITL demo time.
+
+4. **Verify the slice is demoable end-to-end.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
+
+5. **Capture product knowledge.** Dispatch `context-updater` once for the slice (BE + FE deltas combined), summarising: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code.
+
+6. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
 
 ### Step 2 — Independent slices may run in parallel
 

@@ -27,7 +27,21 @@ npm test / cargo test / pytest / go test ./... / dotnet test
 
 **If tests fail:** Show failures. Stop. Don't proceed to Step 2.
 
-**If tests pass:** Continue to Step 2.
+**If tests pass:** Continue to Step 1.5.
+
+### Step 1.5: HITL Demo
+
+Read `04-task-plan.md`. For any slice with `Type: HITL`:
+
+1. Ask: **"Run the HITL demo via agent-browser before opening the PR? [Y/skip]"**
+
+2. **If Y** — drive each HITL slice's demo steps end-to-end:
+   - For form interactions, follow the `frontend-implementer` skill's "Driving forms programmatically" section.
+   - Per step: report ✅ / ❌ with URL and observed state (e.g. "✅ Step 3: change-password 200, redirected to `/`").
+   - If any step fails: stop, report, do **not** proceed to PR creation.
+   - For bootstrap/seed recovery, follow `02-technical-plan.md` "Dev/Demo Data Recovery".
+
+3. **If skip** — note "HITL demo skipped by user" in the PR body.
 
 ### Step 2: Determine Base Branch
 
@@ -110,9 +124,9 @@ For Option 3: keep worktree.
 
 ## Red Flags
 
-**Never:** proceed with failing tests, merge without re-running tests on result, delete work without typed confirmation.
+**Never:** proceed with failing tests, proceed past a failed HITL demo step, merge without re-running tests on result, delete work without typed confirmation.
 
-**Always:** verify tests before options, present exactly 4 options, clean up worktree for Options 1 & 4 only.
+**Always:** verify tests before options, run or skip-confirm the HITL demo for any HITL slice, present exactly 4 options, clean up worktree for Options 1 & 4 only.
 
 ## Integration
 

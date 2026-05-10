@@ -116,6 +116,14 @@ Return a blueprint structured for direct use in the plan documents:
 [table/field/migration details]
 (omit if no data changes)
 
+## Dev/Demo Data Recovery
+[Required if the feature seeds data, mutates auth secrets, or uses bootstrap accounts. Document a recovery path that does NOT rely on destructive ops the auto-mode classifier will deny (`docker compose down -v`, direct UPDATE on stateful tables, --no-sandbox flags). Omit if none of those apply.]
+
+- **Seeded accounts and reset story**: [e.g. "bootstrap admin: re-run `dotnet run -- reset-bootstrap-admin --email admin@…` — non-destructive, idempotent"]
+- **Reversible vs irreversible mutations**: [ops that change persisted state with no undo path, so the orchestrator knows when to pause and ask]
+- **Recipe to recover from a mangled demo**: [step-by-step that does not wipe data — a CLI command, a SQL file in the repo, or a dev-only admin endpoint]
+- **When `docker compose down -v` IS the right answer**: [the exact confirmation prompt the orchestrator should ask first; e.g. "This wipes the local DB volume. Confirm? [y/N]"]
+
 ## Reference Implementation
 - Follow: [path] — [why it's the best match]
 
@@ -147,6 +155,15 @@ Return a blueprint structured for direct use in the plan documents:
 - Backend reference patterns: [existing files the BE implementer should copy-style from, e.g. `RegisterPatientHandler.cs`]
 - Frontend reference patterns: [existing files the FE implementer should copy-style from, e.g. `PatientList.tsx`, `usePatientList.ts`]
 - Rough size: 1 | 2 | 3 | 5 story points
+- Smoke: [curl sequence (or FE component test for pure-FE slices) — happy path plus at least one auth/role check, with expected status codes inline. Example:
+    ```
+    # 1. Login as admin (expect 200 + Set-Cookie)
+    curl -i -c jar -X POST localhost:5000/api/auth/login -d '{"email":"...","password":"..."}'
+    # 2. Hit role-gated endpoint (expect 200, NOT 403)
+    curl -i -b jar localhost:5000/api/staff
+    # 3. Same endpoint without cookie (expect 401)
+    curl -i localhost:5000/api/staff
+    ```]
 
 #### Change sites
 [One block per file this slice touches. Order is irrelevant — these are targets, not steps. Snippets are the *target shape* the green-state test should drive toward, not paste-blindly diffs. Use the line anchors you captured in step 1b.]

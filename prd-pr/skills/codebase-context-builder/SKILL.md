@@ -118,6 +118,14 @@ Create `docs/project_context/` if it doesn't exist.
 - `00_index.md` — filled with actual file references
 - `01_architectural_overview.md` — actual layers, patterns, tech found
 - `02_domain_model.md` — entities discovered, workflows inferred from code
+- `04_build_environment.md` — hot-reload runner, rebuild-trigger files, binary-lock files, multi-file edit recipe, shared dev-services restart paths. Captures gotchas where a `dotnet watch` / `vite` rebuild contends with the implementer's edit on `obj/` or `.vite/deps/` and crashes mid-write — the implementer then sees "API is dead" symptoms that look like product bugs.
+
+  Seed content (mark `[TODO: confirm]` where detection is uncertain):
+  - **Hot-reload runner**: `[host dotnet watch | container dotnet watch | vite dev server | none]`
+  - **Rebuild-trigger files**: `[glob inferred from .csproj watchers / vite config / Cargo.toml]`
+  - **Binary-lock files during rebuild**: `[bin/Debug/.../*.dll, .vite/deps/*, target/debug/*]`
+  - **Multi-file edit recipe**: `[pause via --no-restore, --no-hot, or stop watcher temporarily]`
+  - **Shared dev services**: `[each (db, api, redis…) with non-destructive restart — not 'docker compose down -v']`
 
 **Generate based on detected stack:**
 
