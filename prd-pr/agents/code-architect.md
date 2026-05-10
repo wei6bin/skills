@@ -116,6 +116,14 @@ Return a blueprint structured for direct use in the plan documents:
 [table/field/migration details]
 (omit if no data changes)
 
+## Dev/Demo Data Recovery
+[Required if the feature seeds data, mutates auth secrets, or uses bootstrap accounts. Document a recovery path that does NOT rely on destructive ops the auto-mode classifier will deny (`docker compose down -v`, direct UPDATE on stateful tables, --no-sandbox flags). Omit if none of those apply.]
+
+- **Seeded accounts and reset story**: [e.g. "bootstrap admin: re-run `dotnet run -- reset-bootstrap-admin --email admin@…` — non-destructive, idempotent"]
+- **Reversible vs irreversible mutations**: [ops that change persisted state with no undo path, so the orchestrator knows when to pause and ask]
+- **Recipe to recover from a mangled demo**: [step-by-step that does not wipe data — a CLI command, a SQL file in the repo, or a dev-only admin endpoint]
+- **When `docker compose down -v` IS the right answer**: [the exact confirmation prompt the orchestrator should ask first; e.g. "This wipes the local DB volume. Confirm? [y/N]"]
+
 ## Reference Implementation
 - Follow: [path] — [why it's the best match]
 
