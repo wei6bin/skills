@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Entry point for new feature or enhancement work. Runs the full 9-phase new-enhancement workflow — discovery, parallel codebase exploration, clarifying questions, architecture design, document creation, plan review, summary, slice-by-slice implementation, and branch completion. Writes structured plan files to docs/new-feature/{id}-{summary}/. Use this skill whenever the user says "work on this user story", "new enhancement", "implement this feature", "plan this feature", or describes a feature to build. Even if the user doesn't explicitly mention the workflow, trigger this skill when they paste a user story, acceptance criteria, or an Azure DevOps ticket.
+description: Entry point for new feature or enhancement work. Runs the full 10-phase new-enhancement workflow — discovery, parallel codebase exploration, clarifying questions, architecture design, document creation, plan review, summary, slice-by-slice implementation, end-to-end test-plan walkthrough with screenshots, and branch completion. Writes structured plan files to docs/new-feature/{id}-{summary}/. Use this skill whenever the user says "work on this user story", "new enhancement", "implement this feature", "plan this feature", or describes a feature to build. Even if the user doesn't explicitly mention the workflow, trigger this skill when they paste a user story, acceptance criteria, or an Azure DevOps ticket.
 ---
 
 # Dev Workflow — New Enhancement
@@ -15,7 +15,7 @@ You are guiding a developer through a new feature or enhancement. Follow these p
 
 **Goal**: Understand what needs to be built and gather metadata.
 
-1. Create a todo list covering all 9 phases.
+1. Create a todo list covering all 10 phases.
 2. Ask the user **all at once** (single message):
    - Short description of the feature (if not already provided)
    - Priority: High / Medium / Low
@@ -184,16 +184,39 @@ After all slices complete, present:
 2. What was simplified per slice
 3. **Learning points** — patterns observed, conventions reinforced
 4. Any slices skipped or flagged, with reason
-5. Next steps (run full test suite, open PR, review commits)
+5. Next steps (run full test suite, walk through e2e demos in a real browser, open PR, review commits)
 
 ---
 
-## Phase 9 — Branch Completion
+## Phase 9 — Test Plan Walkthrough
+
+**Goal**: Drive `05-test-plan.md`'s end-to-end manual demos against the running stack, capture one screenshot per step, and produce `06-walkthrough.md` alongside the other plan docs. These artifacts get committed to the branch and embedded into the PR description in Phase 10.
+
+**Pre-condition**: Every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit on the branch. If a slice is still red, go back to Phase 8 — do **not** start the walkthrough.
+
+**Invoke the `test-plan-walkthrough` skill.** It will:
+
+1. Verify the stack is up and seed data / credentials are usable.
+2. For each slice's manual demo line in `05-test-plan.md`:
+   - Decompose into discrete steps.
+   - Drive each step via `agent-browser` (using the `frontend-implementer` skill's "Driving forms programmatically" pattern for React Hook Form pages).
+   - Capture one screenshot per step into `docs/new-feature/{folder}/screenshots/`.
+   - Record observed-vs-expected result.
+3. Write `docs/new-feature/{folder}/06-walkthrough.md` — verbatim demo lines from `05-test-plan.md`, ✅/❌ per step, screenshot embeds, "Issues found during walkthrough" table.
+4. Commit the screenshots + walkthrough as a single `docs({slug}): e2e walkthrough` commit.
+
+If the walkthrough surfaces a regression, fix it as a new slice in Phase 8 (re-dispatch the implementer or fix directly), then re-run the walkthrough for the affected slices. **Do not proceed to Phase 10 with red walkthrough steps unrecorded.**
+
+---
+
+## Phase 10 — Branch Completion
 
 **Invoke the `raise-pr` skill.**
 
 The skill will:
 1. Run the full test suite to verify everything passes
-2. Present 4 options: merge locally / push + PR / keep / discard
-3. Execute the chosen option
-4. Clean up the worktree created in Phase 5
+2. Confirm `06-walkthrough.md` exists (re-invoke `test-plan-walkthrough` if missing)
+3. Present 4 options: merge locally / push + PR / keep / discard
+4. For the PR option, embed `06-walkthrough.md` summary + screenshot references into the PR description
+5. Execute the chosen option
+6. Clean up the worktree created in Phase 5
