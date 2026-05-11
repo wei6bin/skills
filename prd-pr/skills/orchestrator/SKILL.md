@@ -190,22 +190,35 @@ After all slices complete, present:
 
 ## Phase 9 — Test Plan Walkthrough
 
-**Goal**: Drive `05-test-plan.md`'s end-to-end manual demos against the running stack, capture one screenshot per step, and produce `06-walkthrough.md` alongside the other plan docs. These artifacts get committed to the branch and embedded into the PR description in Phase 10.
+**Goal**: Drive `05-test-plan.md`'s end-to-end manual demos against the running stack, capture one screenshot per step, and produce `06-walkthrough.md` + `screenshots/` alongside the other plan docs. These artifacts get committed to the branch and embedded into the PR description in Phase 10.
 
 **Pre-condition**: Every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit on the branch. If a slice is still red, go back to Phase 8 — do **not** start the walkthrough.
 
-**Invoke the `test-plan-walkthrough` skill.** It will:
+### Dispatch the `test-plan-walker` subagent
 
-1. Verify the stack is up and seed data / credentials are usable.
-2. For each slice's manual demo line in `05-test-plan.md`:
-   - Decompose into discrete steps.
-   - Drive each step via `agent-browser` (using the `frontend-implementer` skill's "Driving forms programmatically" pattern for React Hook Form pages).
-   - Capture one screenshot per step into `docs/new-feature/{folder}/screenshots/`.
-   - Record observed-vs-expected result.
-3. Write `docs/new-feature/{folder}/06-walkthrough.md` — verbatim demo lines from `05-test-plan.md`, ✅/❌ per step, screenshot embeds, "Issues found during walkthrough" table.
-4. Commit the screenshots + walkthrough as a single `docs({slug}): e2e walkthrough` commit.
+Use the task tool with `agent_type: "prd-pr:test-plan-walker"` to run the walkthrough **in a clean context window**. The walkthrough produces dozens of screenshots and `snapshot -i` outputs that would otherwise balloon the main session — keep them in the subagent's context, get back only the Return Report.
 
-If the walkthrough surfaces a regression, fix it as a new slice in Phase 8 (re-dispatch the implementer or fix directly), then re-run the walkthrough for the affected slices. **Do not proceed to Phase 10 with red walkthrough steps unrecorded.**
+Pass the subagent:
+
+- Path to the user-story folder: `docs/new-feature/{id}-{summary}/`
+- Current branch name (`git rev-parse --abbrev-ref HEAD`)
+- App URL (e.g. `http://localhost:5173`)
+- Where demo credentials live (path inside `02-technical-plan.md` or env-var names — never the credentials themselves)
+
+The subagent invokes the `test-plan-walkthrough` skill as its playbook and writes only inside the user-story folder. Production code is off-limits — if it finds bugs, it **reports them** in the Return Report; it does not patch them.
+
+### On Return Report
+
+Inspect the subagent's report. It ends with one of three verdicts:
+
+- **`ALL_GREEN`** → every slice's manual demo passed. Proceed to Phase 10.
+- **`FIXES_NEEDED`** → one or more Blocker rows in "Issues found".
+  1. For each Blocker, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description from the report.
+  2. After the implementer returns, re-dispatch `test-plan-walker` for **just the affected slices** — pass the slice list explicitly so it amends `06-walkthrough.md` and replaces only those screenshots, not the whole file.
+  3. Loop until verdict = `ALL_GREEN`.
+- **`PARTIAL`** → the subagent crashed mid-walkthrough (browser timeout, stack down, etc.). Resolve the environmental issue, then re-dispatch with `Resume from: SLICE-NN` and the step index from the report.
+
+**Do not proceed to Phase 10 unless verdict is `ALL_GREEN`.** Non-Blocker findings can be noted in the PR description with a follow-up TODO — they don't gate the PR.
 
 ---
 

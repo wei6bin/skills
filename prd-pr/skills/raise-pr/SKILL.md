@@ -42,9 +42,9 @@ The orchestrator's **Phase 9** drives `05-test-plan.md`'s end-to-end manual demo
 ls docs/new-feature/*/06-walkthrough.md docs/new-feature/*/screenshots/ 2>/dev/null
 ```
 
-- **If present** — read `06-walkthrough.md`. If any slice has a ❌ row or the "Issues found" table lists Open items, **stop**. Report the failing rows and ask the user whether to fix-and-rerun or proceed with caveats noted in the PR body.
-- **If missing** — invoke the `test-plan-walkthrough` skill now. Wait for it to finish before continuing.
-- **If the slice list under `04-task-plan.md` has slices that aren't covered in `06-walkthrough.md`** — re-invoke the walkthrough skill to fill the gap. Every slice must appear.
+- **If present** — read `06-walkthrough.md`. If any slice has a ❌ row or the "Issues found" table lists Blocker items, **stop**. Report the failing rows and tell the user to loop back to Phase 8 (`raise-pr` does not fix bugs).
+- **If missing** — dispatch the `test-plan-walker` subagent (`agent_type: "prd-pr:test-plan-walker"`) per the orchestrator's Phase 9 contract. Wait for its Return Report. Do not invoke the `test-plan-walkthrough` skill inline — it must run in a clean subagent context.
+- **If the slice list under `04-task-plan.md` has slices that aren't covered in `06-walkthrough.md`** — re-dispatch `test-plan-walker` scoped to the missing slices. Every slice must appear.
 
 For any slice marked `Type: HITL` in `04-task-plan.md` that needs the user to physically verify something the skill cannot (e.g. printing a real receipt, scanning a QR code), ask: *"Run the HITL-only verification for SLICE-NN now? [Y/skip]"*. If skipped, note "HITL-only verification skipped by user" in the PR body.
 
