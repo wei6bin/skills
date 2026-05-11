@@ -1,10 +1,13 @@
-# skills — prd-pr dev-workflow plugin
+# skills — prd-pr dev-workflow plugins
 
-Claude Code plugin marketplace hosting the **prd-pr** dev-workflow plugin.
+Plugin marketplace hosting two variants of the **prd-pr** dev-workflow plugin.
 
 | Plugin name | For | Agent format |
 |---|---|---|
 | `prd-pr` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
+| `prd-pr-copilot` | Copilot CLI | `agents/*.agent.md`, frontmatter uses `tools: ['read', 'edit', ...]` |
+
+Both run the same orchestrator-driven flow — discovery → codebase exploration → clarifying questions → architecture → plan docs → review → slice-by-slice implementation → PR. The Claude variant adds a Phase 9 end-to-end test-plan walkthrough (agent-browser screenshots embedded in the PR body); the Copilot variant ships without it.
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 
@@ -12,7 +15,7 @@ The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root
 
 ## Prerequisites
 
-Before installing the plugin, make sure your machine has:
+Before installing either plugin, make sure your machine has:
 
 1. **Azure CLI signed in to your ADO organisation** — required for ADO ticket lookups and task creation in the workflow.
    ```bash
@@ -24,7 +27,7 @@ Before installing the plugin, make sure your machine has:
 
 ---
 
-## Install in Claude Code
+## Install in Claude Code (`prd-pr`)
 
 Run inside a Claude Code session (slash commands):
 
@@ -49,3 +52,19 @@ Run inside a Claude Code session (slash commands):
 Plugin contents land at `~/.claude/plugins/cache/skills/prd-pr/`.
 
 After editing the plugin source, refresh with `/reload-plugins`.
+
+---
+
+## Install in Copilot CLI (`prd-pr-copilot`)
+
+Run inside a Copilot CLI session:
+
+```text
+# 1. Register the marketplace (one-time)
+/plugin marketplace add wei6bin/skills
+
+# 2. Install the plugin
+/plugin install prd-pr-copilot@skills
+```
+
+The orchestrator skill is the entry point — kick off a feature with a user story or ADO ticket URL and it will drive the 9-phase flow, dispatching the `.agent.md` subagents as needed.
