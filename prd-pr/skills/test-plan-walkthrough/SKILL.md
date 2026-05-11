@@ -1,6 +1,6 @@
 ---
 name: test-plan-walkthrough
-description: Use after Phase 8 completes (all slices implemented + unit/integration tests green) to walk through 05-test-plan.md's end-to-end manual demos in a real browser via agent-browser, capture one screenshot per step, and produce 06-walkthrough.md alongside the other plan docs. The screenshots and walkthrough file are committed to the branch so the raise-pr skill can reference them from the PR description.
+description: Playbook for the Phase 9 walkthrough — drives 05-test-plan.md's end-to-end manual demos through agent-browser, writes 06-walkthrough.md and screenshots/ into the user-story folder. Invoked by the test-plan-walker subagent.
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 ---
 
@@ -34,25 +34,9 @@ If any of these are missing, ask the user before proceeding — do not guess.
 
 ---
 
-## Output layout
+## Output
 
-```
-docs/new-feature/{folder}/
-├── 00-overview.md
-├── 01-business-plan.md
-├── 02-technical-plan.md
-├── 03-implementation-plan.md
-├── 04-task-plan.md
-├── 05-test-plan.md
-├── 06-walkthrough.md           ← NEW (written by this skill)
-└── screenshots/                 ← NEW (written by this skill)
-    ├── slice-01-01-doctor-queue.png
-    ├── slice-01-02-rx-saved.png
-    ├── slice-02-01-allergy-dialog.png
-    └── ...
-```
-
-**Naming convention:** `slice-{NN}-{step-NN}-{short-kebab-name}.png` — `NN` is two-digit, zero-padded. One screenshot per demo step, plus a "final state" screenshot per slice.
+Writes `06-walkthrough.md` and `screenshots/*.png` into the user-story folder. Screenshot naming: `slice-{NN}-{step-NN}-{short-kebab-name}.png` — `NN` two-digit, zero-padded. One screenshot per demo step.
 
 ---
 
@@ -173,24 +157,10 @@ git commit -m "docs({slug}): e2e walkthrough — screenshots + 06-walkthrough.md
 
 Single commit per walkthrough run. If a re-run replaces screenshots, amend or add a new commit — do not leave orphan files in the working tree.
 
-### Step 6 — Hand off to raise-pr
-
-Tell the user what was produced and which slices passed / failed, then exit. The orchestrator will invoke `raise-pr` next. `raise-pr` reads `06-walkthrough.md` and embeds its summary + screenshot links into the PR description.
-
----
-
 ## Red flags
 
-- **Faking screenshots.** If a step's screenshot would be misleading (e.g. captured before the action landed, or showing a stale state), retake it. Do not commit screenshots that don't match the recorded result.
-- **Skipping a slice.** Every slice in `04-task-plan.md` must appear in `06-walkthrough.md`, even if its demo is trivial or backend-only ("BE only — no UI to capture; verified via API smoke" is a valid entry).
-- **Inventing demo steps.** The steps come from `05-test-plan.md`. If a step is ambiguous, ask the user — do not improvise.
-- **Headed-mode requirement that breaks in WSL/CI.** Prefer headless capture (default). If headed is required for a print-preview or similar, note the dependency in `06-walkthrough.md` "Pre-flight" so the next runner knows.
-- **Committing credentials.** Never paste passwords into `06-walkthrough.md`. Reference the seed-data section of the technical plan instead.
-
----
-
-## Integration
-
-- Invoked by `orchestrator` Phase 9 after every slice's e2e test passes.
-- Consumed by `raise-pr` — the PR body pulls from `06-walkthrough.md` and references the screenshot paths.
-- Pairs with `frontend-implementer`'s "Driving forms programmatically" guidance for React Hook Form pages.
+- **Faking screenshots.** If a step's screenshot would be misleading (captured before the action landed, or showing a stale state), retake it.
+- **Skipping a slice.** Every slice in `04-task-plan.md` must appear in `06-walkthrough.md`. Backend-only slices get an entry: *"BE only — no UI; verified via API smoke."*
+- **Inventing demo steps.** Steps come verbatim from `05-test-plan.md`. If ambiguous, ask — do not improvise.
+- **Headed-mode requirement that breaks in WSL/CI.** Prefer headless. If headed is required (print preview etc.), note the dependency in "Pre-flight".
+- **Committing credentials.** Never paste passwords into `06-walkthrough.md`. Reference `02-technical-plan.md`'s seed-data section instead.

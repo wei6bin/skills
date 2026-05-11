@@ -190,46 +190,22 @@ After all slices complete, present:
 
 ## Phase 9 — Test Plan Walkthrough
 
-**Goal**: Drive `05-test-plan.md`'s end-to-end manual demos against the running stack, capture one screenshot per step, and produce `06-walkthrough.md` + `screenshots/` alongside the other plan docs. These artifacts get committed to the branch and embedded into the PR description in Phase 10.
+**Goal**: drive `05-test-plan.md`'s end-to-end manual demos, screenshot each step, write `06-walkthrough.md` for Phase 10 to embed in the PR body.
 
-**Pre-condition**: Every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit on the branch. If a slice is still red, go back to Phase 8 — do **not** start the walkthrough.
+**Pre-condition**: every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit. If anything is still red, return to Phase 8.
 
-### Dispatch the `test-plan-walker` subagent
+**Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
 
-Use the task tool with `agent_type: "prd-pr:test-plan-walker"` to run the walkthrough **in a clean context window**. The walkthrough produces dozens of screenshots and `snapshot -i` outputs that would otherwise balloon the main session — keep them in the subagent's context, get back only the Return Report.
+**Act on the Return Report verdict:**
 
-Pass the subagent:
+- **`ALL_GREEN`** → proceed to Phase 10.
+- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to just the affected slices so it amends `06-walkthrough.md` and replaces only those screenshots. Loop until `ALL_GREEN`.
+- **`PARTIAL`** → resolve the environmental issue the report names, then re-dispatch with `Resume from: SLICE-NN step-NN`.
 
-- Path to the user-story folder: `docs/new-feature/{id}-{summary}/`
-- Current branch name (`git rev-parse --abbrev-ref HEAD`)
-- App URL (e.g. `http://localhost:5173`)
-- Where demo credentials live (path inside `02-technical-plan.md` or env-var names — never the credentials themselves)
-
-The subagent invokes the `test-plan-walkthrough` skill as its playbook and writes only inside the user-story folder. Production code is off-limits — if it finds bugs, it **reports them** in the Return Report; it does not patch them.
-
-### On Return Report
-
-Inspect the subagent's report. It ends with one of three verdicts:
-
-- **`ALL_GREEN`** → every slice's manual demo passed. Proceed to Phase 10.
-- **`FIXES_NEEDED`** → one or more Blocker rows in "Issues found".
-  1. For each Blocker, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description from the report.
-  2. After the implementer returns, re-dispatch `test-plan-walker` for **just the affected slices** — pass the slice list explicitly so it amends `06-walkthrough.md` and replaces only those screenshots, not the whole file.
-  3. Loop until verdict = `ALL_GREEN`.
-- **`PARTIAL`** → the subagent crashed mid-walkthrough (browser timeout, stack down, etc.). Resolve the environmental issue, then re-dispatch with `Resume from: SLICE-NN` and the step index from the report.
-
-**Do not proceed to Phase 10 unless verdict is `ALL_GREEN`.** Non-Blocker findings can be noted in the PR description with a follow-up TODO — they don't gate the PR.
+Non-Blocker findings don't gate the PR — they get listed as follow-ups in the PR body.
 
 ---
 
 ## Phase 10 — Branch Completion
 
-**Invoke the `raise-pr` skill.**
-
-The skill will:
-1. Run the full test suite to verify everything passes
-2. Confirm `06-walkthrough.md` exists (re-invoke `test-plan-walkthrough` if missing)
-3. Present 4 options: merge locally / push + PR / keep / discard
-4. For the PR option, embed `06-walkthrough.md` summary + screenshot references into the PR description
-5. Execute the chosen option
-6. Clean up the worktree created in Phase 5
+**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, and cleans up the worktree from Phase 5.

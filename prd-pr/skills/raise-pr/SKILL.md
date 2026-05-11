@@ -31,7 +31,7 @@ npm test / cargo test / pytest / go test ./... / dotnet test
 
 ### Step 1.5: Test Plan Walkthrough (artifacts check)
 
-The orchestrator's **Phase 9** drives `05-test-plan.md`'s end-to-end manual demos via the `test-plan-walkthrough` skill and produces:
+The orchestrator's **Phase 9** dispatches the `test-plan-walker` subagent (which runs the `test-plan-walkthrough` skill as its playbook) and produces:
 
 - `docs/new-feature/{folder}/06-walkthrough.md` — per-step ✅/❌ status, observed-vs-expected, "Issues found"
 - `docs/new-feature/{folder}/screenshots/slice-NN-step-NN-*.png` — one screenshot per demo step
