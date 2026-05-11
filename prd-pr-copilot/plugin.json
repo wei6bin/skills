@@ -1,0 +1,6 @@
+{
+  "name": "prd-pr-copilot",
+  "description": "Copilot CLI variant — AI-assisted developer workflow with vertical-slice architecture design, slice-by-slice implementation, and Azure DevOps task creation. Agents use Copilot's .agent.md format.",
+  "version": "1.2.0",
+  "keywords": ["dev-workflow", "user-story", "architecture", "vertical-slice", "implementation", "azure-devops", "copilot-cli"]
+}
