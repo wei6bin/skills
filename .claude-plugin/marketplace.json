@@ -4,13 +4,13 @@
     "name": "wei6bin"
   },
   "metadata": {
-    "description": "Marketplace hosting two variants of the prd-pr dev-workflow plugin: prd-pr (Claude Code) and prd-pr-copilot (Copilot CLI). Both run the orchestrator-driven plan-then-build flow with vertical-slice architecture and slice-by-slice implementation, dispatching helper subagents as needed.",
-    "version": "2.1.0"
+    "description": "Marketplace hosting two variants of the prd-pr dev-workflow plugin: prd-pr (Claude Code) and prd-pr-copilot (Copilot CLI). Both run the same 10-phase orchestrator-driven flow — plan-then-build with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough with screenshots embedded into the PR body.",
+    "version": "2.2.0"
   },
   "plugins": [
     {
       "name": "prd-pr",
-      "description": "Claude Code dev-workflow plugin — orchestrator skill (workshop-dev-workflow) drives the full plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify) as needed.",
+      "description": "Claude Code dev-workflow plugin — orchestrator skill drives the 10-phase plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, test-plan-walker) as needed.",
       "source": "./prd-pr",
       "agents": [
         "./agents/code-architect.md",
@@ -18,7 +18,8 @@
         "./agents/plan-reviewer.md",
         "./agents/impl-backend.md",
         "./agents/impl-frontend.md",
-        "./agents/impl-simplify.md"
+        "./agents/impl-simplify.md",
+        "./agents/test-plan-walker.md"
       ],
       "skills": [
         "./skills/orchestrator",
@@ -30,12 +31,13 @@
         "./skills/codebase-context-builder",
         "./skills/context-updater",
         "./skills/react-best-practices",
-        "./skills/restful-api-design"
+        "./skills/restful-api-design",
+        "./skills/test-plan-walkthrough"
       ]
     },
     {
       "name": "prd-pr-copilot",
-      "description": "Copilot CLI variant — orchestrator skill drives the 9-phase plan-then-build flow with vertical-slice architecture and slice-by-slice implementation. Agents use Copilot's .agent.md format.",
+      "description": "Copilot CLI variant — orchestrator skill drives the 10-phase plan-then-build flow with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough that embeds screenshots into the PR body. Agents use Copilot's .agent.md format.",
       "source": "./prd-pr-copilot",
       "agents": [
         "./agents/code-architect.agent.md",
@@ -43,7 +45,8 @@
         "./agents/plan-reviewer.agent.md",
         "./agents/impl-backend.agent.md",
         "./agents/impl-frontend.agent.md",
-        "./agents/impl-simplify.agent.md"
+        "./agents/impl-simplify.agent.md",
+        "./agents/test-plan-walker.agent.md"
       ],
       "skills": [
         "./skills/orchestrator",
@@ -55,7 +58,8 @@
         "./skills/codebase-context-builder",
         "./skills/context-updater",
         "./skills/react-best-practices",
-        "./skills/restful-api-design"
+        "./skills/restful-api-design",
+        "./skills/test-plan-walkthrough"
       ]
     }
   ]

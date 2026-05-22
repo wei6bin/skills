@@ -169,7 +169,7 @@ For each slice in `04-task-plan.md`, in order:
 
 4. **Verify the slice is demoable end-to-end.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
 
-5. **Capture product knowledge.** Dispatch `context-updater` once for the slice (BE + FE deltas combined), summarising: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code.
+5. **Capture product knowledge.** Invoke the `context-updater` skill (it runs in the main session — it is **not** a subagent, so do not dispatch it via `agent_type`) once for the slice (BE + FE deltas combined), summarising: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code.
 
 6. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
 

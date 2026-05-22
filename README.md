@@ -7,7 +7,7 @@ Plugin marketplace hosting two variants of the **prd-pr** dev-workflow plugin.
 | `prd-pr` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
 | `prd-pr-copilot` | Copilot CLI | `agents/*.agent.md`, frontmatter uses `tools: ['read', 'edit', ...]` |
 
-Both run the same orchestrator-driven flow — discovery → codebase exploration → clarifying questions → architecture → plan docs → review → slice-by-slice implementation → PR. The Claude variant adds a Phase 9 end-to-end test-plan walkthrough (agent-browser screenshots embedded in the PR body); the Copilot variant ships without it.
+Both run the same 10-phase orchestrator-driven flow — discovery → codebase exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → end-to-end test-plan walkthrough with screenshots → PR.
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 
@@ -67,4 +67,4 @@ Run inside a Copilot CLI session:
 /plugin install prd-pr-copilot@skills
 ```
 
-The orchestrator skill is the entry point — kick off a feature with a user story or ADO ticket URL and it will drive the 9-phase flow, dispatching the `.agent.md` subagents as needed.
+The orchestrator skill is the entry point — kick off a feature with a user story or ADO ticket URL and it will drive the 10-phase flow, dispatching the `.agent.md` subagents as needed.
