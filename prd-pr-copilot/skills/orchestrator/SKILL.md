@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Entry point for new feature or enhancement work. Runs the full 9-phase new-enhancement workflow — discovery, parallel codebase exploration, clarifying questions, architecture design, document creation, plan review, summary, slice-by-slice implementation, and branch completion. Writes structured plan files to docs/new-feature/{id}-{summary}/. Use this skill whenever the user says "work on this user story", "new enhancement", "implement this feature", "plan this feature", or describes a feature to build. Even if the user doesn't explicitly mention the workflow, trigger this skill when they paste a user story, acceptance criteria, or an Azure DevOps ticket.
+description: Entry point for new feature or enhancement work. Runs the full 10-phase new-enhancement workflow — discovery, parallel codebase exploration, clarifying questions, architecture design, document creation, plan review, summary, slice-by-slice implementation, end-to-end test-plan walkthrough with screenshots, and branch completion. Writes structured plan files to docs/new-feature/{id}-{summary}/. Use this skill whenever the user says "work on this user story", "new enhancement", "implement this feature", "plan this feature", or describes a feature to build. Even if the user doesn't explicitly mention the workflow, trigger this skill when they paste a user story, acceptance criteria, or an Azure DevOps ticket.
 ---
 
 # Dev Workflow — New Enhancement
@@ -15,7 +15,7 @@ You are guiding a developer through a new feature or enhancement. Follow these p
 
 **Goal**: Understand what needs to be built and gather metadata.
 
-1. Create a todo list covering all 9 phases.
+1. Create a todo list covering all 10 phases.
 2. Ask the user **all at once** (single message):
    - Short description of the feature (if not already provided)
    - Priority: High / Medium / Low
@@ -181,16 +181,28 @@ After all slices complete, present:
 2. What was simplified per slice
 3. **Learning points** — patterns observed, conventions reinforced
 4. Any slices skipped or flagged, with reason
-5. Next steps (run full test suite, open PR, review commits)
+5. Next steps (run full test suite, walk through e2e demos in a real browser, open PR, review commits)
 
 ---
 
-## Phase 9 — Branch Completion
+## Phase 9 — Test Plan Walkthrough
 
-**Invoke the `raise-pr` skill.**
+**Goal**: drive `05-test-plan.md`'s end-to-end manual demos, screenshot each step, write `06-walkthrough.md` for Phase 10 to embed in the PR body.
 
-The skill will:
-1. Run the full test suite to verify everything passes
-2. Present 4 options: merge locally / push + PR / keep / discard
-3. Execute the chosen option
-4. Clean up the worktree created in Phase 5
+**Pre-condition**: every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit. If anything is still red, return to Phase 8.
+
+**Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr-copilot:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
+
+**Act on the Return Report verdict:**
+
+- **`ALL_GREEN`** → proceed to Phase 10.
+- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to just the affected slices so it amends `06-walkthrough.md` and replaces only those screenshots. Loop until `ALL_GREEN`.
+- **`PARTIAL`** → resolve the environmental issue the report names, then re-dispatch with `Resume from: SLICE-NN step-NN`.
+
+Non-Blocker findings don't gate the PR — they get listed as follow-ups in the PR body.
+
+---
+
+## Phase 10 — Branch Completion
+
+**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, and cleans up the worktree from Phase 5.
