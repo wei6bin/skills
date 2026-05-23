@@ -34,6 +34,7 @@ If a change is required outside scope, stop and report under "Flagged for orches
 3. Read `03-implementation-plan.md` — note the **reference patterns** flagged for this slice's frontend half. These are hints, not file lists.
 4. Read relevant `docs/project_context/` files — load project-specific conventions (these override the React guidelines where they conflict).
 5. Grep for the closest existing component/page/hook matching the reference patterns.
+6. **If this is a JS/TS monorepo (workspaces/Turbo/Nx) and your app imports a shared local package, build the workspace deps first** (e.g. `pnpm -r build`) — and again whenever you add a new export to a shared package. The app typechecks against the shared package's compiled output, so a stale build makes `tsc` (and the post-edit hook) report phantom `Cannot find module` / `has no exported member` errors. The hook flags those as **non-blocking** — when you see that, rebuild deps; never edit source to chase them.
 
 Once context is loaded, **invoke the `frontend-implementer` skill**, passing the loaded context and the slice card. The skill drives the TDD red-green-refactor loop, one AC behaviour at a time, committing per cycle.
 
@@ -50,4 +51,6 @@ When you finish, return one message with all six sections (write "none" where em
 
 ## After your half is complete
 
-Return your Return Report and stop. The orchestrator runs the slice smoke and dispatches `context-updater` at the slice boundary — do not invoke it from here.
+Before returning, **verify your scope's working tree is clean** — run `git status` and confirm every file you changed is committed. A slice's frontend half is usually several files (context/hook, page, shared-package export, router/parent wiring, entry point); leaving any of them uncommitted hands the orchestrator a half-wired slice it cannot distinguish from done. If you ran out of budget mid-slice, commit what is green and name the remaining files/ACs under **Stop reasons** — never end with uncommitted work and no stop-reason.
+
+Then return your Return Report and stop. The orchestrator runs the slice smoke and dispatches `context-updater` at the slice boundary — do not invoke it from here.

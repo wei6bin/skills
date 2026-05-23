@@ -52,6 +52,44 @@ If the codebase uses React Hook Form (or any library that listens for native `In
 - Use the React-compatible value setter (get the native setter, call it, dispatch `new InputEvent('input', { bubbles: true })`), then submit via `form.requestSubmit()` — not `submitButton.click()`.
 - In integration tests, use `userEvent.type` (real keystrokes), not `fireEvent.change`.
 
+## Monorepo build order (read before your first typecheck)
+
+If the frontend is a workspace (pnpm/yarn/npm workspaces, Turbo, Nx) and your app
+depends on a **shared local package** (a design system, an api/types package),
+that package is consumed through its **compiled output**, not its source. So:
+
+- **Build shared workspace deps before you typecheck or run tests** — e.g.
+  `pnpm -r build` or the shared package's build script. Do this once up front, and
+  again right after you add a new export to a shared package (a new function,
+  component, or type your app then imports).
+- The post-edit typecheck hook is monorepo-aware: when it reports
+  `Cannot find module '@scope/...'` or `module has no exported member`, it labels
+  the message **non-blocking** and tells you to build workspace deps. That is a
+  build-order signal — **run the workspace build, do not edit source to chase
+  it.** Those errors (and the `any`/`unknown` cascades they trigger) vanish once
+  the shared package is rebuilt.
+- Only blocking, file-scoped hook errors are yours to fix in code.
+
+## Before you report (completion check)
+
+A slice's frontend half is usually **several files** (a context/hook, a page, a
+shared-package export, a wiring change in the router/parent, an entry point).
+Before you return:
+
+1. Every user-visible AC behaviour in your layer-half is green — re-list them.
+2. **Every file you changed is committed.** Run `git status` for your scope; the
+   tree must be clean. Never leave the slice half-wired with uncommitted edits —
+   that is worse than not starting it, because the orchestrator can't tell done
+   from in-progress.
+3. The full FE suite passes and the app builds/typechecks (after the workspace
+   build above) — not just the test you wrote last.
+
+If you run low on budget mid-slice, do **not** stop silently: commit what is
+green, and in your Return Report's **Stop reasons** name exactly which files and
+ACs remain so the orchestrator can finish or re-dispatch. A truncated run with
+uncommitted work and no stop-reason is the failure mode this check exists to
+prevent.
+
 ## Stack Conventions
 
 <!-- Fill in for your project before using this skill -->
