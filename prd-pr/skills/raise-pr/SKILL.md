@@ -126,19 +126,31 @@ Full per-step report and screenshots: [`docs/new-feature/{folder}/06-walkthrough
 {paste verbatim from 05-test-plan.md — Rollback Plan}
 ```
 
-**Embedding screenshots** — relative paths render inline on **GitHub** when the PR description is rendered against the head branch:
+**Embedding screenshots** — PR descriptions are **not** rendered against the head branch on either GitHub or Azure DevOps. Relative image paths will 404 (the file doesn't exist on `main` yet at PR-open time). Always use absolute URLs that pin to the head branch.
+
+For **GitHub**, use the `raw` URL pinned to the head branch (or a specific commit SHA for immutability):
 
 ```markdown
-![SLICE-01 Rx saved](docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png)
+![SLICE-01 Rx saved](https://github.com/{owner}/{repo}/raw/{branch}/docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png)
 ```
 
-For **Azure DevOps**, relative paths do **not** render. Use the raw item URL pointing at the head branch:
+Also use absolute URLs for **markdown file links** (e.g. the walkthrough link) — same reason:
+
+```markdown
+[06-walkthrough.md](https://github.com/{owner}/{repo}/blob/{branch}/docs/new-feature/{folder}/06-walkthrough.md)
+```
+
+Pull `{owner}/{repo}` from `git remote get-url origin`. `{branch}` is the feature branch name.
+
+For **Azure DevOps**, use the raw item URL pointing at the head branch:
 
 ```
 ![SLICE-01 Rx saved](https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo}/items?path=/docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png&versionDescriptor.version={branch}&versionDescriptor.versionType=branch&api-version=7.1)
 ```
 
 Generate one such URL per embedded image. Pull `{org}/{project}/{repo}` from `git remote get-url origin`.
+
+**Note:** Once the PR merges, both forms still work — `raw/{branch}` resolves against whatever `{branch}` currently points to. If the head branch is deleted post-merge, switch the link to `raw/{merge-commit-sha}` or `raw/main` for long-term stability.
 
 **Create the PR:**
 
@@ -202,7 +214,7 @@ For Option 3: keep worktree.
 
 **Never:** proceed with failing tests, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running tests on result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
 
-**Always:** verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use raw-item URLs for Azure DevOps PR screenshots (relative paths only render on GitHub).
+**Always:** verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
 
 ## Integration
 
