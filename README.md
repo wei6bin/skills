@@ -1,11 +1,12 @@
 # skills — prd-pr dev-workflow plugins
 
-Plugin marketplace hosting two variants of the **prd-pr** dev-workflow plugin.
+Plugin marketplace hosting two variants of the **prd-pr** dev-workflow plugin, plus a Cursor adapter.
 
-| Plugin name | For | Agent format |
+| Variant | For | Agent format |
 |---|---|---|
 | `prd-pr` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
 | `prd-pr-copilot` | Copilot CLI | `agents/*.agent.md`, frontmatter uses `tools: ['read', 'edit', ...]` |
+| `prd-pr-cursor` | Cursor | Not a marketplace plugin — a project-local `.cursor/` adapter (see below) |
 
 Both run the same 10-phase orchestrator-driven flow — discovery → codebase exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → end-to-end test-plan walkthrough with screenshots → PR.
 
@@ -68,3 +69,19 @@ Run inside a Copilot CLI session:
 ```
 
 The orchestrator skill is the entry point — kick off a feature with a user story or ADO ticket URL and it will drive the 10-phase flow, dispatching the `.agent.md` subagents as needed.
+
+---
+
+## Use in Cursor (`prd-pr-cursor`)
+
+Cursor cannot consume the agents from the marketplace plugin directly — it dispatches with `Task(subagent_type="...")` (no `prd-pr:` prefix) and reads `model:` frontmatter only from project-local `.cursor/agents/*.md` (picker slugs like `composer-2.5`, not `sonnet`/`opus` shorthands). `prd-pr-cursor/` is therefore an **adapter to copy into the target repo**, not a marketplace plugin:
+
+```bash
+# from the target repo root
+cp -R <this-repo>/prd-pr-cursor/agents <this-repo>/prd-pr-cursor/rules .cursor/
+```
+
+- `agents/` — project-local copies of the seven prd-pr subagents with Cursor model tiers (see `agents/README.md` for the tier table and `agents/SMOKE-TEST.md` to verify models resolve).
+- `rules/prd-pr-cursor.mdc` — an `alwaysApply` rule that maps the plugin's `agent_type: "prd-pr:…"` dispatch syntax to Cursor's `subagent_type`, pins per-phase routing, and points skills at the installed `wei6bin-skills/prd-pr` plugin cache.
+
+Skills still come from the marketplace plugin (`~/.cursor/plugins/cache/wei6bin-skills/prd-pr/`); only agents and the rule live in the project. When the plugin's agent playbooks change, re-copy the body from `prd-pr/agents/*.md` and keep the Cursor `model:` frontmatter.

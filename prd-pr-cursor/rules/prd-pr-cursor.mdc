@@ -1,0 +1,85 @@
+---
+description: Cursor adapter for prd-pr orchestrator — correct Task subagent types and models (not Claude Code agent_type syntax).
+alwaysApply: true
+---
+
+# prd-pr on Cursor (adapter)
+
+The prd-pr plugin targets **Claude Code** (`agent_type: "prd-pr:…"` and `model:` in
+`agents/*.md`). In **Cursor**, use this rule whenever running the orchestrator skill or
+implementing from `docs/new-feature/*/04-task-plan.md`.
+
+## Dispatch (Task tool)
+
+Use **`subagent_type`** — never `agent_type`, never the `prd-pr:` prefix.
+
+| Phase | `subagent_type` | Notes |
+|-------|-----------------|--------|
+| 2 — exploration | `code-explorer` | 2–3 parallel tasks, different angles |
+| 4 — architecture | `code-architect` | One task with Phase 2–3 context |
+| 6 — plan review | `plan-reviewer` | Two parallel tasks (AC/security vs tasks/tests) |
+| 8 — backend half | `impl-backend` | Scope e.g. `"SLICE-01 backend half"` |
+| 8 — frontend half | `impl-frontend` | After backend for same slice |
+| 8 — simplify | `impl-simplify` | Per slice, changed files only |
+| 9 — walkthrough | `test-plan-walker` | Clean context; do not inline Phase 9 in parent |
+
+**Do not** substitute generic `explore` or `generalPurpose` for the rows above unless the
+user explicitly asks for a one-off search outside prd-pr.
+
+## Models
+
+**Project agents:** `.cursor/agents/{name}.md` — Cursor reads `model:` frontmatter here (not
+plugin `sonnet`/`opus`/`haiku`). See `.cursor/agents/README.md`.
+
+| Subagent | `.cursor/agents` `model:` |
+|----------|---------------------------|
+| `code-explorer` | `composer-2` |
+| `code-architect` | `claude-opus-4-7` |
+| `plan-reviewer` | `gpt-5.5` |
+| `impl-backend`, `impl-frontend` | `composer-2.5` |
+| `impl-simplify` | `composer-2.5-fast` |
+| `test-plan-walker` | `inherit` |
+
+**Task `model` parameter:** **Omit** on spawn — frontmatter applies. Override only when needed
+(use the same picker slug as frontmatter). Do **not** use `fast` or `opus` shorthands on
+implementers/architect. Smoke test: `.cursor/agents/SMOKE-TEST.md`.
+
+Put the heavy reasoning on the **parent** orchestrator model; use subagents for scoped work.
+
+## Phase 8 (implementation)
+
+Per slice in `04-task-plan.md`, in order:
+
+1. `impl-backend` → verify Return Report → `impl-frontend` → verify
+2. `impl-simplify` (slice scope only)
+3. Slice smoke + e2e from `05-test-plan.md`
+4. `context-updater` skill in **parent** (not a Task subagent)
+5. Checkpoint commit
+
+**Do not** implement slice backend/frontend inline in the parent when this rule applies,
+except to fix a failed subagent Return Report.
+
+## Playbooks
+
+**Agents (this repo):** `.cursor/agents/{name}.md` — playbooks + `model:` (see README there).
+
+**Skills (plugin only):** `orchestrator`, `backend-implementer`, `vertical-slicing`, etc. from
+the installed **wei6bin-skills/prd-pr** plugin:
+
+```text
+~/.cursor/plugins/cache/wei6bin-skills/prd-pr/*/skills/
+```
+
+Do not duplicate skills under `.cursor/skills/` — same `name:` would collide with the plugin.
+
+When spawning, `subagent_type` loads the project agent file. Invoke skills by name from the
+plugin. Where a plugin skill says `agent_type: "prd-pr:…"`, use `subagent_type` per the table
+above instead.
+
+To refresh agent playbooks from upstream: copy from `wei6bin-skills/prd-pr/*/agents/` and keep
+Cursor `model:` values in `.cursor/agents/`.
+
+## Worktree
+
+Phase 5+ writes go in an isolated worktree on the feature branch (`git-worktrees` skill).
+Do not plan or implement feature code on `main` without user approval.
