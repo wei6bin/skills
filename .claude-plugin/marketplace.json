@@ -67,7 +67,7 @@
       "description": "Collection of standalone utility skills — teach-me and more.",
       "source": "./utility-skills",
       "agents": [],
-      "skills": ["./skills/teach-me", "./skills/learn-it", "./skills/spec-me"]
+      "skills": ["./skills/teach-me", "./skills/learn-it", "./skills/spec-me", "./skills/html-it"]
     }
   ]
 }
