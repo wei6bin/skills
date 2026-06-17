@@ -67,7 +67,7 @@
       "description": "Interactive teaching skill — incremental deep-understanding sessions with quizzes and mastery verification.",
       "source": "./teach-me",
       "agents": [],
-      "skills": ["."]
+      "skills": ["./skills/teach-me"]
     }
   ]
 }
