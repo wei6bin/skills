@@ -61,6 +61,13 @@
         "./skills/restful-api-design",
         "./skills/test-plan-walkthrough"
       ]
+    },
+    {
+      "name": "teach-me",
+      "description": "Interactive teaching skill — incremental deep-understanding sessions with quizzes and mastery verification.",
+      "source": "./teach-me",
+      "agents": [],
+      "skills": ["."]
     }
   ]
 }
