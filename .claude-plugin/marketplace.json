@@ -63,9 +63,9 @@
       ]
     },
     {
-      "name": "teach-me",
-      "description": "Interactive teaching skill — incremental deep-understanding sessions with quizzes and mastery verification.",
-      "source": "./teach-me",
+      "name": "utility-skills",
+      "description": "Collection of standalone utility skills — teach-me and more.",
+      "source": "./utility-skills",
       "agents": [],
       "skills": ["./skills/teach-me"]
     }

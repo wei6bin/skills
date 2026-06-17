@@ -1,6 +1,0 @@
-{
-  "name": "teach-me",
-  "description": "Interactive teaching skill — guides the learner to deep understanding of code changes, decisions, and context through incremental steps, open-ended quizzes, and mastery verification before moving on.",
-  "version": "1.0.0",
-  "keywords": ["teaching", "learning", "code-review", "onboarding", "mentoring"]
-}
