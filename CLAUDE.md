@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A Claude Code **plugin marketplace** (defined in `.claude-plugin/marketplace.json`) hosting two variants of the same `prd-pr` dev-workflow plugin:
+A Claude Code **plugin marketplace** (defined in `.claude-plugin/marketplace.json`) hosting:
 
-- `prd-pr/` — for Claude Code. Agents are `agents/*.md`; frontmatter uses `tools: Read, Edit, ...` (comma-separated names), `model: sonnet`, and descriptions prefixed with `[Internal subagent of workshop-dev-workflow — do not invoke directly]`.
-- `prd-pr-copilot/` — for Copilot CLI. Agents are `agents/*.agent.md`; frontmatter uses `tools: ['read', 'edit', ...]` (YAML list, lowercase), full model ids like `model: claude-sonnet-4.5`, and `user-invocable: false` instead of the description prefix.
+- `prd-pr/` — dev-workflow plugin for Claude Code. Agents are `agents/*.md`; frontmatter uses `tools: Read, Edit, ...` (comma-separated names), `model: sonnet`, and descriptions prefixed with `[Internal subagent of workshop-dev-workflow — do not invoke directly]`.
+- `prd-pr-copilot/` — dev-workflow plugin for Copilot CLI. Agents are `agents/*.agent.md`; frontmatter uses `tools: ['read', 'edit', ...]` (YAML list, lowercase), full model ids like `model: claude-sonnet-4.5`, and `user-invocable: false` instead of the description prefix.
 - `prd-pr-cursor/` — for Cursor. **Not a marketplace plugin** (no plugin.json, no skills, not in marketplace.json): it's a project-local `.cursor/` adapter to copy into target repos — `agents/` (the seven subagents with Cursor picker-slug `model:` frontmatter, e.g. `composer-2.5`, plus `readonly:` flags) and `rules/prd-pr-cursor.mdc` (always-applied rule mapping `agent_type: "prd-pr:…"` to Cursor's bare `subagent_type`). Skills are consumed from the installed `prd-pr` plugin, so agent body changes in `prd-pr/agents/` should be re-copied here while keeping the Cursor frontmatter.
+- `utility-skills/` — standalone user-invocable skills with no agents or hooks. Each skill is a single `skills/<name>/SKILL.md` file. Skills may declare required `args:` in frontmatter (YAML list with `name`, `description`, `required`). Current skills: `teach-me`, `learn-it`, `spec-me`, `html-it`.
 
-There is no build, lint, or test tooling — everything is markdown plus a few bash hook scripts. The "test" is installing the plugin and exercising it: `/plugin marketplace add wei6bin/skills`, `/plugin install prd-pr@skills`, then `/reload-plugins` after edits (no restart needed). Installed contents land at `~/.claude/plugins/cache/skills/prd-pr/`.
+There is no build, lint, or test tooling — everything is markdown plus a few bash hook scripts. The "test" is installing the plugin and exercising it: `/plugin marketplace add wei6bin/skills`, `/plugin install prd-pr@skills`, then `/reload-plugins` after edits (no restart needed). Installed contents land at `~/.claude/plugins/cache/skills/<plugin-name>/`.
 
 ## Architecture
 
@@ -25,7 +26,8 @@ Three component types per plugin:
 ## Keeping registrations and versions in sync
 
 - Every agent and skill must be listed in **both** its plugin's entry in `.claude-plugin/marketplace.json` (the `agents`/`skills` arrays) — adding a file alone does not register it.
-- Bump the relevant `prd-pr*/plugin.json` version on plugin changes, and `metadata.version` in `marketplace.json` on marketplace-level changes.
+- For `utility-skills`, new skills go in `utility-skills/skills/<name>/SKILL.md` and the path `./skills/<name>` must be added to its `skills` array in `marketplace.json`.
+- Bump the relevant `plugin.json` version on plugin changes, and `metadata.version` in `marketplace.json` on marketplace-level changes.
 
 ## The two variants are siblings, not mirrors
 
@@ -33,5 +35,6 @@ Changes are usually ported between `prd-pr` and `prd-pr-copilot`, but the conten
 
 ## Conventions
 
-- Commit messages are prefixed with the plugin they touch: `prd-pr: ...` or `prd-pr-copilot: ...`.
+- Commit messages are prefixed with the plugin they touch: `prd-pr: ...`, `prd-pr-copilot: ...`, or `utility-skills: ...`.
 - Skill/agent prose is written as direct instructions to the executing agent ("You are...", numbered phases, explicit announce lines and return-report formats) — match that style.
+- `utility-skills` skills are user-invocable: their description must clearly state trigger phrases and argument requirements; no `[Internal subagent...]` prefix.

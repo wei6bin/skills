@@ -1,14 +1,13 @@
-# skills — prd-pr dev-workflow plugins
+# skills — Claude Code plugin marketplace
 
-Plugin marketplace hosting two variants of the **prd-pr** dev-workflow plugin, plus a Cursor adapter.
+Plugin marketplace hosting dev-workflow plugins and standalone utility skills.
 
-| Variant | For | Agent format |
+| Plugin | For | Description |
 |---|---|---|
-| `prd-pr` | Claude Code | `agents/*.md`, frontmatter uses `tools: Read, Edit, ...` |
-| `prd-pr-copilot` | Copilot CLI | `agents/*.agent.md`, frontmatter uses `tools: ['read', 'edit', ...]` |
-| `prd-pr-cursor` | Cursor | Not a marketplace plugin — a project-local `.cursor/` adapter (see below) |
-
-Both run the same 10-phase orchestrator-driven flow — discovery → codebase exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → end-to-end test-plan walkthrough with screenshots → PR.
+| `prd-pr` | Claude Code | 10-phase plan-then-build dev workflow |
+| `prd-pr-copilot` | Copilot CLI | Same workflow, Copilot agent format |
+| `prd-pr-cursor` | Cursor | Project-local `.cursor/` adapter (not a marketplace plugin) |
+| `utility-skills` | Claude Code | Standalone user-invocable skills: `teach-me`, `learn-it`, `spec-me`, `html-it` |
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 
@@ -69,6 +68,30 @@ Run inside a Copilot CLI session:
 ```
 
 The orchestrator skill is the entry point — kick off a feature with a user story or ADO ticket URL and it will drive the 10-phase flow, dispatching the `.agent.md` subagents as needed.
+
+---
+
+## Install utility skills (`utility-skills`)
+
+```text
+# 1. Register the marketplace (one-time)
+/plugin marketplace add wei6bin/skills
+
+# 2. Install the plugin
+/plugin install utility-skills@skills
+
+# 3. Reload
+/reload-plugins
+```
+
+| Skill | Invoke | Description |
+|---|---|---|
+| `teach-me` | `/teach-me` | Deep-understanding teaching session for code or any technical topic |
+| `learn-it` | `/learn-it <task>` | Runs a task in background, explains progress in plain language |
+| `spec-me` | `/spec-me @file.md` | Interviews you to flesh out a spec, then rewrites the file |
+| `html-it` | `/html-it` | Generates a visual HTML implementation plan with mockups and code snippets |
+
+Adding a new skill: create `utility-skills/skills/<name>/SKILL.md` and add `./skills/<name>` to the `skills` array in `.claude-plugin/marketplace.json`.
 
 ---
 
