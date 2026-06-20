@@ -2,7 +2,7 @@
 name: impl-frontend
 description: Implements the frontend half of one vertical slice via TDD against the slice's AC. Receives the path to 04-task-plan.md and a slice-scoped scope (e.g. "SLICE-01 frontend half"). Discovers files as tests demand them — no pre-listed file-tasks. Integrates against the real backend just shipped by impl-backend for the same slice. Must not touch other slices.
 tools: ['read', 'edit', 'write', 'search/codebase', 'run_commands', 'skill']
-model: claude-sonnet-4.5
+model: claude-sonnet-4.6
 user-invocable: false
 ---
 

@@ -156,6 +156,18 @@ Present:
 
 **Goal**: Ship each slice end-to-end before starting the next, then simplify the changed code. The unit of work is the **slice**, not the layer.
 
+### Step 0 — Model cost check
+
+Before dispatching any implementation agent, check which model the current session is running on.
+
+If the session model is `claude-opus-4.8` or higher, pause and warn the user:
+
+> ⚠️ **Cost notice:** `impl-backend` and `impl-frontend` are configured for `claude-sonnet-4.6`, but your current session model is `claude-opus-4.8`. The global model setting overrides per-agent configuration, so these agents will run on Opus — roughly **5× more expensive** than intended.
+>
+> To use Sonnet for implementation, switch your session model to `claude-sonnet-4.6` now (via the model picker), then confirm. Or type **proceed** to continue on Opus anyway.
+
+Wait for the user to confirm before dispatching implementation agents.
+
 ### Step 1 — Loop over slices
 
 For each slice in `04-task-plan.md`, in order:
