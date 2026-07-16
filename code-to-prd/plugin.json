@@ -1,0 +1,6 @@
+{
+  "name": "code-to-prd",
+  "description": "Reverse-engineer any codebase into a complete Product Requirements Document (PRD). Analyzes routes, components, models, APIs, and interactions for frontend (React, Vue, Angular, Next.js), backend (NestJS, Django, Express, FastAPI), .NET/ASP.NET (Web API, WCF, Web Forms), native mobile (Android, iOS), and fullstack applications.",
+  "version": "2.10.0",
+  "keywords": ["prd", "product-requirements", "reverse-engineering", "code-analysis", "documentation", "frontend", "backend", "fullstack", "dotnet", "aspnet", "android", "ios", "claude-code"]
+}
