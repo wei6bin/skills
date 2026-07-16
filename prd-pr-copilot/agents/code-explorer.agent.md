@@ -2,7 +2,7 @@
 name: code-explorer
 description: Deeply explores a codebase to understand how an existing feature or domain area is implemented — tracing execution paths, mapping architecture layers, identifying patterns and conventions. Invoked as a subagent by the dev-workflow coordinator during Phase 2 to build understanding before design begins.
 tools: ['search/codebase', 'search/usages', 'read', 'web/fetch']
-model: claude-sonnet-4.5
+model: claude-sonnet-5
 user-invocable: false
 ---
 

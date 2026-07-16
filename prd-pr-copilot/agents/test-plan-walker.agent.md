@@ -2,7 +2,7 @@
 name: test-plan-walker
 description: Runs the Phase 9 end-to-end walkthrough in a clean context — drives 05-test-plan.md's manual demos through agent-browser, writes 06-walkthrough.md + screenshots, returns a structured Return Report. Reports bugs — never patches them.
 tools: ['read', 'write', 'edit', 'run_commands', 'search/codebase', 'skill']
-model: claude-sonnet-4.5
+model: claude-sonnet-5
 user-invocable: false
 ---
 

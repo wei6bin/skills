@@ -2,7 +2,7 @@
 name: code-architect
 description: Designs a concrete implementation blueprint for a new feature — slices, files to create/modify, task breakdown ordered by dependency, API contracts, and data model changes. Slices the work vertically (each slice end-to-end demoable) using the vertical-slicing skill. Uses codebase patterns found by code-explorer and answers from clarifying questions. Returns a single decisive plan, not multiple options.
 tools: ['search/codebase', 'search/usages', 'read', 'skill']
-model: claude-opus-4.5
+model: claude-opus-4.8
 user-invocable: false
 ---
 
