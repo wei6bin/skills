@@ -151,6 +151,23 @@ Present:
 
 **Goal**: Ship each slice end-to-end before starting the next, then simplify the changed code. The unit of work is the **slice**, not the layer.
 
+### Step 0 — Progress ledger (create or resume)
+
+Loop position must survive compaction and session restarts — the plan docs are durable but "which step of which slice am I on" is not, unless you write it down.
+
+- **If `docs/new-feature/{folder}/07-progress.md` already exists**: you are resuming. Read it, cross-check the last ✅ against `git log --oneline` (checkpoint and `feat(...)` commits are the ground truth if the ledger is stale), and continue from the first non-✅ step. Do not redo completed steps.
+- **If it does not exist**: create it now — one table row per slice from `04-task-plan.md`, one column per loop step:
+
+```markdown
+# Progress — {id}-{summary}
+
+| Slice | BE | FE | Simplify | Review | Smoke | E2E | Context | Checkpoint |
+|-------|----|----|----------|--------|-------|-----|---------|------------|
+| SLICE-01 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+```
+
+Statuses: `⬜` pending · `✅` done · `❌` failed/blocked (add a one-line note under the table). Mark N/A cells `—` (e.g. FE on a BE-only slice). **Update the row immediately after each step completes — not in batches at the slice boundary.** This file is orchestrator-owned: implementer/reviewer subagents must not write to it.
+
 ### Step 1 — Loop over slices
 
 For each slice in `04-task-plan.md`, in order:
@@ -161,17 +178,24 @@ For each slice in `04-task-plan.md`, in order:
 
    Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
 
-   **Verify the implementer's Return Report** before moving on — confirm AC coverage and test counts match the slice card. If a section is missing or tests weren't actually run, re-dispatch the implementer with the gap, or finish the work directly and note the takeover.
+   **Verify the implementer's Return Report independently** before moving on. The report was written by the agent it describes — never accept its test counts on trust:
+   - Run the layer's test suite yourself via Bash (the command comes from `docs/project_context/` or the slice card — same one the implementer claims to have run) and compare actual pass/fail counts against the report.
+   - Confirm AC coverage: every AC the slice card assigns to this layer-half appears in the report with a named backing test.
+   - On any mismatch — fewer tests than reported, failures the report calls green, missing AC rows — re-dispatch the implementer with the discrepancy quoted verbatim, or finish the work directly and note the takeover. A report section that is missing is treated the same as a mismatch.
 
 2. **Simplify within the slice.** Dispatch `agent_type: "prd-pr:impl-simplify"` scoped to `"stay within SLICE-NN"`, passing the files changed during this slice.
 
-3. **Run the slice's API smoke.** Execute the `Smoke:` sequence from the slice card against the running stack. If it fails, stop — do **not** proceed to e2e or context-updater. Re-dispatch the implementer with the failure, fix directly, or escalate. This catches the bug class unit tests miss (auth config, claim mapping, query binding, role-claim type) before HITL demo time.
+3. **Code-review the slice.** Dispatch `agent_type: "prd-pr:code-reviewer"` with the slice scope, the user-story folder path, and the diff range from the previous slice's checkpoint commit to `HEAD` (for SLICE-01: from the branch point). The reviewer is the independent check on self-graded work — the implementer wrote both the code and the tests that pass it; the reviewer checks AC *intent* vs test assertions, security, and error paths. Act on the verdict:
+   - **`APPROVED`** → proceed to the smoke.
+   - **`FIXES_NEEDED`** → re-dispatch the appropriate implementer (`impl-backend` / `impl-frontend`) with the Blocker rows quoted verbatim, then re-dispatch `code-reviewer` scoped to the amended diff. Loop until `APPROVED`. Non-blocker rows don't gate the slice — collect them as PR follow-ups.
 
-4. **Verify the slice is demoable end-to-end.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
+4. **Run the slice's API smoke.** Execute the `Smoke:` sequence from the slice card against the running stack. If it fails, stop — do **not** proceed to e2e or context-updater. Re-dispatch the implementer with the failure, fix directly, or escalate. This catches the bug class unit tests miss (auth config, claim mapping, query binding, role-claim type) before HITL demo time.
 
-5. **Capture product knowledge.** Invoke the `context-updater` skill (it runs in the main session — it is **not** a subagent, so do not dispatch it via `agent_type`) once for the slice (BE + FE deltas combined), summarising: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code.
+5. **Verify the slice is demoable end-to-end.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
 
-6. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
+6. **Capture product knowledge.** Invoke the `context-updater` skill (it runs in the main session — it is **not** a subagent, so do not dispatch it via `agent_type`) once for the slice (BE + FE deltas combined), summarising: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code.
+
+7. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`, then mark the slice's row fully ✅ in `07-progress.md`.
 
 ### Step 2 — Independent slices may run in parallel
 
@@ -192,7 +216,7 @@ After all slices complete, present:
 
 **Goal**: drive `05-test-plan.md`'s end-to-end manual demos, screenshot each step, write `06-walkthrough.md` for Phase 10 to embed in the PR body.
 
-**Pre-condition**: every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit. If anything is still red, return to Phase 8.
+**Pre-condition**: every slice's row in `07-progress.md` is fully ✅ — green e2e test, `APPROVED` code review, and checkpoint commit. If any cell is still ⬜ or ❌, return to Phase 8.
 
 **Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
 

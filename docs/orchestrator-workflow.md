@@ -55,9 +55,11 @@ flowchart TD
         P8L --> P8B[impl-backend subagent<br/>TDD red-green-refactor]
         P8B --> P8F[impl-frontend subagent<br/>TDD against real backend]
         P8F --> P8S[impl-simplify subagent<br/>scoped to this slice]
-        P8S --> P8C[context-updater skill<br/>capture product knowledge]
+        P8S --> P8R[code-reviewer subagent<br/>slice diff vs AC intent]
+        P8R --> P8C[context-updater skill<br/>capture product knowledge]
         P8C --> P8E[Run slice e2e test<br/>+ checkpoint commit]
-        P8E -.next slice.-> P8L
+        P8E --> P8P[("07-progress.md<br/>ledger updated per step")]
+        P8P -.next slice.-> P8L
     end
 
     subgraph P9[Phase 9 — Test Plan Walkthrough]
@@ -83,18 +85,18 @@ flowchart TD
     classDef artifact fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
     classDef phase fill:#f5f5f5,stroke:#616161,color:#212121
 
-    class P2B,P4A,P6A,P8B,P8F,P8S,P9A subagent
+    class P2B,P4A,P6A,P8B,P8F,P8S,P8R,P9A subagent
     class P2C,P4B,P5W,P8C,P9T,P10A skill
-    class P5D,F0,F1,F2,F3,F4,F5,P9R artifact
+    class P5D,F0,F1,F2,F3,F4,F5,P8P,P9R artifact
 ```
 
 ## Component legend
 
 | Type | Examples | Where defined |
 |---|---|---|
-| **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify`, `test-plan-walker` | `prd-pr/agents/*.md` |
+| **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify`, `code-reviewer`, `test-plan-walker` | `prd-pr/agents/*.md` |
 | **Skill** (orange) | `orchestrator`, `codebase-context-builder`, `vertical-slicing`, `git-worktrees`, `raise-pr`, `react-best-practices`, `restful-api-design`, `backend-implementer`, `frontend-implementer`, `context-updater`, `test-plan-walkthrough` | `*/skills/<name>/SKILL.md` |
-| **Artifact** (purple) | The 6 plan files written in Phase 5, plus `06-walkthrough.md` + `screenshots/` from Phase 9 | `docs/new-feature/{id}-{summary}/` |
+| **Artifact** (purple) | The 6 plan files written in Phase 5, plus `06-walkthrough.md` + `screenshots/` from Phase 9 and the `07-progress.md` ledger from Phase 8 | `docs/new-feature/{id}-{summary}/` |
 
 ## Phase → component matrix
 
@@ -107,6 +109,6 @@ flowchart TD
 | 5 Write Documents | — | `git-worktrees` (isolate) | 6 plan files in `docs/new-feature/{id}/` |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` | Code + tests + checkpoint commits |
+| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` → `code-reviewer` (loops back to implementer on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` | Code + tests + checkpoint commits + `07-progress.md` ledger (resume point) |
 | 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots; loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |
