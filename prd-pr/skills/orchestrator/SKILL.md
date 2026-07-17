@@ -175,6 +175,7 @@ For each slice in `04-task-plan.md`, in order:
 1. **Implement backend half, then frontend half.** Per the slice's `Layers:` field, dispatch the relevant implementer subagent(s) using the task tool:
    - If `BE + FE`: dispatch `agent_type: "prd-pr:impl-backend"` with scope `"SLICE-NN backend half"`; wait; then dispatch `agent_type: "prd-pr:impl-frontend"` with scope `"SLICE-NN frontend half"`.
    - If `BE only` or `FE only`: dispatch only that implementer.
+   - **Append the lean mode to every implementer scope**, derived from the slice card's story-point size: `lean: lite` for 1–2 points, `lean: full` for 3+ (the default). Large slices (8+ / spike) still get `full` — the implementer flags over-scope in its Return Report rather than dropping ACs; a slice never silently loses an AC to laziness. Example scope: `"SLICE-03 backend half — lean: full"`. This tunes reuse-ladder strictness only; AC coverage is unchanged and still verified below.
 
    Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
 

@@ -1,0 +1,6 @@
+{
+  "name": "prd-pr-cursor",
+  "description": "Cursor variant of the workshop dev workflow — orchestrator rules plus helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, test-plan-walker) driving the 10-phase plan-then-build flow with vertical-slice architecture and an end-to-end test-plan walkthrough. Agents use Cursor's .md format; the orchestrator ships as a .mdc rules file.",
+  "version": "1.4.0",
+  "keywords": ["dev-workflow", "user-story", "architecture", "vertical-slice", "implementation", "azure-devops", "cursor", "workshop"]
+}

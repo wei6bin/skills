@@ -113,6 +113,6 @@ flowchart TD
 | 5 Write Documents | — | `git-worktrees` (isolate) | 6 plan files in `docs/new-feature/{id}/` |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + checkpoint commits |
+| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` (append the lean mode from the slice's story-point size to each implementer scope — `lean: lite` for 1–2 pts, `lean: full` for 3+; large slices stay `full` and flag over-scope, never dropping an AC) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + checkpoint commits |
 | 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots; loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |
