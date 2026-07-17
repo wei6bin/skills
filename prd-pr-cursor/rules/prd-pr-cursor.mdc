@@ -19,7 +19,7 @@ Use **`subagent_type`** — never `agent_type`, never the `prd-pr:` prefix.
 | 4 — architecture | `code-architect` | One task with Phase 2–3 context |
 | 6 — plan review | `plan-reviewer` | Two parallel tasks (AC/security vs tasks/tests) |
 | 8 — backend half | `impl-backend` | Scope e.g. `"SLICE-01 backend half"`; append the lean mode from the slice's story-point size — `lean: lite` (1–2 pts) / `lean: full` (3+, default). Large slices (8+/spike) stay `full` — the implementer flags over-scope, never drops an AC |
-| 8 — frontend half | `impl-frontend` | After backend for same slice; append the same `reuse:` token |
+| 8 — frontend half | `impl-frontend` | After backend for same slice; append the same `lean:` token |
 | 8 — simplify | `impl-simplify` | Per slice, changed files only |
 | 9 — walkthrough | `test-plan-walker` | Clean context; do not inline Phase 9 in parent |
 
