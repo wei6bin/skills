@@ -35,6 +35,8 @@ Identify the AC behaviours your layer-half is responsible for (the parts that ne
 
 Report back when the slice's backend half is complete. Include: which ACs are now backed end-to-end by tests, files touched (discovered, not pre-listed), and anything you flagged for the FE implementer.
 
+> **Reuse ladder & lean mode** live in the `reuse-ladder` skill (invoked by the `impl-backend` agent before this skill runs). Climb the ladder before writing custom code, and honour the lean mode (`lean: lite|full`, from the slice's story-point size) throughout the loop above.
+
 ## Anti-patterns to refuse
 
 - **Writing all tests first, then all implementation.** That is horizontal slicing inside a slice — same trap. One test → one implementation → next test.

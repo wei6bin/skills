@@ -37,6 +37,8 @@ Identify the AC behaviours your layer-half is responsible for (the parts users s
 
 Report back when the slice's frontend half is complete. Include: which ACs are now demoable in the UI, files touched (discovered, not pre-listed), and anything you flagged for the next slice.
 
+> **Reuse ladder & lean mode** live in the `reuse-ladder` skill (invoked by the `impl-frontend` agent before this skill runs). Climb the ladder before writing custom code, and honour the lean mode (`lean: lite|full`, from the slice's story-point size) throughout the loop above.
+
 ## Anti-patterns to refuse
 
 - **Writing all tests first, then all implementation.** Same horizontal-slicing trap. One test → one implementation → next test.
