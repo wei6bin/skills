@@ -27,13 +27,34 @@ Identify the AC behaviours your layer-half is responsible for (the parts that ne
 2. **Find reference.** Grep for the closest existing handler/service/endpoint matching the slice's reference patterns. Note its conventions.
 3. **Write the failing test first.** Write an integration-style test that exercises the behaviour through the public API — not internal collaborators. If the AC is in Given/When/Then form, mirror that structure.
 4. **Run the test — verify it fails for the right reason.** A test that fails because a class doesn't exist is fine. A test that fails because of a typo is not.
-5. **Write the minimal code to pass.** Hardcode where you can. Add the migration, repository method, service, handler, route — only what this test demands. Resist adding fields or methods the next test "will probably need".
+5. **Write the minimal code to pass.** First climb the **reuse ladder** (below) — reuse / stdlib / native / already-installed beats new custom code. Then hardcode where you can. Add the migration, repository method, service, handler, route — only what this test demands. Resist adding fields or methods the next test "will probably need".
 6. **Run tests — verify green.** All tests, not just the one you just wrote.
 7. **Refactor while green.** Extract duplication, deepen modules, name better. Only refactor while green; never while red.
 8. **Commit.** `git commit -m "feat(backend): SLICE-NN — {short behaviour, e.g. 'register Booked patient as Checked-In'}"`. One commit per red-green-refactor cycle.
 9. **Repeat** until every AC behaviour in your layer-half is green.
 
 Report back when the slice's backend half is complete. Include: which ACs are now backed end-to-end by tests, files touched (discovered, not pre-listed), and anything you flagged for the FE implementer.
+
+## Reuse ladder — before writing custom code
+
+Before you write a new function, class, or dependency to make a test pass, climb this ladder and **stop at the first rung that works**. The best code is the code you never wrote — TDD tells you *what* behaviour to add; the ladder tells you to add as little of your own as possible.
+
+1. **Does this AC behaviour need new code at all?** If a passing test can be satisfied by config or an existing path, do that.
+2. **Already in the codebase?** Grep for an existing helper, service, validator, or util. Reuse beats re-implement — and it matches the slice's reference patterns for free.
+3. **In the standard library?** Prefer the language/runtime stdlib over hand-rolling dates, hashing, collections, HTTP, JSON, UUIDs.
+4. **A native framework/platform feature?** Use the framework's built-in — ORM query, model validation, middleware, DI — before custom plumbing.
+5. **An already-installed dependency?** Check the manifest; if a dep already present solves it, use it. Do **not** add a *new* dependency without flagging it in your Return Report.
+6. **Can it be one line?** Prefer the smallest expression that passes the test.
+
+Never take a shortcut *through* the guardrails: input validation, error handling that prevents data loss, security, and accessibility are **never** simplified away — the `code-reviewer` checks exactly these.
+
+## Reuse mode
+
+The orchestrator appends a `reuse: lite|full` token to your scope, derived from the slice's story-point size. It tunes how hard you enforce the reuse ladder — it never changes what the ACs require:
+
+- **lite** (1–2 points): Build what the AC asks. If a lazier path exists, note it in one line in your report — do not block on it.
+- **full** (3+ points, default): Enforce the ladder — stop at the first rung that works before writing custom code.
+- **Large slice (8+ / spike):** Still run in `full`, **and** add a *"this slice may be over-scoped"* note when you report back so the orchestrator can decide. Never drop an AC — scope changes are the orchestrator's call, not yours.
 
 ## Anti-patterns to refuse
 

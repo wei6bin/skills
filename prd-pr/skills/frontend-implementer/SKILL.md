@@ -29,13 +29,34 @@ Identify the AC behaviours your layer-half is responsible for (the parts users s
 2. **Find reference.** Grep for the closest existing component/page/hook matching the slice's reference patterns. Note its conventions (RTK Query / TanStack Query / fetcher pattern; form library; styling system).
 3. **Write the failing test first.** Write a component/integration test that exercises the behaviour through the rendered UI — `getByRole`, user events, asserting on what the user sees. Do not test internal hook return shapes.
 4. **Run the test — verify it fails for the right reason.**
-5. **Write the minimal code to pass.** Add the hook, component, form field, route — only what this test demands. Resist adding props or states the next test "will probably need".
+5. **Write the minimal code to pass.** First climb the **reuse ladder** (below) — reuse / native / installed beats new custom code. Then add the hook, component, form field, route — only what this test demands. Resist adding props or states the next test "will probably need".
 6. **Run tests — verify green.** All tests, not just the one you just wrote.
 7. **Refactor while green.** Extract shared components, name better, untangle. Never refactor while red.
 8. **Commit.** `git commit -m "feat(frontend): SLICE-NN — {short behaviour, e.g. 'show success toast after check-in'}"`. One commit per red-green-refactor cycle.
 9. **Repeat** until every user-visible AC behaviour in your layer-half is green.
 
 Report back when the slice's frontend half is complete. Include: which ACs are now demoable in the UI, files touched (discovered, not pre-listed), and anything you flagged for the next slice.
+
+## Reuse ladder — before writing custom code
+
+Before you write a new component, hook, or dependency to make a test pass, climb this ladder and **stop at the first rung that works**. The best code is the code you never wrote — TDD tells you *what* the user must see; the ladder tells you to add as little of your own as possible.
+
+1. **Does this AC behaviour need new code at all?** If an existing page/route/component already renders it, wire to that instead of building anew.
+2. **Already in the codebase?** Grep for an existing component, hook, or util matching the reference patterns. Reuse the design-system component, don't re-style a bespoke one.
+3. **A native browser/platform feature?** Prefer built-ins — `Intl` for dates/numbers, native form validation, `<dialog>`, the URL/History API — over a hand-rolled equivalent.
+4. **A native framework feature?** Use the framework's built-in — router loader, form state, Suspense/error boundary, the existing data-fetching layer (RTK Query / TanStack Query) — before custom plumbing.
+5. **An already-installed dependency?** Check the manifest; if the UI kit or a lib already present solves it, use it. Do **not** add a *new* dependency without flagging it in your report.
+6. **Can it be one line?** Prefer the smallest change that passes the test.
+
+Never take a shortcut *through* the guardrails: input validation, error/empty/loading states that prevent data loss or confusion, security, and accessibility (roles, labels, keyboard) are **never** simplified away — the `code-reviewer` checks exactly these.
+
+## Reuse mode
+
+The orchestrator appends a `reuse: lite|full` token to your scope, derived from the slice's story-point size. It tunes how hard you enforce the reuse ladder — it never changes what the ACs require:
+
+- **lite** (1–2 points): Build what the AC asks. If a lazier path exists, note it in one line in your report — do not block on it.
+- **full** (3+ points, default): Enforce the ladder — stop at the first rung that works before writing custom code.
+- **Large slice (8+ / spike):** Still run in `full`, **and** add a *"this slice may be over-scoped"* note when you report back so the orchestrator can decide. Never drop an AC — scope changes are the orchestrator's call, not yours.
 
 ## Anti-patterns to refuse
 
