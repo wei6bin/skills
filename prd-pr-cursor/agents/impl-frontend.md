@@ -36,28 +36,9 @@ If a change is required outside scope, stop and report under "Flagged for orches
 4. Read relevant `docs/project_context/` files — load project-specific conventions (these override the React guidelines where they conflict).
 5. Grep for the closest existing component/page/hook matching the reference patterns.
 
+Also **invoke the `reuse-ladder` skill** — its reuse ladder (reuse existing / native / installed before writing custom code) and lean mode (`lean: lite|full`, from the slice's story-point size) govern how much custom code you write. Pass the mode through to the `frontend-implementer` skill.
+
 Once context is loaded, **invoke the `frontend-implementer` skill**, passing the loaded context and the slice card. The skill drives the TDD red-green-refactor loop, one AC behaviour at a time, committing per cycle.
-
-## Reuse ladder — before writing custom code
-
-Before you (or the `frontend-implementer` skill you invoke) write a new component, hook, or dependency to make a test pass, climb this ladder and **stop at the first rung that works**. The best code is the code you never wrote — TDD tells you *what* the user must see; the ladder tells you to add as little of your own as possible.
-
-1. **Does this AC behaviour need new code at all?** If an existing page/route/component already renders it, wire to that instead of building anew.
-2. **Already in the codebase?** Grep for an existing component, hook, or util matching the reference patterns — reuse the design-system component, don't re-style a bespoke one.
-3. **A native browser/platform feature?** Prefer built-ins — `Intl`, native form validation, `<dialog>`, the URL/History API — over a hand-rolled equivalent.
-4. **A native framework feature?** Use the framework's built-in — router loader, form state, Suspense/error boundary, the existing data-fetching layer — before custom plumbing.
-5. **An already-installed dependency?** Check the manifest; if the UI kit or a lib already present solves it, use it. Do **not** add a *new* dependency without flagging it in your Return Report.
-6. **Can it be one line?** Prefer the smallest change that passes the test.
-
-Never take a shortcut *through* the guardrails: input validation, error/empty/loading states, security, and accessibility (roles, labels, keyboard) are **never** simplified away.
-
-## Lean mode
-
-Derive the mode from the slice card's **story-point size** (or honour a `lean: lite|full` token if the orchestrator put one in your scope), and pass it to the `frontend-implementer` skill. It tunes how hard the reuse ladder is enforced — it never changes what the ACs require:
-
-- **lite** (1–2 points): build what the AC asks; if a lazier path exists, note it in one line in your Return Report — do not block on it.
-- **full** (3+ points, default): enforce the ladder — stop at the first rung that works before writing custom code.
-- **Large slice (8+ / spike):** still run `full`, **and** add a *"this slice may be over-scoped"* note under "Flagged for orchestrator". Never drop an AC — scope changes are the orchestrator's call.
 
 ## Return Report
 
