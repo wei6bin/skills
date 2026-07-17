@@ -36,6 +36,8 @@ If a change is required outside scope, stop and report under "Flagged for orches
 5. Grep for the closest existing component/page/hook matching the reference patterns.
 6. **If this is a JS/TS monorepo (workspaces/Turbo/Nx) and your app imports a shared local package, build the workspace deps first** (e.g. `pnpm -r build`) — and again whenever you add a new export to a shared package. The app typechecks against the shared package's compiled output, so a stale build makes `tsc` (and the post-edit hook) report phantom `Cannot find module` / `has no exported member` errors. The hook flags those as **non-blocking** — when you see that, rebuild deps; never edit source to chase them.
 
+Also **invoke the `reuse-ladder` skill** — its reuse ladder and lean mode (from the slice's story-point size, or a `lean:` token in your scope) govern how much custom code you write.
+
 Once context is loaded, **invoke the `frontend-implementer` skill**, passing the loaded context and the slice card. The skill drives the TDD red-green-refactor loop, one AC behaviour at a time, committing per cycle.
 
 ## Return Report

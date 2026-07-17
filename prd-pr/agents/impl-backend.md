@@ -33,6 +33,8 @@ If a change is required outside scope, stop and report under "Flagged for orches
 5. Read relevant `docs/project_context/` files — load project-specific conventions (these override the REST guidelines where they conflict).
 6. Grep for the closest existing handler/service/endpoint matching the reference patterns.
 
+Also **invoke the `reuse-ladder` skill** — its reuse ladder and lean mode (from the slice's story-point size, or a `lean:` token in your scope) govern how much custom code you write.
+
 Once context is loaded, **invoke the `backend-implementer` skill**, passing the loaded context and the slice card. The skill drives the TDD red-green-refactor loop, one AC behaviour at a time, committing per cycle.
 
 ## Return Report
