@@ -1,6 +1,6 @@
 {
   "name": "prd-pr",
   "description": "Claude Code variant of the workshop dev workflow — orchestrator skill plus helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, code-reviewer, test-plan-walker) and the supporting skill suite, including a consolidated post-implementation quality round (independent code review, refactor, smoke, test-suite regression over the whole story), a resumable 07-progress.md ledger, and an end-to-end test-plan walkthrough that runs in a clean subagent context, embeds agent-browser screenshots into the PR description, and persists a Playwright e2e spec per slice into the project's existing e2e suite.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "keywords": ["dev-workflow", "user-story", "architecture", "vertical-slice", "implementation", "azure-devops", "claude-code", "workshop"]
 }

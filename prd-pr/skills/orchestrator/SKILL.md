@@ -65,33 +65,13 @@ If the user says "whatever you think is best" → state your assumption explicit
 
 ---
 
-## Phase 4 — Architecture Design
+## Phase 4 — Architecture Design & Documents
 
-**Goal**: Design a concrete implementation plan, sliced vertically, before writing any documents.
+**Goal**: Design a concrete implementation plan, sliced vertically, and get the six plan documents written — with the doc-writing done by the architect subagent, not transcribed by you.
 
-1. Launch **1 `code-architect` subagent** using the task tool with `agent_type: "prd-pr:code-architect"`, providing full context from Phases 2–3:
-   - Feature description, extracted ACs, answers from Phase 3
-   - Reference implementation found in Phase 2
-   - Loaded context files from `docs/project_context/`
+### Step 0 — Workspace (worktree) — do this before dispatching the architect
 
-   The subagent's final message is the **only** channel this information survives on — its tool calls and intermediate reasoning are not visible to you. Instruct it explicitly to return its complete blueprint in full, with every slice's change-site map and target snippets included, not a summary — Phase 5 writes all 6 plan documents directly from this text and cannot recover detail the subagent left out or abbreviated.
-
-2. Review the blueprint returned. Synthesise into a clear plan covering:
-   - Slice list with demoable behaviour and AC coverage per slice
-   - Tasks within each slice (ordered by layer dependency)
-   - Files to create and files to modify (with exact paths)
-   - API contracts (if new endpoints)
-   - Data model changes (if any)
-
-3. **Present the plan to the user and confirm before writing documents.** Confirming the slice list is the most important decision in this phase.
-
----
-
-## Phase 5 — Write Documents
-
-**Goal**: Produce 6 structured plan files in `docs/new-feature/{id}-{summary}/`.
-
-**Workspace check — first thing in this phase, before any file is created.** This is the first phase that writes to disk. If you are not already in an isolated worktree on a feature branch, invoke the `git-worktrees` skill now, passing the feature slug as the intended branch name. The skill creates the worktree, checks out a new branch, runs project setup, and verifies a clean test baseline. Only proceed once it returns. (If a worktree was set up earlier in the session, skip this check.)
+The architect writes the six plan files to disk, so the isolated worktree must exist first. If you are not already in an isolated worktree on a feature branch, invoke the `git-worktrees` skill now, passing the feature slug as the intended branch name. It creates the worktree, checks out a new branch, runs project setup, and verifies a clean test baseline. Only proceed once it returns. (If a worktree was set up earlier in the session, skip this.)
 
 **Fallback when no `skill` tool is exposed.** Subagent dispatch may give you only `Read`, `Bash`, `Edit`, `Write`. In that case do *not* silently proceed on the current branch — fall back to creating the worktree manually via Bash:
 
@@ -99,22 +79,35 @@ If the user says "whatever you think is best" → state your assumption explicit
 git worktree add -b {feature-slug} {repo-root}/.worktrees/{feature-slug} {base-branch}
 ```
 
-Always pass an **absolute path** for the worktree location — relative paths resolve against your current CWD, which may have drifted into another worktree from earlier `cd` calls and silently nest the new worktree inside it. Verify placement with `git worktree list` before writing any file. After creation, write all subsequent plan documents into the new worktree (use absolute paths in `Write` / `Edit`). If even `Bash` is unavailable, stop and ask the user — never silently proceed on the current branch and never rationalise the skip with "docs only".
+Always pass an **absolute path** for the worktree location — relative paths resolve against your current CWD, which may have drifted into another worktree from earlier `cd` calls and silently nest the new worktree inside it. Verify placement with `git worktree list`. If even `Bash` is unavailable, stop and ask the user — never silently proceed on the current branch.
 
-Create the folder using a short slug (e.g. `add-user-export`).
+Create the user-story folder path using a short slug: `docs/new-feature/{id}-{summary}/` (e.g. `docs/new-feature/usr-012-pwa-shell/`).
 
-Write these files using the full architecture blueprint returned by `code-architect` in Phase 4 — it is the only source for these documents, so nothing in it should be dropped or paraphrased away when transcribing into files:
+### Step 1 — Dispatch the architect (it designs *and* writes the docs)
 
-| File | Contents |
-|------|----------|
-| `00-overview.md` | One-page summary: goal, scope, constraints, success criteria |
-| `01-business-plan.md` | Problem statement, acceptance criteria (verbatim), stakeholders, out-of-scope |
-| `02-technical-plan.md` | Architecture decisions, affected layers, API contracts, data changes, security, non-functional requirements |
-| `03-implementation-plan.md` | A top-level **Change-Site Map** (every touched file × owning slice), then per slice: **reference patterns** (style hints) **and** **change sites** (file `path:line` anchor + target snippet for each touched file) **and** any data-model / API-contract notes. The change-site map carries no implied sequence — it is target geography the explorer already mapped, not a sequenced file-task list. The implementer still drives each AC behaviour through TDD; tests remain the spec, snippets are targets the tests drive toward. |
-| `04-task-plan.md` | **One card per slice** — demoable behaviour, AC coverage, demo steps, type (AFK/HITL), layer-halves (BE / FE / both), blocked-by, rough story-point size. No `SLICE-NN.TASK-NN` table. ADO mapping: each slice = one ADO Task under the parent User Story; each layer-half = one impl-{layer} subagent dispatch. |
-| `05-test-plan.md` | Test cases per AC, grouped by slice. Each slice must have at least one end-to-end test that exercises its demoable behaviour. Type (unit/integration/component/e2e), steps, expected outcome, rollback plan. The `e2e`-type cases and the "manual demo per slice" section are the source the Phase 9 `test-plan-walker` turns into persisted Playwright specs — write the demo steps concretely enough (roles, labels, expected on-screen text) that they translate to browser locators without guesswork. |
+Launch **1 `code-architect` subagent** using the task tool with `agent_type: "prd-pr:code-architect"`, providing full context from Phases 2–3 **and the absolute path to the user-story folder** you just chose:
+- Feature description, extracted ACs, answers from Phase 3
+- Reference implementation found in Phase 2
+- Loaded context files from `docs/project_context/`
+- The folder path — instruct it to write `00-overview.md` … `05-test-plan.md` **directly** into it
 
-Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
+The architect designs the blueprint and **writes all six documents itself**. You do **not** transcribe a returned blueprint into files — that hand-copy used to cost ~20 minutes of dead main-agent time between design and review and dropped detail every time it was abbreviated. The architect's final message is a short **manifest**: a one-line summary, the slice list (ID · behaviour · AC · Layers · Contract · Blocked-by · size), the six file paths it wrote, and key risks.
+
+### Step 2 — Review and confirm the slice list
+
+1. **Read the six documents the architect wrote** (they are the source of truth now — the manifest is only a table of contents). Spot-check that each slice has a card in `04-task-plan.md`, a frozen `Contract:` where `Layers: BE + FE`, and concrete demo steps in `05-test-plan.md`.
+2. **Present the plan to the user and confirm before implementation.** Confirming the slice list — and which slices are parallel-safe (`Blocked by: —`) — is the most important decision in this phase.
+3. If the user wants changes, edit the docs directly (small changes) or re-dispatch the architect with the correction (structural changes). Do not proceed to Phase 6 until the slice list is confirmed.
+
+---
+
+## Phase 5 — Finalize Documents
+
+**Goal**: Confirm the six plan files are complete and index them. (The architect already wrote them in Phase 4 — this phase is verification, not authoring.)
+
+1. Verify all six files exist and are non-empty in `docs/new-feature/{id}-{summary}/`. If any is missing or a stub, re-dispatch the architect to complete it — do not fill it in by hand-transcription (that reintroduces the gap this restructure removed).
+2. Sanity-check cross-document consistency: every slice in `04-task-plan.md` has matching test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` slice's `Contract:` also appears in `02-technical-plan.md`.
+3. Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
 
 ---
 
@@ -147,7 +140,7 @@ Present:
 
 ## Phase 8 — Slice-by-Slice Implementation
 
-**Goal**: Implement every slice end-to-end first. Only *after* every slice is implemented, run one consolidated quality round — code review, refactor, smoke test, full test-suite regression — once, over the whole set of changes. Per-slice looping applies to implementation only; review/refactor/smoke/regression are never repeated per slice. The story's own browser-level e2e is **not** authored or run here — it is written as a persisted Playwright spec and run once in Phase 9 by the `test-plan-walker`, from the same browser pass that captures the PR screenshots.
+**Goal**: Implement every slice's layer-halves first — BE against the frozen contract, FE against a **mock** of it, concurrently, **without integrating per slice**. Only *after* every slice is implemented, run one consolidated round that **integrates the whole story once**, then reviews, refactors, smokes, and regression-tests it. Per-slice looping is for implementation only; integration/review/refactor/smoke/regression run once, over the whole diff. This is safe because each backend conformance-tests its own contract at build time, so deferring integration to the end takes N per-slice passes off the critical path. The story's browser-level e2e is **not** run here — it's a persisted Playwright spec run once in Phase 9 by the `test-plan-walker`, from the same pass that captures the PR screenshots.
 
 ### Step 0 — Progress ledger (create or resume)
 
@@ -169,6 +162,7 @@ Loop position must survive compaction and session restarts — the plan docs are
 
 | Step | Status |
 |------|--------|
+| Integration (whole story — point every FE at the real backends, fix contract drift) | ⬜ |
 | Code review (full diff, branch point → HEAD) | ⬜ |
 | Refactor / simplify (whole story) | ⬜ |
 | Smoke (every slice's smoke sequence, consolidated) | ⬜ |
@@ -179,49 +173,59 @@ Loop position must survive compaction and session restarts — the plan docs are
 
 Statuses: `⬜` pending · `✅` done · `❌` failed/blocked (add a one-line note under the table). Mark N/A cells `—` (e.g. FE on a BE-only slice). **Update a row immediately after it completes — not in batches.** This file is orchestrator-owned: implementer/reviewer subagents must not write to it.
 
-### Step 1 — Loop over slices: implement only
+### Step 1 — Implement slices: parallel halves, parallel slices
 
-For each slice in `04-task-plan.md`, in order:
+**Two axes of parallelism apply here (both from the `vertical-slicing` skill) — use them; do not walk everything serially:**
 
-1. **Implement backend half, then frontend half.** Per the slice's `Layers:` field, dispatch the relevant implementer subagent(s) using the task tool:
-   - If `BE + FE`: dispatch `agent_type: "prd-pr:impl-backend"` with scope `"SLICE-NN backend half"`; wait; then dispatch `agent_type: "prd-pr:impl-frontend"` with scope `"SLICE-NN frontend half"`.
+- **Within a `BE + FE` slice**, the backend and frontend halves run **concurrently** against the slice's frozen `Contract:`.
+- **Across slices**, every parallel-safe slice (`Blocked by: —`) runs **concurrently** in its own worktree. Only serialise a slice behind another when its `Blocked by:` names it.
+
+Schedule from `04-task-plan.md`: start every slice whose `Blocked by:` is satisfied, and start a blocked slice as soon as its blocker's halves are ✅. For each slice you start:
+
+1. **Dispatch the layer-halves concurrently.** Per the slice's `Layers:` field, dispatch the implementer subagent(s) using the task tool **in a single batch so they run in parallel**:
+   - If `BE + FE`: in one batch, dispatch `agent_type: "prd-pr:impl-backend"` (scope `"SLICE-NN backend half — implement AND conformance-test the frozen contract"`) **and** `agent_type: "prd-pr:impl-frontend"` (scope `"SLICE-NN frontend half — build against the frozen contract with a typed mock; stay on the mock, integration is one whole-story pass in Step 2"`). Both get the slice card with the frozen `Contract:`.
+     - **Exception**: if the card says `Contract: unfrozen — serial`, fall back to BE first, then FE — that slice's response shape genuinely can't be known until the backend exists.
    - If `BE only` or `FE only`: dispatch only that implementer.
    - **Append the lean mode to every implementer scope**, derived from the slice card's story-point size: `lean: lite` for 1–2 points, `lean: full` for 3+ (the default). Large slices (8+ / spike) still get `full` — the implementer flags over-scope in its Return Report rather than dropping ACs; a slice never silently loses an AC to laziness. Example scope: `"SLICE-03 backend half — lean: full"`. This tunes reuse-ladder strictness only; AC coverage is unchanged and still verified below.
 
-   Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
+   Each implementer receives the slice card (behaviour/outcome, AC list, contract, reference patterns) — **not** a pre-listed file-task table. It runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
 
-   **Verify the implementer's Return Report independently** before moving on. The report was written by the agent it describes — never accept its test counts on trust:
-   - Run the layer's test suite yourself via Bash (the command comes from `docs/project_context/` or the slice card — same one the implementer claims to have run) and compare actual pass/fail counts against the report.
-   - Confirm AC coverage: every AC the slice card assigns to this layer-half appears in the report with a named backing test.
-   - On any mismatch — fewer tests than reported, failures the report calls green, missing AC rows — re-dispatch the implementer with the discrepancy quoted verbatim, or finish the work directly and note the takeover. A report section that is missing is treated the same as a mismatch.
+   > **No per-slice integration.** The FE half stays on its mock — don't re-dispatch it to wire in the real backend now; that's one whole-story pass in Step 2. (The `unfrozen — serial` slice is the only FE that touches the real backend in Step 1.)
 
-2. **Mark BE/FE ✅ for this slice in the per-slice implementation table.** Nothing else happens per slice — no simplify, no review, no smoke, no e2e, no context capture, no checkpoint commit. Move straight to the next slice.
+2. **Verify each Return Report independently** before marking the slice done. The report was written by the agent it describes — never accept its test counts on trust:
+   - Run the relevant test suite yourself via Bash (the command comes from `docs/project_context/` or the slice card) and compare actual pass/fail counts against the report — for a BE+FE slice, run both the backend suite (including its contract-conformance tests) and the frontend suite (against its mock).
+   - Confirm AC coverage: every AC the slice card assigns to a layer-half appears in the report with a named backing test.
+   - On any mismatch — fewer tests than reported, failures the report calls green, missing AC rows — re-dispatch the owning implementer with the discrepancy quoted verbatim, or finish the work directly and note the takeover. A missing report section is treated the same as a mismatch.
 
-Independent slices may run in parallel here: when the plan flags slices as independent and a worktree is available, run multiple Step 1 loops concurrently via separate worktrees. Sizing and independence rules are in the `vertical-slicing` skill.
+3. **Mark BE/FE ✅ for this slice in the per-slice implementation table.** Nothing else happens per slice — no integration, no simplify, no review, no smoke, no e2e, no context capture, no checkpoint commit. Move on: start any slice this one was blocking.
+
+**Worktree note:** running parallel-safe slices concurrently needs a worktree per concurrent slice (they touch disjoint files by definition, but separate worktrees keep their commits and test runs from interleaving). If only one worktree is available, run parallel-safe slices sequentially but still parallelise each slice's BE/FE halves. Sizing and independence rules are in the `vertical-slicing` skill.
 
 ### Step 2 — Consolidated quality round (once, after every slice is implemented)
 
 **Precondition**: every slice's BE/FE cells in the per-slice table are ✅. This round runs exactly once, over the accumulated diff from the branch point to `HEAD` — not once per slice.
 
-1. **Code-review the whole story.** Dispatch `agent_type: "prd-pr:code-reviewer"` once, scoped to the full diff (branch point → `HEAD`), the user-story folder path, and `04-task-plan.md` so it can map files back to the ACs and slice each belongs to. The reviewer is the independent check on self-graded work — it checks AC *intent* vs test assertions, security, and error paths across every slice's implementation at once. Act on the verdict:
+1. **Integrate the whole story once.** Dispatch `agent_type: "prd-pr:impl-frontend"` once, scoped `"whole-story integration — replace every slice's contract mock with the real backends, run integration/e2e tests, fix any contract drift"`, passing the full slice list and changed-file set. Each backend already conformance-tested its contract, so this is mostly mechanical wiring; if drift belongs on the backend, re-dispatch `impl-backend` for that slice with the mismatch quoted. Mark "Integration" ✅ once every FE is on the real backend and its integration tests pass. (Skip `unfrozen — serial` slices — already integrated in Step 1.)
+
+2. **Code-review the whole story.** Dispatch `agent_type: "prd-pr:code-reviewer"` once, scoped to the full diff (branch point → `HEAD`), the user-story folder path, and `04-task-plan.md` so it can map files back to the ACs and slice each belongs to. The reviewer is the independent check on self-graded work — it checks AC *intent* vs test assertions, security, and error paths across every slice's implementation at once. Act on the verdict:
    - **`APPROVED`** → proceed to the refactor.
    - **`FIXES_NEEDED`** → re-dispatch whichever implementer(s) own the flagged files (`impl-backend` / `impl-frontend`) with the Blocker rows quoted verbatim, then re-dispatch `code-reviewer` scoped to the amended diff. Loop until `APPROVED`. Non-blocker rows don't gate — collect them as PR follow-ups.
    Mark the "Code review" row ✅.
 
-2. **Refactor / simplify the whole story.** Dispatch `agent_type: "prd-pr:impl-simplify"` once, scoped to `"whole story — all files changed since the branch point"`, passing the full changed-file list. Runs only after review approval, so it's cleaning up code already checked for correctness. Mark the "Refactor / simplify" row ✅.
+3. **Refactor / simplify the whole story.** Dispatch `agent_type: "prd-pr:impl-simplify"` once, scoped to `"whole story — all files changed since the branch point"`, passing the full changed-file list. Runs only after review approval, so it's cleaning up code already checked for correctness. Mark the "Refactor / simplify" row ✅.
 
-3. **Run the consolidated smoke.** Execute every slice's `Smoke:` sequence from `04-task-plan.md`, in slice order, against the running stack, in one pass. If any step fails, fix it (re-dispatch the owning implementer or fix directly) and re-run only the failed sequence(s) — do not restart the whole round. Mark the "Smoke" row ✅ once every sequence passes.
+4. **Run the consolidated smoke.** Execute every slice's `Smoke:` sequence from `04-task-plan.md`, in slice order, against the running stack, in one pass. If any step fails, fix it (re-dispatch the owning implementer or fix directly) and re-run only the failed sequence(s) — do not restart the whole round. Mark the "Smoke" row ✅ once every sequence passes.
 
-4. **Run the full test suite as a regression gate.** Over the whole diff, run the project's existing test suite (unit + integration + component + any pre-existing e2e) in one pass — the command comes from `docs/project_context/` or the slice cards. This catches cross-slice breakage the per-slice runs in Step 1 couldn't see. Fix any failure before marking the row ✅. The story's *new* browser-level e2e specs are authored and run in Phase 9 — do **not** try to write or run them here.
+5. **Run the full test suite as a regression gate.** Over the whole diff, run the project's existing test suite (unit + integration + component + any pre-existing e2e) in one pass — the command comes from `docs/project_context/` or the slice cards. This catches cross-slice breakage the per-slice runs in Step 1 couldn't see. Fix any failure before marking the row ✅. The story's *new* browser-level e2e specs are authored and run in Phase 9 — do **not** try to write or run them here.
 
-5. **Capture product knowledge once.** Invoke the `context-updater` skill (main-session, not a subagent) once for the whole story, summarising all slices together: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code. Mark the "Context capture" row ✅.
+6. **Capture product knowledge once.** Invoke the `context-updater` skill (main-session, not a subagent) once for the whole story, summarising all slices together: feature/UI behaviour implemented, domain rules enforced, config decisions made, design choices not obvious from the code. Mark the "Context capture" row ✅.
 
-6. **Mark completion.** `git commit --allow-empty -m "checkpoint: {story} — all slices demoable after consolidated review/refactor/smoke/e2e"`. Mark the "Checkpoint commit" row ✅.
+7. **Mark completion.** `git commit --allow-empty -m "checkpoint: {story} — all slices integrated after consolidated review/refactor/smoke/e2e"`. Mark the "Checkpoint commit" row ✅.
 
 ### Step 3 — Report
 
 After implementation and the consolidated quality round both complete, present:
-1. **Slice-by-slice summary** — demoable behaviour and files changed per slice
+1. **Slice-by-slice summary** — behaviour/outcome and files changed per slice
 2. What the consolidated refactor pass changed, across the story
 3. The consolidated review/smoke/regression outcome (the browser-level e2e runs in Phase 9)
 4. **Learning points** — patterns observed, conventions reinforced
@@ -232,16 +236,16 @@ After implementation and the consolidated quality round both complete, present:
 
 ## Phase 9 — Test Plan Walkthrough
 
-**Goal**: drive `05-test-plan.md`'s end-to-end manual demos once through a real browser and get **two outputs from that single pass** — (1) `06-walkthrough.md` + screenshots for Phase 10 to embed in the PR body, and (2) a **persisted Playwright e2e spec per slice**, appended to the project's existing e2e suite and committed, so the story's actual use case becomes a permanent regression test rather than a throwaway demo.
+**Goal**: turn `05-test-plan.md`'s end-to-end demos into **persisted Playwright specs per slice** that produce their own screenshots, run headless, and are committed to the project's existing e2e suite — so verification is fast and deterministic and the story's use case becomes a permanent regression test. The walker is **spec-first**: it writes the spec (with `page.screenshot()` at each demoable checkpoint), runs it headless for pass/fail, and only drops to LLM-driven browsing to repair a failing locator. That is what keeps this phase from ballooning — the old approach hand-drove every micro-step through the browser and took ~an hour per pass. Two outputs: (1) `06-walkthrough.md` + spec-produced screenshots for Phase 10's PR body, and (2) the committed specs.
 
-**Pre-condition**: in `07-progress.md`, every slice's BE/FE cells are ✅ *and* every row of the Final QA round table (code review, refactor, smoke, test-suite regression, context capture, checkpoint) is ✅. If any cell is still ⬜ or ❌, return to Phase 8.
+**Pre-condition**: in `07-progress.md`, every slice's BE/FE cells are ✅ *and* every row of the Final QA round table (integration, code review, refactor, smoke, test-suite regression, context capture, checkpoint) is ✅. If any cell is still ⬜ or ❌, return to Phase 8.
 
 **Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
 
 **Act on the Return Report verdict:**
 
 - **`ALL_GREEN`** → proceed to Phase 10.
-- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to just the affected slices so it amends `06-walkthrough.md` and replaces only those screenshots. Loop until `ALL_GREEN`.
+- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to **just the affected slices** — it re-runs only those slices' specs (regenerating only their screenshots) and amends `06-walkthrough.md`. It must **not** re-walk passing slices: re-running a green spec is seconds, re-driving a whole slice is not. Loop until `ALL_GREEN`.
 - **`PARTIAL`** → resolve the environmental issue the report names, then re-dispatch with `Resume from: SLICE-NN step-NN`.
 
 Non-Blocker findings don't gate the PR — they get listed as follow-ups in the PR body.
@@ -250,4 +254,4 @@ Non-Blocker findings don't gate the PR — they get listed as follow-ups in the 
 
 ## Phase 10 — Branch Completion
 
-**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, and cleans up the worktree from Phase 5.
+**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, and cleans up the worktree from Phase 4.
