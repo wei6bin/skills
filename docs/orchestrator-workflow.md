@@ -51,21 +51,24 @@ flowchart TD
 
     subgraph P8[Phase 8 — Slice-by-Slice Implementation]
         direction TB
-        P8L{{For each slice}}
+        P8L{{Step 1 — for each slice: implement only}}
         P8L --> P8B[impl-backend subagent<br/>TDD red-green-refactor]
         P8B --> P8F[impl-frontend subagent<br/>TDD against real backend]
-        P8F --> P8S[impl-simplify subagent<br/>scoped to this slice]
-        P8S --> P8R[code-reviewer subagent<br/>slice diff vs AC intent]
-        P8R --> P8C[context-updater skill<br/>capture product knowledge]
-        P8C --> P8E[Run slice e2e test<br/>+ checkpoint commit]
-        P8E --> P8P[("07-progress.md<br/>ledger updated per step")]
-        P8P -.next slice.-> P8L
+        P8F -.next slice.-> P8L
+        P8F --> P8Q{{Step 2 — consolidated QA round<br/>once, over the whole story}}
+        P8Q --> P8R[code-reviewer subagent<br/>full diff vs AC intent]
+        P8R --> P8S[impl-simplify subagent<br/>whole story]
+        P8S --> P8M[Consolidated smoke<br/>every slice's Smoke: sequence]
+        P8M --> P8E[Full test suite<br/>regression over whole diff]
+        P8E --> P8C[context-updater skill<br/>capture product knowledge]
+        P8C --> P8K[single checkpoint commit]
+        P8K --> P8P[("07-progress.md<br/>ledger updated per step")]
     end
 
     subgraph P9[Phase 9 — Test Plan Walkthrough]
         P9A[test-plan-walker subagent<br/>clean context]
-        P9A --> P9T[test-plan-walkthrough skill<br/>drive 05-test-plan.md demos]
-        P9T --> P9R[("06-walkthrough.md<br/>+ screenshots/")]
+        P9A --> P9T[test-plan-walkthrough skill<br/>drive demos once, two outputs]
+        P9T --> P9R[("06-walkthrough.md + screenshots/<br/>+ persisted Playwright spec per slice")]
         P9R --> P9G{ALL_GREEN?}
         P9G -.FIXES_NEEDED.-> P8L
     end
@@ -109,6 +112,6 @@ flowchart TD
 | 5 Write Documents | — | `git-worktrees` (isolate) | 6 plan files in `docs/new-feature/{id}/` |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` → `code-reviewer` (loops back to implementer on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` | Code + tests + checkpoint commits + `07-progress.md` ledger (resume point) |
-| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots; loops back to Phase 8 on `FIXES_NEEDED` |
+| 8 Slice-by-slice Impl | Step 1 (per slice): `impl-backend` → `impl-frontend`. Step 2 (once, whole story): `code-reviewer` → `impl-simplify` → consolidated smoke → full test-suite regression → `context-updater` (code-reviewer loops back to implementer on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` | Code + tests + single consolidated checkpoint commit + `07-progress.md` ledger (resume point) |
+| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots + **persisted Playwright spec per slice** (appended to project e2e suite); loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |

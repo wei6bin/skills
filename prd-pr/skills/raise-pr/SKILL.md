@@ -121,6 +121,7 @@ Full per-step report and screenshots: [`docs/new-feature/{folder}/06-walkthrough
 - Backend: `dotnet test` → {X} passing / {Y} failing (baseline preserved)
 - Frontend: `npm test` → {X} passing
 - Smoke: per-slice `Smoke:` sequences from `04-task-plan.md` → all ✅
+- E2E (Playwright): {N} persisted specs added this story (one per slice), all green — see `06-walkthrough.md` "Persisted spec" rows
 
 ## Rollback
 {paste verbatim from 05-test-plan.md — Rollback Plan}

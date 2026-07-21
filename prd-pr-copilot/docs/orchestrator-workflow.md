@@ -53,18 +53,20 @@ flowchart TD
 
     subgraph P8[Phase 8 — Slice-by-Slice Implementation]
         direction TB
-        P8L{{For each slice}}
+        P8L{{Step 1 — for each slice: implement only}}
         P8L --> P8B[impl-backend subagent<br/>TDD red-green-refactor<br/>invokes context-updater]
         P8B --> P8F[impl-frontend subagent<br/>TDD against real backend<br/>invokes context-updater]
-        P8F --> P8S[impl-simplify subagent<br/>scoped to this slice]
-        P8S --> P8E[Run slice e2e test<br/>+ checkpoint commit]
-        P8E -.next slice.-> P8L
+        P8F -.next slice.-> P8L
+        P8F --> P8Q{{Step 2 — consolidated QA round<br/>once, over the whole story}}
+        P8Q --> P8S[impl-simplify subagent<br/>whole story]
+        P8S --> P8E[Full test suite<br/>regression over whole diff]
+        P8E --> P8K[single checkpoint commit]
     end
 
     subgraph P9[Phase 9 — Test Plan Walkthrough]
         P9A[test-plan-walker subagent<br/>clean context]
-        P9A --> P9T[test-plan-walkthrough skill<br/>drive 05-test-plan.md demos]
-        P9T --> P9R[("06-walkthrough.md<br/>+ screenshots/")]
+        P9A --> P9T[test-plan-walkthrough skill<br/>drive demos once, two outputs]
+        P9T --> P9R[("06-walkthrough.md + screenshots/<br/>+ persisted Playwright spec per slice")]
         P9R --> P9G{ALL_GREEN?}
         P9G -.FIXES_NEEDED.-> P8L
     end
@@ -113,6 +115,6 @@ flowchart TD
 | 5 Write Documents | — | `git-worktrees` (isolate) | 6 plan files in `docs/new-feature/{id}/` |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | per slice: `impl-backend` → `impl-frontend` → `impl-simplify` (append the lean mode from the slice's story-point size to each implementer scope — `lean: lite` for 1–2 pts, `lean: full` for 3+; large slices stay `full` and flag over-scope, never dropping an AC) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + checkpoint commits |
-| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots; loops back to Phase 8 on `FIXES_NEEDED` |
+| 8 Slice-by-slice Impl | Step 1 (per slice): `impl-backend` → `impl-frontend` (append the lean mode from the slice's story-point size to each implementer scope — `lean: lite` for 1–2 pts, `lean: full` for 3+; large slices stay `full` and flag over-scope, never dropping an AC). Step 2 (once, whole story): `impl-simplify` → full test-suite regression | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + single consolidated checkpoint commit |
+| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots + **persisted Playwright spec per slice** (appended to project e2e suite); loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |

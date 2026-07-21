@@ -1,6 +1,6 @@
 {
   "name": "prd-pr-copilot",
-  "description": "Copilot CLI variant of the workshop dev workflow — orchestrator skill plus helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, test-plan-walker) and the supporting skill suite, including end-to-end test-plan walkthrough that runs in a clean subagent context and embeds agent-browser screenshots into the PR description. Agents use Copilot's .agent.md format.",
-  "version": "1.4.0",
+  "description": "Copilot CLI variant of the workshop dev workflow — orchestrator skill plus helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, test-plan-walker) and the supporting skill suite, including a consolidated post-implementation quality round (refactor and full test-suite regression over the whole story) and an end-to-end test-plan walkthrough that runs in a clean subagent context, embeds agent-browser screenshots into the PR description, and persists a Playwright e2e spec per slice into the project's existing e2e suite. Agents use Copilot's .agent.md format.",
+  "version": "1.5.0",
   "keywords": ["dev-workflow", "user-story", "architecture", "vertical-slice", "implementation", "azure-devops", "copilot-cli", "workshop"]
 }

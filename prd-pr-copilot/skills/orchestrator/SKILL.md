@@ -114,7 +114,7 @@ Write these files using the architecture blueprint from Phase 4:
 | `02-technical-plan.md` | Architecture decisions, affected layers, API contracts, data changes, security, non-functional requirements |
 | `03-implementation-plan.md` | A top-level **Change-Site Map** (every touched file × owning slice), then per slice: **reference patterns** (style hints) **and** **change sites** (file `path:line` anchor + target snippet for each touched file) **and** any data-model / API-contract notes. The change-site map carries no implied sequence — it is target geography the explorer already mapped, not a sequenced file-task list. The implementer still drives each AC behaviour through TDD; tests remain the spec, snippets are targets the tests drive toward. |
 | `04-task-plan.md` | **One card per slice** — demoable behaviour, AC coverage, demo steps, type (AFK/HITL), layer-halves (BE / FE / both), blocked-by, rough story-point size. No `SLICE-NN.TASK-NN` table. ADO mapping: each slice = one ADO Task under the parent User Story; each layer-half = one impl-{layer} subagent dispatch. |
-| `05-test-plan.md` | Test cases per AC, grouped by slice. Each slice must have at least one end-to-end test that exercises its demoable behaviour. Type (unit/integration/component/e2e), steps, expected outcome, rollback plan. |
+| `05-test-plan.md` | Test cases per AC, grouped by slice. Each slice must have at least one end-to-end test that exercises its demoable behaviour. Type (unit/integration/component/e2e), steps, expected outcome, rollback plan. The `e2e`-type cases and the "manual demo per slice" section are the source the Phase 9 `test-plan-walker` turns into persisted Playwright specs — write the demo steps concretely enough (roles, labels, expected on-screen text) that they translate to browser locators without guesswork. |
 
 Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
 
@@ -154,7 +154,7 @@ Present:
 
 ## Phase 8 — Slice-by-Slice Implementation
 
-**Goal**: Ship each slice end-to-end before starting the next, then simplify the changed code. The unit of work is the **slice**, not the layer.
+**Goal**: Implement every slice end-to-end first. Only *after* every slice is implemented, run one consolidated quality round — refactor and full test-suite regression — once, over the whole set of changes. Per-slice looping applies to implementation only; refactor and regression are never repeated per slice. The story's own browser-level e2e is **not** authored or run here — it is written as a persisted Playwright spec and run once in Phase 9 by the `test-plan-walker`, from the same browser pass that captures the PR screenshots.
 
 ### Step 0 — Model cost check
 
@@ -168,7 +168,7 @@ If the session model is `claude-opus-4.8` or higher, pause and warn the user:
 
 Wait for the user to confirm before dispatching implementation agents.
 
-### Step 1 — Loop over slices
+### Step 1 — Loop over slices: implement only
 
 For each slice in `04-task-plan.md`, in order:
 
@@ -176,39 +176,44 @@ For each slice in `04-task-plan.md`, in order:
    - If `BE + FE`: dispatch `agent_type: "prd-pr-copilot:impl-backend"` with scope `"SLICE-NN backend half"`; wait; then dispatch `agent_type: "prd-pr-copilot:impl-frontend"` with scope `"SLICE-NN frontend half"`.
    - If `BE only` or `FE only`: dispatch only that implementer.
 
-   Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`.
+   Each implementer receives the slice card (demoable behaviour, AC list, reference patterns) — **not** a pre-listed file-task table. The implementer runs **TDD red-green-refactor against each AC behaviour in its layer-half**, discovering files as the tests demand them. It commits per behaviour: `feat({layer}): SLICE-NN — {short behaviour, e.g. "reject malformed NRIC with 422"}`, and captures product knowledge via `context-updater` itself before returning.
 
-2. **Simplify within the slice.** Dispatch `agent_type: "prd-pr-copilot:impl-simplify"` scoped to `"stay within SLICE-NN"`, passing the files changed during this slice.
-3. **Verify the slice is demoable.** Run the slice's e2e test from `05-test-plan.md`. If it fails, stop and fix before starting the next slice — do not roll problems forward.
-4. **Mark the slice boundary.** `git commit --allow-empty -m "checkpoint: SLICE-NN demoable — {behaviour}"` so boundaries are visible in `git log`.
+2. **Move straight to the next slice.** Nothing else happens per slice — no simplify, no e2e, no checkpoint commit. Those run once, in the consolidated round below.
 
-### Step 2 — Independent slices may run in parallel
+Independent slices may run in parallel here: when the plan flags slices as independent and a worktree is available, run multiple Step 1 loops concurrently via separate worktrees. Sizing and independence rules are in the `vertical-slicing` skill.
 
-When the plan flags slices as independent and a worktree is available, run multiple slice loops in parallel via separate worktrees. Sizing and independence rules are in the `vertical-slicing` skill.
+### Step 2 — Consolidated quality round (once, after every slice is implemented)
+
+**Precondition**: every slice's BE/FE half is implemented. This round runs exactly once, over the accumulated diff from the branch point to `HEAD` — not once per slice.
+
+1. **Refactor / simplify the whole story.** Dispatch `agent_type: "prd-pr-copilot:impl-simplify"` once, scoped to `"whole story — all files changed since the branch point"`, passing the full changed-file list.
+2. **Run the full test suite as a regression gate.** Over the whole diff, run the project's existing test suite (unit + integration + component + any pre-existing e2e) in one pass — the command comes from `docs/project_context/` or the slice cards. This catches cross-slice breakage the per-slice runs in Step 1 couldn't see. If any fails, fix it (re-dispatch the owning implementer or fix directly) and re-run the failed test(s) — do not restart the round. The story's *new* browser-level e2e specs are authored and run in Phase 9 — do **not** try to write or run them here.
+3. **Mark completion.** `git commit --allow-empty -m "checkpoint: {story} — all slices implemented after consolidated refactor + regression"`.
 
 ### Step 3 — Report
 
-After all slices complete, present:
-1. **Slice-by-slice summary** — demoable behaviour, files changed, e2e test status per slice
-2. What was simplified per slice
-3. **Learning points** — patterns observed, conventions reinforced
-4. Any slices skipped or flagged, with reason
-5. Next steps (run full test suite, walk through e2e demos in a real browser, open PR, review commits)
+After implementation and the consolidated quality round both complete, present:
+1. **Slice-by-slice summary** — demoable behaviour and files changed per slice
+2. What the consolidated refactor pass changed, across the story
+3. The consolidated regression outcome (the browser-level e2e runs in Phase 9)
+4. **Learning points** — patterns observed, conventions reinforced
+5. Any slices skipped or flagged, with reason
+6. Next steps (run full test suite, walk through e2e demos in a real browser, open PR, review commits)
 
 ---
 
 ## Phase 9 — Test Plan Walkthrough
 
-**Goal**: drive `05-test-plan.md`'s end-to-end manual demos, screenshot each step, write `06-walkthrough.md` for Phase 10 to embed in the PR body.
+**Goal**: drive `05-test-plan.md`'s end-to-end manual demos once through a real browser and get **two outputs from that single pass** — (1) `06-walkthrough.md` + screenshots for Phase 10 to embed in the PR body, and (2) a **persisted Playwright e2e spec per slice**, appended to the project's existing e2e suite and committed, so the story's actual use case becomes a permanent regression test rather than a throwaway demo.
 
-**Pre-condition**: every slice in `04-task-plan.md` has a green e2e test from Phase 8 and a checkpoint commit. If anything is still red, return to Phase 8.
+**Pre-condition**: the consolidated refactor + regression round from Phase 8 is green over the whole diff, and the single consolidated checkpoint commit has landed. If anything is still red, return to Phase 8.
 
 **Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr-copilot:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
 
 **Act on the Return Report verdict:**
 
 - **`ALL_GREEN`** → proceed to Phase 10.
-- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to just the affected slices so it amends `06-walkthrough.md` and replaces only those screenshots. Loop until `ALL_GREEN`.
+- **`FIXES_NEEDED`** → for each Blocker row, re-dispatch the appropriate implementer (`impl-frontend` / `impl-backend`) scoped to that slice with the issue description. After the implementer returns, re-dispatch `test-plan-walker` scoped to just the affected slices so it amends `06-walkthrough.md`, replaces only those screenshots, and re-runs (and if needed re-authors) only those slices' specs. Loop until `ALL_GREEN`.
 - **`PARTIAL`** → resolve the environmental issue the report names, then re-dispatch with `Resume from: SLICE-NN step-NN`.
 
 Non-Blocker findings don't gate the PR — they get listed as follow-ups in the PR body.
