@@ -26,21 +26,22 @@ flowchart TD
         P3A[One question at a time<br/>with recommended answer]
     end
 
-    subgraph P4[Phase 4 — Architecture Design]
-        P4A[1× code-architect<br/>subagent]
-        P4B[vertical-slicing skill<br/>guides slice shape]
+    subgraph P4[Phase 4 — Architecture Design &amp; Documents]
+        P4W[git-worktrees skill<br/>isolate branch FIRST]
+        P4W --> P4A[1× code-architect subagent<br/>designs AND writes the 6 docs]
+        P4B[vertical-slicing skill<br/>guides slice shape + frozen contracts]
         P4B -.guides.-> P4A
-    end
-
-    subgraph P5[Phase 5 — Write Documents]
-        P5W[git-worktrees skill<br/>isolate branch first]
-        P5W --> P5D[("docs/new-feature/{id}/")]
+        P4A --> P5D[("docs/new-feature/{id}/")]
         P5D --> F0[00-overview.md]
         P5D --> F1[01-business-plan.md]
         P5D --> F2[02-technical-plan.md]
         P5D --> F3[03-implementation-plan.md]
         P5D --> F4[04-task-plan.md]
         P5D --> F5[05-test-plan.md]
+    end
+
+    subgraph P5[Phase 5 — Finalize Documents]
+        P5V[Verify 6 docs complete,<br/>cross-check, index README]
     end
 
     subgraph P6[Phase 6 — Quality Review]
@@ -53,20 +54,23 @@ flowchart TD
 
     subgraph P8[Phase 8 — Slice-by-Slice Implementation]
         direction TB
-        P8L{{Step 1 — for each slice: implement only}}
-        P8L --> P8B[impl-backend subagent<br/>TDD red-green-refactor<br/>invokes context-updater]
-        P8B --> P8F[impl-frontend subagent<br/>TDD against real backend<br/>invokes context-updater]
+        P8L{{Step 1 — parallel-safe slices concurrent; implement only, NO per-slice integration}}
+        P8L --> P8B[impl-backend subagent<br/>TDD, implements + conformance-tests frozen contract<br/>invokes context-updater]
+        P8L --> P8F[impl-frontend subagent<br/>TDD against typed contract mock, stays on mock<br/>invokes context-updater]
+        P8B -.next slice.-> P8L
         P8F -.next slice.-> P8L
-        P8F --> P8Q{{Step 2 — consolidated QA round<br/>once, over the whole story}}
-        P8Q --> P8S[impl-simplify subagent<br/>whole story]
+        P8B --> P8Q{{Step 2 — consolidated QA round<br/>once, over the whole story}}
+        P8F --> P8Q
+        P8Q --> P8I[impl-frontend subagent<br/>whole-story integration: every mock → real backends]
+        P8I --> P8S[impl-simplify subagent<br/>whole story]
         P8S --> P8E[Full test suite<br/>regression over whole diff]
         P8E --> P8K[single checkpoint commit]
     end
 
     subgraph P9[Phase 9 — Test Plan Walkthrough]
         P9A[test-plan-walker subagent<br/>clean context]
-        P9A --> P9T[test-plan-walkthrough skill<br/>drive demos once, two outputs]
-        P9T --> P9R[("06-walkthrough.md + screenshots/<br/>+ persisted Playwright spec per slice")]
+        P9A --> P9T[test-plan-walkthrough skill<br/>spec-first: write specs, run headless]
+        P9T --> P9R[("persisted Playwright spec per slice<br/>+ self-captured screenshots + 06-walkthrough.md")]
         P9R --> P9G{ALL_GREEN?}
         P9G -.FIXES_NEEDED.-> P8L
     end
@@ -86,8 +90,8 @@ flowchart TD
     classDef artifact fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
     classDef phase fill:#f5f5f5,stroke:#616161,color:#212121
 
-    class P2B,P4A,P6A,P8B,P8F,P8S,P9A subagent
-    class P2C,P4B,P5W,P9T,P10A skill
+    class P2B,P4A,P6A,P8B,P8F,P8I,P8S,P9A subagent
+    class P2C,P4B,P4W,P9T,P10A skill
     class P5D,F0,F1,F2,F3,F4,F5,P9R artifact
 ```
 
@@ -97,7 +101,7 @@ flowchart TD
 |---|---|---|
 | **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify`, `test-plan-walker` | `prd-pr-copilot/agents/*.agent.md` |
 | **Skill** (orange) | `orchestrator`, `codebase-context-builder`, `vertical-slicing`, `git-worktrees`, `raise-pr`, `react-best-practices`, `restful-api-design`, `backend-implementer`, `frontend-implementer`, `context-updater`, `test-plan-walkthrough` | `prd-pr-copilot/skills/<name>/SKILL.md` |
-| **Artifact** (purple) | The 6 plan files written in Phase 5, plus `06-walkthrough.md` + `screenshots/` from Phase 9 | `docs/new-feature/{id}-{summary}/` |
+| **Artifact** (purple) | The 6 plan files written by `code-architect` in Phase 4, plus `06-walkthrough.md` + `screenshots/` from Phase 9 | `docs/new-feature/{id}-{summary}/` |
 
 > **Difference from the Claude variant:** the `context-updater` skill is invoked
 > **by the `impl-backend` / `impl-frontend` subagents** as they finish their
@@ -111,10 +115,10 @@ flowchart TD
 | 1 Discovery | — | — | Captured ACs, ticket metadata |
 | 2 Codebase Exploration | 2–3× `code-explorer` (parallel) | `codebase-context-builder` (if missing) | Reference impl, patterns, key files |
 | 3 Clarifying Questions | — | — | Resolved decisions |
-| 4 Architecture Design | 1× `code-architect` | `vertical-slicing` (style guide) | Slice list + change-site map |
-| 5 Write Documents | — | `git-worktrees` (isolate) | 6 plan files in `docs/new-feature/{id}/` |
+| 4 Architecture Design & Documents | 1× `code-architect` (designs **and writes** the 6 docs directly — no orchestrator transcription, closing the old ~20-min gap) | `git-worktrees` (isolate, **first**), `vertical-slicing` (slice shape + frozen per-slice contracts) | 6 plan files in `docs/new-feature/{id}/`; slice list + frozen contracts |
+| 5 Finalize Documents | — | — | Verified/consistent docs + README index |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | Step 1 (per slice): `impl-backend` → `impl-frontend` (append the lean mode from the slice's story-point size to each implementer scope — `lean: lite` for 1–2 pts, `lean: full` for 3+; large slices stay `full` and flag over-scope, never dropping an AC). Step 2 (once, whole story): `impl-simplify` → full test-suite regression | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + single consolidated checkpoint commit |
-| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context) | `test-plan-walkthrough` | `06-walkthrough.md` + screenshots + **persisted Playwright spec per slice** (appended to project e2e suite); loops back to Phase 8 on `FIXES_NEEDED` |
+| 8 Slice-by-slice Impl | Step 1 (implement only, **no per-slice integration**): parallel-safe slices run concurrently in worktrees; within each, `impl-backend` ∥ `impl-frontend` against the frozen contract — BE implements *and conformance-tests* it, FE stays on a mock (append the lean mode from the slice's story-point size to each implementer scope — `lean: lite` for 1–2 pts, `lean: full` for 3+; large slices stay `full`, never dropping an AC). Step 2 (once, whole story): one `impl-frontend` **whole-story integration** → `impl-simplify` → full test-suite regression | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` (invoked by impl agents) | Code + tests + single consolidated checkpoint commit |
+| 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context, **spec-first**: writes Playwright specs that self-capture screenshots, runs them headless; re-runs are changed-surface only) | `test-plan-walkthrough` | **persisted Playwright spec per slice** (appended to project e2e suite) + self-captured screenshots + `06-walkthrough.md`; loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |
