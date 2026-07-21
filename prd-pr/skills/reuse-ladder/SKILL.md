@@ -19,7 +19,7 @@ Before you write a new function, class, component, hook, or dependency to make a
 5. **An already-installed dependency?** Check the manifest; if a dep already present (or the UI kit) solves it, use it. Do **not** add a *new* dependency without flagging it when you report back.
 6. **Can it be one line?** Prefer the smallest expression or change that passes the test.
 
-Never take a shortcut *through* the guardrails: input validation, error handling that prevents data loss (and error/empty/loading states in the UI), security, and accessibility (roles, labels, keyboard) are **never** simplified away — the `code-reviewer` checks exactly these.
+Never take a shortcut *through* the guardrails: input validation, error handling that prevents data loss (and error/empty/loading states in the UI), security, and accessibility (roles, labels, keyboard) are **never** simplified away — the `code-reviewer` and `security-reviewer` check exactly these.
 
 ## Lean mode
 
