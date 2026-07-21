@@ -18,8 +18,8 @@ Use **`subagent_type`** — never `agent_type`, never the `prd-pr:` prefix.
 | 2 — exploration | `code-explorer` | 2–3 parallel tasks, different angles |
 | 4 — architecture | `code-architect` | One task with Phase 2–3 context |
 | 6 — plan review | `plan-reviewer` | Two parallel tasks (AC/security vs tasks/tests) |
-| 8 — backend half | `impl-backend` | Scope e.g. `"SLICE-01 backend half"`; append the lean mode from the slice's story-point size — `lean: lite` (1–2 pts) / `lean: full` (3+, default). Large slices (8+/spike) stay `full` — the implementer flags over-scope, never drops an AC |
-| 8 — frontend half | `impl-frontend` | After backend for same slice; append the same `lean:` token |
+| 8 — backend half | `impl-backend` | Scope e.g. `"SLICE-01 backend half"`; dispatched **concurrently with the frontend half** against the slice's frozen `Contract:`. Append the lean mode from the slice's story-point size — `lean: lite` (1–2 pts) / `lean: full` (3+, default). Large slices (8+/spike) stay `full` — the implementer flags over-scope, never drops an AC |
+| 8 — frontend half | `impl-frontend` | Dispatched **concurrently** with the backend half (single batch), scope `"SLICE-01 frontend half — build against the frozen contract with a typed mock; do not wait for the backend; stay on the mock, no per-slice integration"`; append the same `lean:` token. One `"whole-story integration"` re-dispatch **at the end** (after every slice lands) swaps every slice's mock for the real backends and reconciles drift across the story |
 | 8 — simplify | `impl-simplify` | Per slice, changed files only |
 | 9 — walkthrough | `test-plan-walker` | Clean context; do not inline Phase 9 in parent |
 
@@ -48,13 +48,21 @@ Put the heavy reasoning on the **parent** orchestrator model; use subagents for 
 
 ## Phase 8 (implementation)
 
-Per slice in `04-task-plan.md`, in order:
+Two axes of parallelism apply — use both (see the `vertical-slicing` skill):
+**within** a `BE + FE` slice the two halves run concurrently against the frozen `Contract:` — the FE half builds on a typed mock, the BE half implements it **and conformance-tests its responses against the frozen contract** (the early-drift guard);
+**across** slices, every parallel-safe slice runs concurrently in its own worktree. A slice is `Blocked by:` another **only** for a real code/data coupling (shared file surface, needed schema/scaffold) — never for demo order.
 
-1. `impl-backend` → verify Return Report → `impl-frontend` → verify
+Integration is **deferred to one whole-story pass at the end** — there is no per-slice integration; each slice's FE half stays on its contract mock until then.
+
+Per slice in `04-task-plan.md`:
+
+1. Dispatch `impl-backend` **and** `impl-frontend` in a **single batch so they run in parallel** — BE implements and conformance-tests the frozen `Contract:`, FE mocks it and **stays on the mock** (no per-slice integration). (Exception: `Contract: unfrozen — serial` → BE first, then FE, and integrate that one slice immediately.) Verify both Return Reports.
 2. `impl-simplify` (slice scope only)
-3. Slice smoke + e2e from `05-test-plan.md`
+3. Slice smoke from `05-test-plan.md` (BE endpoints are real; the FE runs against its mock — the end-to-end e2e runs in the whole-story pass / Phase 9)
 4. `context-updater` skill in **parent** (not a Task subagent)
 5. Checkpoint commit
+
+After **every** slice has landed, run **one whole-story integration pass**: re-dispatch `impl-frontend` scoped `"whole-story integration — swap every slice's contract mock for the real backends, reconcile drift across the whole story, run the integration/e2e tests"`. The BE halves' conformance tests keep this pass mechanical. Verify, then commit.
 
 **Do not** implement slice backend/frontend inline in the parent when this rule applies,
 except to fix a failed subagent Return Report.
