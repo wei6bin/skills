@@ -164,6 +164,7 @@ Loop position must survive compaction and session restarts — the plan docs are
 |------|--------|
 | Integration (whole story — point every FE at the real backends, fix contract drift) | ⬜ |
 | Code review (full diff, branch point → HEAD) | ⬜ |
+| Security review (full diff, branch point → HEAD) | ⬜ |
 | Refactor / simplify (whole story) | ⬜ |
 | Smoke (every slice's smoke sequence, consolidated) | ⬜ |
 | Test suite / regression (whole diff — unit + integration + any existing e2e) | ⬜ |
@@ -207,10 +208,14 @@ Schedule from `04-task-plan.md`: start every slice whose `Blocked by:` is satisf
 
 1. **Integrate the whole story once.** Dispatch `agent_type: "prd-pr:impl-frontend"` once, scoped `"whole-story integration — replace every slice's contract mock with the real backends, run integration/e2e tests, fix any contract drift"`, passing the full slice list and changed-file set. Each backend already conformance-tested its contract, so this is mostly mechanical wiring; if drift belongs on the backend, re-dispatch `impl-backend` for that slice with the mismatch quoted. Mark "Integration" ✅ once every FE is on the real backend and its integration tests pass. (Skip `unfrozen — serial` slices — already integrated in Step 1.)
 
-2. **Code-review the whole story.** Dispatch `agent_type: "prd-pr:code-reviewer"` once, scoped to the full diff (branch point → `HEAD`), the user-story folder path, and `04-task-plan.md` so it can map files back to the ACs and slice each belongs to. The reviewer is the independent check on self-graded work — it checks AC *intent* vs test assertions, security, and error paths across every slice's implementation at once. Act on the verdict:
-   - **`APPROVED`** → proceed to the refactor.
-   - **`FIXES_NEEDED`** → re-dispatch whichever implementer(s) own the flagged files (`impl-backend` / `impl-frontend`) with the Blocker rows quoted verbatim, then re-dispatch `code-reviewer` scoped to the amended diff. Loop until `APPROVED`. Non-blocker rows don't gate — collect them as PR follow-ups.
-   Mark the "Code review" row ✅.
+2. **Review the whole story — code and security, in parallel.** In one batch (so they run concurrently), dispatch two independent reviewers over the full diff (branch point → `HEAD`), each also given the user-story folder path and `04-task-plan.md` so it can map files back to ACs and slices:
+   - `agent_type: "prd-pr:code-reviewer"` — the independent check on self-graded work: AC *intent* vs test assertions, error paths, convention adherence, and test author-bias.
+   - `agent_type: "prd-pr:security-reviewer"` — the adversarial check on the threat surface: authorisation, input validation, injection, secrets/PII exposure, and unsafe dependencies (reads the threat model in `02-technical-plan.md`).
+
+   Act on the **combined** verdict — the round passes only when *both* return `APPROVED`:
+   - **Both `APPROVED`** → proceed to the refactor.
+   - **Either `FIXES_NEEDED`** → re-dispatch whichever implementer(s) own the flagged files (`impl-backend` / `impl-frontend`) with the Blocker rows from both reports quoted verbatim, then re-dispatch **only the reviewer(s) that flagged issues**, scoped to the amended diff. Loop until both are `APPROVED`. Non-blocker rows don't gate — collect them as PR follow-ups.
+   Mark the "Code review" and "Security review" rows ✅.
 
 3. **Refactor / simplify the whole story.** Dispatch `agent_type: "prd-pr:impl-simplify"` once, scoped to `"whole story — all files changed since the branch point"`, passing the full changed-file list. Runs only after review approval, so it's cleaning up code already checked for correctness. Mark the "Refactor / simplify" row ✅.
 
@@ -238,7 +243,7 @@ After implementation and the consolidated quality round both complete, present:
 
 **Goal**: turn `05-test-plan.md`'s end-to-end demos into **persisted Playwright specs per slice** that produce their own screenshots, run headless, and are committed to the project's existing e2e suite — so verification is fast and deterministic and the story's use case becomes a permanent regression test. The walker is **spec-first**: it writes the spec (with `page.screenshot()` at each demoable checkpoint), runs it headless for pass/fail, and only drops to LLM-driven browsing to repair a failing locator. That is what keeps this phase from ballooning — the old approach hand-drove every micro-step through the browser and took ~an hour per pass. Two outputs: (1) `06-walkthrough.md` + spec-produced screenshots for Phase 10's PR body, and (2) the committed specs.
 
-**Pre-condition**: in `07-progress.md`, every slice's BE/FE cells are ✅ *and* every row of the Final QA round table (integration, code review, refactor, smoke, test-suite regression, context capture, checkpoint) is ✅. If any cell is still ⬜ or ❌, return to Phase 8.
+**Pre-condition**: in `07-progress.md`, every slice's BE/FE cells are ✅ *and* every row of the Final QA round table (integration, code review, security review, refactor, smoke, test-suite regression, context capture, checkpoint) is ✅. If any cell is still ⬜ or ❌, return to Phase 8.
 
 **Dispatch the `test-plan-walker` subagent** (`agent_type: "prd-pr:test-plan-walker"`) in a clean context — the walkthrough produces dozens of screenshots that would otherwise balloon the main session. Pass it: user-story folder path, current branch name, app URL, and a pointer to where demo credentials live (never the credentials themselves).
 
