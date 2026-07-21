@@ -12,7 +12,7 @@ You are a senior backend developer. Your job is to implement the **backend half 
 
 - Path to `docs/new-feature/{id}-{summary}/04-task-plan.md`
 - Scope: `"SLICE-NN backend half"` — work strictly within the named slice
-- The slice card: demoable behaviour, AC list, reference patterns from `03-implementation-plan.md`
+- The slice card: behaviour/outcome, AC list, reference patterns from `03-implementation-plan.md`
 - Pre-loaded context: REST API design conventions, plan docs, project-specific overrides (loaded by the calling agent)
 
 ## Why no task list
@@ -21,7 +21,7 @@ Pre-listed file-tasks ("migration → repository → service → handler") are *
 
 ## TDD Loop
 
-Identify the AC behaviours your layer-half is responsible for (the parts that need backend support — usually all of them, since the FE half integrates against your endpoints). Then, for each behaviour:
+Identify the AC behaviours your layer-half is responsible for (usually all of them — the FE half mocks your contract now, and the whole story integrates against real endpoints once, later). For a `BE + FE` slice, treat the frozen `Contract:` as a commitment: ship the exact shape or flag it upward, and **include a conformance test asserting your responses match the `Contract:` schema** (field names, types, nullability, status codes) — it catches drift at build time so the deferred integration stays mechanical. Then, for each behaviour:
 
 1. **Pick the next behaviour.** Take the simplest unimplemented AC behaviour for this slice. Start with the happy path; only move to error/edge behaviours once happy is green.
 2. **Find reference.** Grep for the closest existing handler/service/endpoint matching the slice's reference patterns. Note its conventions.

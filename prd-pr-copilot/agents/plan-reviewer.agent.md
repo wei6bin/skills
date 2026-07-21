@@ -45,17 +45,17 @@ You are reviewing the documents in `docs/new-feature/{folder-name}/`.
 
 **Slice Integrity** (skip if the plan is a flat task list for a bugfix/refactor)
 - Read the `vertical-slicing` skill — it defines the rules. Apply them to the slice list:
-  - SLICE-01 is a walking skeleton (smallest viable end-to-end happy path)
-  - Each slice is independently demoable and traverses every layer it needs
-  - No "setup" / "wiring" / "integrate everything" slice exists
-  - Each slice has at least one end-to-end test in `05-test-plan.md`
-  - Slice sizing is PR-shaped (not too thick, not single-task)
+  - Each slice is a **vertical, contract-bounded work-unit** — it traverses only the layers it needs and carries a frozen `Contract:` wherever it crosses BE↔FE. A slice does **not** have to be demoable in isolation (the story is demoed once, in Phase 9) — do **not** flag a non-standalone-demoable slice.
+  - No horizontal-layer slice (all-schema, all-backend, all-frontend) and no "setup" / "wiring" slice exists. A single whole-story integration is *intended* (Phase 8 Step 2) and is **not** an "integrate everything" anti-pattern.
+  - Each slice has a `Verify:` checkpoint and is covered by at least one end-to-end test in `05-test-plan.md` (that spec runs once, in Phase 9).
+  - Every `BE + FE` slice's `Contract:` is concrete enough to mock blind *and* conformance-test against (exact field names, types, nullability, status codes) — a vague contract breaks the parallel halves and the deferred integration.
+  - Slice sizing is PR-shaped (not too thick, not single-task).
   - **No pre-listed per-file task tables inside a slice** — that re-introduces horizontal layering inside the slice and outruns the implementer's headlights. Slice cards should be schedule-light: behaviour, AC, reference patterns, layer-halves.
 - Flag any slice that violates these rules with the specific rule it breaks.
 
 **Cross-slice dependencies**
-- Are slice `Blocked by` relationships correct?
-- Are there hidden cross-slice dependencies that should be sequenced? (Independent slices can be parallelised; dependent ones cannot.)
+- Is every `Blocked by:` a **real** coupling (shared file surface, needed schema/scaffold), not demo order? Flag edges that aren't — they needlessly serialise parallel-safe work.
+- Conversely, are there hidden *real* dependencies that should be sequenced but aren't?
 
 **Sizing**
 - Do per-slice story-point estimates look reasonable for the stated scope?
@@ -70,7 +70,7 @@ You are reviewing the documents in `docs/new-feature/{folder-name}/`.
 - Is the happy path covered?
 - Are error / validation paths covered?
 - Are permission / auth paths covered?
-- **Does each slice have at least one end-to-end test that proves the slice's demoable behaviour works against the real stack (no mocks at the integration boundary)?**
+- **Does each slice have at least one end-to-end test (its `Verify:` checkpoint) that proves the slice's behaviour against the real stack?** These specs are authored and run once in Phase 9's whole-story pass (no mocks at the integration boundary there) — the plan just needs to name the checkpoint per slice, not demand a per-slice real-stack run during implementation.
 - The implementers will write per-AC tests via TDD red-green-refactor — `05-test-plan.md` should describe **what** to test (AC behaviours and e2e flows), not enumerate every unit-test the implementer will produce.
 
 **Test Type Appropriateness**
