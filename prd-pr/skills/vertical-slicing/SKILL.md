@@ -87,6 +87,50 @@ A slice is described by a card, not a task table. Files, repositories, and helpe
 ...
 ```
 
+## The dependency graph (machine-readable DAG)
+
+The cards' `Blocked by:` lines *are* a DAG, but as prose nothing computes over them. Consolidate the edges into **one authoritative block atop `04-task-plan.md`** so the ready-frontier, waves, and critical path are computed once and survive a resume.
+
+Write it above `## Slices` (four-backtick fence here only so the inner mermaid stays literal — you write it with triple backticks):
+
+````markdown
+## Dependency graph
+
+<!-- Authoritative slice DAG. The edge table below is the single source of truth;
+     the mermaid render and the derived Waves / Critical path are views of it.
+     Every slice card's `Blocked by:` must match this table exactly. -->
+
+| Slice | Layers | Size | Blocked by |
+|----------|---------|-----:|--------------------|
+| SLICE-01 | BE + FE | 3 | — |
+| SLICE-02 | BE only | 2 | — |
+| SLICE-03 | BE + FE | 5 | SLICE-01 |
+| SLICE-04 | FE only | 2 | SLICE-01, SLICE-03 |
+
+```mermaid
+flowchart LR
+    SLICE-01 --> SLICE-03
+    SLICE-01 --> SLICE-04
+    SLICE-03 --> SLICE-04
+    SLICE-02
+```
+
+**Waves** (topological batches — wave *k* starts once every slice in waves `< k` is ✅):
+- Wave 0 (parallel-safe roots): SLICE-01, SLICE-02
+- Wave 1: SLICE-03
+- Wave 2: SLICE-04
+
+**Critical path** (longest chain weighted by story points): SLICE-01 → SLICE-03 → SLICE-04 = 10 pts. When worktree slots are scarce, start critical-path slices first — never leave one idle behind a lower-value slice.
+````
+
+Derivation (all mechanical):
+
+- **Ready** — a slice is ready when every slice in its `Blocked by:` is `✅`; roots (`—`) start ready.
+- **Waves** — wave 0 = roots; wave *k* = slices whose blockers all sit in waves `< k`. Coarse batch view only; the live schedule is frontier-driven (start a slice the moment its blocker finishes, not its whole wave).
+- **Critical path** — max-weight root→sink path, each node weighted by `Size`. Sets the story's minimum wall-clock, so prioritise it when not every ready slice can run at once.
+
+Keep table and cards in lockstep: edit a card's `Blocked by:`, edit its row here and re-derive. Phase 5 checks they agree; a mismatch is a planning bug.
+
 Each slice produces **at most two implementer dispatches**: a backend half and/or a frontend half, dispatched **concurrently** against the slice's frozen `Contract:`. The implementer agent receives the slice card and runs TDD red-green-refactor against the slice's AC — it discovers which files to touch as the tests demand them. The FE half mocks the contract and does **not** integrate per-slice; integration is a single whole-story pass at the end.
 
 If you find yourself wanting to list "migration here, repository there, handler there" inside a slice card, stop. Either the slice is too thick (split it) or you are pre-imagining the implementation (let TDD discover it).

@@ -86,6 +86,8 @@ That is the dispatch unit. Each layer-half becomes one impl-{layer} subagent run
 
 Also mark each slice's **cross-slice independence** (`Blocked by: —` when it shares no file surface with another slice) — the orchestrator runs every parallel-safe slice concurrently in its own worktree, so an incorrect dependency here silently serialises work that could have overlapped.
 
+Then **consolidate every card's `Blocked by:` into the `## Dependency graph` block** atop `04-task-plan.md` (format in the vertical-slicing skill): edge table + mermaid + derived **Waves** and **Critical path**. The orchestrator schedules from this, so its edges must match the cards. Sanity-check: a cycle = a bad edge (reslice); if every slice is a root, say so.
+
 If a slice has more than ~6 ACs covered or both halves look heavy, the slice is too thick — split it. Refer to the vertical-slicing skill for sizing.
 
 ### 7. Capture Per-Slice Reference Patterns AND a Change-Site Map
@@ -114,7 +116,7 @@ Write all six, in full, using everything you designed above (every slice, every 
 | `01-business-plan.md` | Problem statement, acceptance criteria (verbatim), stakeholders, out-of-scope |
 | `02-technical-plan.md` | Architecture decisions, affected layers, **per-slice frozen API contracts**, data changes, security, non-functional requirements, and the Dev/Demo Data Recovery section if the feature seeds data or mutates auth |
 | `03-implementation-plan.md` | The top-level Change-Site Map (every touched file × owning slice), then per slice: reference patterns, change sites (`path:line` anchor + target snippet), and any data-model / API-contract notes. Targets are unordered geography, not a sequenced task list. |
-| `04-task-plan.md` | One card per slice — behaviour/outcome, AC coverage, `Verify:` checkpoint (what the Phase 9 spec asserts), type (AFK/HITL), layer-halves (BE/FE/both), **frozen `Contract:`**, `Blocked by:` (— = parallel-safe; real couplings only), rough story-point size. No `SLICE-NN.TASK-NN` table. |
+| `04-task-plan.md` | A `## Dependency graph` section **first** (edge table + mermaid + derived Waves + Critical path, per the vertical-slicing skill), then one card per slice — behaviour/outcome, AC coverage, `Verify:` checkpoint (what the Phase 9 spec asserts), type (AFK/HITL), layer-halves (BE/FE/both), **frozen `Contract:`**, `Blocked by:` (— = parallel-safe; real couplings only), rough story-point size. No `SLICE-NN.TASK-NN` table. |
 | `05-test-plan.md` | Test cases per AC, grouped by slice; each slice has ≥1 end-to-end case exercising its demoable behaviour. Type (unit/integration/component/e2e), steps, expected outcome, rollback. Write the e2e/manual-demo steps concretely enough (roles, exact labels, expected on-screen text) that the Phase 9 walker turns them straight into Playwright specs without guesswork. |
 
 Create the folder if it does not exist. Write with absolute paths.
@@ -125,6 +127,7 @@ Create the folder if it does not exist. Write with absolute paths.
 
 - **One-line summary** of the feature and how it fits the architecture.
 - **Slice list** — for each slice: ID, one-sentence behaviour/outcome, AC coverage, Layers, Contract (one line, or "single-layer"/"unfrozen — serial"), Blocked-by (real couplings only), rough size. This is the table the orchestrator shows the user for the confirm gate, so it must be complete and accurate.
+- **Parallelism structure** — Waves + Critical path from the block, one line (e.g. "Wave 0: S1, S2 · Wave 1: S3 · critical path S1→S3 = 8 pts"). The orchestrator shows this at the confirm gate.
 - **Files written** — the six paths, confirmed written.
 - **Key risks** — anything that could complicate implementation.
 
@@ -171,6 +174,22 @@ For reference, the full blueprint structure you designed and wrote into the file
 | # | Path | Slice(s) | Change |
 |---|------|----------|--------|
 | 1 | [path] | 01 | [one-line descriptor, e.g. "Add `QueueNumber` property"] |
+
+## Dependency graph
+[Authoritative slice DAG — goes at the top of `04-task-plan.md`. Edge table is the single source of truth; every card's `Blocked by:` below must match a row here. See the vertical-slicing skill for the full format.]
+
+| Slice | Layers | Size | Blocked by |
+|-------|--------|-----:|------------|
+| SLICE-01 | BE + FE | 3 | — |
+| SLICE-02 | BE + FE | 5 | SLICE-01 |
+
+```mermaid
+flowchart LR
+    SLICE-01 --> SLICE-02
+```
+
+**Waves:** Wave 0: SLICE-01 · Wave 1: SLICE-02
+**Critical path:** SLICE-01 → SLICE-02 = 8 pts
 
 ## Slices
 
