@@ -95,8 +95,8 @@ The architect designs the blueprint and **writes all six documents itself**. You
 
 ### Step 2 — Review and confirm the slice list
 
-1. **Read the six documents the architect wrote** (they are the source of truth now — the manifest is only a table of contents). Spot-check that each slice has a card in `04-task-plan.md`, a frozen `Contract:` where `Layers: BE + FE`, and concrete demo steps in `05-test-plan.md`.
-2. **Present the plan to the user and confirm before implementation.** Confirming the slice list — and which slices are parallel-safe (`Blocked by: —`) — is the most important decision in this phase.
+1. **Read the six documents the architect wrote** (they are the source of truth now — the manifest is only a table of contents). Spot-check that each slice has a card in `04-task-plan.md`, a frozen `Contract:` where `Layers: BE + FE`, and concrete demo steps in `05-test-plan.md`. Confirm `04-task-plan.md` opens with a `## Dependency graph` block whose edge table matches the cards' `Blocked by:` lines.
+2. **Present the plan to the user and confirm before implementation.** Confirming the slice list — and which slices are parallel-safe (`Blocked by: —`) — is the most important decision in this phase. Show the **Waves and Critical path** from the block alongside the slice list — the user sees what runs concurrently and which chain sets the wall-clock.
 3. If the user wants changes, edit the docs directly (small changes) or re-dispatch the architect with the correction (structural changes). Do not proceed to Phase 6 until the slice list is confirmed.
 
 ---
@@ -106,7 +106,7 @@ The architect designs the blueprint and **writes all six documents itself**. You
 **Goal**: Confirm the six plan files are complete and index them. (The architect already wrote them in Phase 4 — this phase is verification, not authoring.)
 
 1. Verify all six files exist and are non-empty in `docs/new-feature/{id}-{summary}/`. If any is missing or a stub, re-dispatch the architect to complete it — do not fill it in by hand-transcription (that reintroduces the gap this restructure removed).
-2. Sanity-check cross-document consistency: every slice in `04-task-plan.md` has matching test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` slice's `Contract:` also appears in `02-technical-plan.md`.
+2. Sanity-check cross-document consistency: every slice in `04-task-plan.md` has matching test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` slice's `Contract:` also appears in `02-technical-plan.md`. Also verify the `## Dependency graph` edge table agrees with the cards — each `Blocked by:` matches its row, every blocker is a real slice ID, no cycle. A mismatch is a planning bug: fix the table and re-derive (don't just patch prose).
 3. Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
 
 ---
@@ -181,7 +181,13 @@ Statuses: `⬜` pending · `✅` done · `❌` failed/blocked (add a one-line no
 - **Within a `BE + FE` slice**, the backend and frontend halves run **concurrently** against the slice's frozen `Contract:`.
 - **Across slices**, every parallel-safe slice (`Blocked by: —`) runs **concurrently** in its own worktree. Only serialise a slice behind another when its `Blocked by:` names it.
 
-Schedule from `04-task-plan.md`: start every slice whose `Blocked by:` is satisfied, and start a blocked slice as soon as its blocker's halves are ✅. For each slice you start:
+**Schedule from the `## Dependency graph` block in `04-task-plan.md`** — don't re-derive dependencies by eye. Its edge table is authoritative; combine it with the ledger's `✅` state:
+
+- **Ready-frontier** = slices whose every `Blocked by:` is `✅` (roots — `—` — start ready). Start each ready slice that has a free worktree slot.
+- **Refresh the frontier the instant a blocker's BE/FE both go ✅** — start the unblocked slice now, don't wait for its wave. (Waves are the coarse batch view; frontier-driven is never slower.)
+- **Ready slices > free slots → start critical-path slices first** (the block names it); it sets the minimum wall-clock. Break ties by larger size.
+
+For each slice you start:
 
 1. **Dispatch the layer-halves concurrently.** Per the slice's `Layers:` field, dispatch the implementer subagent(s) using the task tool **in a single batch so they run in parallel**:
    - If `BE + FE`: in one batch, dispatch `agent_type: "prd-pr:impl-backend"` (scope `"SLICE-NN backend half — implement AND conformance-test the frozen contract"`) **and** `agent_type: "prd-pr:impl-frontend"` (scope `"SLICE-NN frontend half — build against the frozen contract with a typed mock; stay on the mock, integration is one whole-story pass in Step 2"`). Both get the slice card with the frozen `Contract:`.
