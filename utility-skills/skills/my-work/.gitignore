@@ -1,0 +1,3 @@
+# local install config - never publish an absolute home path
+scripts/.vault-path
+__pycache__/

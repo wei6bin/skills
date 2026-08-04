@@ -7,7 +7,7 @@ Plugin marketplace hosting dev-workflow plugins and standalone utility skills.
 | `prd-pr` | Claude Code | 10-phase plan-then-build dev workflow |
 | `prd-pr-copilot` | Copilot CLI | Same workflow, Copilot agent format |
 | `prd-pr-cursor` | Cursor | Project-local `.cursor/` adapter (not a marketplace plugin) |
-| `utility-skills` | Claude Code | Standalone user-invocable skills: `teach-me`, `learn-it`, `spec-me`, `html-it` |
+| `utility-skills` | Claude Code | Standalone user-invocable skills: `teach-me`, `learn-it`, `spec-me`, `html-it`, `my-work` |
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 
@@ -90,8 +90,9 @@ The orchestrator skill is the entry point — kick off a feature with a user sto
 | `learn-it` | `/learn-it <task>` | Runs a task in background, explains progress in plain language |
 | `spec-me` | `/spec-me @file.md` | Interviews you to flesh out a spec, then rewrites the file |
 | `html-it` | `/html-it` | Generates a visual HTML implementation plan with mockups and code snippets |
+| `my-work` | `/my-work` | Personal work tracker over an Obsidian vault: thread notes, a status ranking, and an HTML review report |
 
-Adding a new skill: create `utility-skills/skills/<name>/SKILL.md` and add `./skills/<name>` to the `skills` array in `.claude-plugin/marketplace.json`.
+Adding a new skill: create `utility-skills/skills/<name>/SKILL.md` and add `./skills/<name>` to the `skills` array in `.claude-plugin/marketplace.json`. A skill may also bundle `scripts/` and `references/` alongside its `SKILL.md`; reference them by skill-relative path.
 
 ---
 
