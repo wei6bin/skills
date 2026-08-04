@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Marketplace hosting two variants of the prd-pr dev-workflow plugin: prd-pr (Claude Code) and prd-pr-copilot (Copilot CLI). Both run the same 10-phase orchestrator-driven flow — plan-then-build with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough with screenshots embedded into the PR body. Also hosts standalone skill plugins: utility-skills and code-to-prd.",
-    "version": "2.9.0"
+    "version": "2.10.0"
   },
   "plugins": [
     {
@@ -71,7 +71,7 @@
       "description": "Collection of standalone utility skills — teach-me and more.",
       "source": "./utility-skills",
       "agents": [],
-      "skills": ["./skills/teach-me", "./skills/learn-it", "./skills/spec-me", "./skills/html-it"]
+      "skills": ["./skills/teach-me", "./skills/learn-it", "./skills/spec-me", "./skills/html-it", "./skills/my-work"]
     },
     {
       "name": "code-to-prd",
