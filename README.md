@@ -109,3 +109,9 @@ cp -R <this-repo>/prd-pr-cursor/agents <this-repo>/prd-pr-cursor/rules .cursor/
 - `rules/prd-pr-cursor.mdc` — an `alwaysApply` rule that maps the plugin's `agent_type: "prd-pr:…"` dispatch syntax to Cursor's `subagent_type`, pins per-phase routing, and points skills at the installed `wei6bin-skills/prd-pr` plugin cache.
 
 Skills still come from the marketplace plugin (`~/.cursor/plugins/cache/wei6bin-skills/prd-pr/`); only agents and the rule live in the project. When the plugin's agent playbooks change, re-copy the body from `prd-pr/agents/*.md` and keep the Cursor `model:` frontmatter.
+
+---
+
+## License
+
+[MIT](LICENSE).

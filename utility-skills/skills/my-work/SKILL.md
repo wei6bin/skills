@@ -28,16 +28,17 @@ matters months later.
 ## Setup
 
 The scripts locate the vault in this order: a `--vault` argument, then `$OBSIDIAN_VAULT`, then
-a `scripts/.vault-path` file, then by walking up from the current directory looking for
-`.obsidian`. Pin it once per install:
+a `scripts/.vault-path` file, then `~/.config/my-work/vault-path`, then by walking up from the
+current directory looking for `.obsidian`. Pin it once:
 
 ```bash
-export OBSIDIAN_VAULT=/path/to/your/vault
+mkdir -p ~/.config/my-work && echo /path/to/your/vault > ~/.config/my-work/vault-path
 ```
 
-Setting the environment variable is the durable option for a plugin install, because the plugin
-directory is replaced on update. `scripts/.vault-path` is the alternative for a checkout you
-control; it is gitignored so an absolute path never enters version control.
+The user-level file is the durable option, because a marketplace plugin's directory is versioned
+by commit and replaced on every update - anything written beside the scripts is discarded.
+`scripts/.vault-path` still wins when present, for a checkout you control; it is gitignored so an
+absolute path never enters version control.
 
 ## Sources of truth
 
