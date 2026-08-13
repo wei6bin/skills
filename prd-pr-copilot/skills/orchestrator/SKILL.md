@@ -34,15 +34,26 @@ You are guiding a developer through a new feature or enhancement. Follow these p
    - If missing or empty → invoke the `codebase-context-builder` skill to generate it, then continue.
    - If populated → read `docs/project_context/00_index.md` and load 2–4 relevant files.
 
-2. Launch **2–3 `code-explorer` subagents in parallel** using the task tool with `agent_type: "prd-pr-copilot:code-explorer"`, each targeting a different aspect:
-   - Subagent 1: *"Find features similar to [feature] and trace through their full implementation — entry points, handlers, services, data access, frontend. Return 5–10 key files."*
-   - Subagent 2: *"Map the architecture and patterns for [domain area] — layers, naming conventions, DTO shapes, error handling, auth. Return 5–10 key files."*
-   - Subagent 3 (if full-stack): *"Trace the frontend patterns for [feature area] — component structure, data fetching usage, form patterns, state. Return 5–10 key files."*
+2. **Query the knowledge graph before searching the tree.** If `docs/project_context/prod_spec/graph.md` exists, read it in full — it is one file, deliberately small — and resolve the request against it:
+   - **Capability map** → which existing capabilities this feature touches, and their **code anchors** (directories). These are your search starting points; do not rediscover them.
+   - **Entity map** → every domain rule already constraining the entities involved.
+   - **Edges** → any `supersedes` / `amends` edge in scope. An overturned decision reads exactly like a current one in the prose, so applying a superseded entry is a real and likely failure mode. Also read `conflicts-with` edges: two deliberate answers to the same question mean you must pick a side knowingly, not "reconcile" them.
+   - **Open questions** → whether this work is blocked, deferred, or gated on a business decision. If it is, say so **now**, before designing anything.
 
-3. After subagents return, read all key files they identified.
+   Then load only the entry IDs those rows cite (`grep -n "\[DR-114\]" docs/project_context/prod_spec/*.md`) — typically a couple of hundred lines, not the whole folder.
 
-4. Present a structured summary:
+   If there is no `graph.md`, skip this step; consider invoking `context-updater` afterwards so the next feature has one.
+
+3. Launch **2–3 `code-explorer` subagents in parallel** using the task tool with `agent_type: "prd-pr-copilot:code-explorer"`, each targeting a different aspect. **Seed each prompt with the anchors and entry IDs from step 2** so they start inside the right directories instead of searching blind:
+   - Subagent 1: *"Find features similar to [feature] and trace through their full implementation — entry points, handlers, services, data access, frontend. Start from [anchors]. Return 5–10 key files."*
+   - Subagent 2: *"Map the architecture and patterns for [domain area] — layers, naming conventions, DTO shapes, error handling, auth. Start from [anchors]. Return 5–10 key files."*
+   - Subagent 3 (if full-stack): *"Trace the frontend patterns for [feature area] — component structure, data fetching usage, form patterns, state. Start from [anchors]. Return 5–10 key files."*
+
+4. After subagents return, read all key files they identified.
+
+5. Present a structured summary:
    - Reference implementation found (closest existing feature to follow)
+   - **Capabilities and entities this touches** (graph IDs), and **any superseded decision or open question in scope**
    - Architecture layers affected
    - Reusable components, hooks, services, or utilities
    - Conventions to follow (naming, DTO shape, error handling pattern)
