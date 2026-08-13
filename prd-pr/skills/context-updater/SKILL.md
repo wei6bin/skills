@@ -213,7 +213,9 @@ Everything that is not a containment relationship. Type each edge - an untyped "
 | CAP-11 | extends | CAP-04 | |
 ```
 
-Vocabulary: `supersedes`, `amends`, `depends-on`, `extends`, `conflicts-with`, `implements`, `integrates`, `blocked-by`.
+Vocabulary: `supersedes`, `amends`, `resolves`, `depends-on`, `extends`, `constrains`, `conflicts-with`, `implements`, `integrates`, `blocked-by`. Use `resolves` when an entry's own predicted follow-up arrived (the entry was not overturned, its future came true) and `constrains` for a cross-cutting invariant that governs a capability without being one.
+
+**Always write the verb in this exact singular form, whatever sits on the From side.** `A, B | supersede | C` reads better and is a bug: `grep '| supersedes |'` then silently misses the row. The edge table is only useful if one grep per verb finds every edge of that type.
 
 `conflicts-with` is not a defect report. Two parts of a product legitimately resolving the same tension differently is a fact a new feature must know before it picks a side.
 
