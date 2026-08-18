@@ -31,7 +31,7 @@ If a change is required outside scope, stop and report under "Flagged for orches
 
 ## Before You Implement
 
-1. **Load React best practices conventions** — invoke the `react-best-practices` skill via the `Skill` tool. These define the conventions that apply throughout the session.
+1. **Load React best practices conventions** — invoke the `react-best-practices` skill via the `Skill` tool. These define the conventions that apply throughout the session. If the slice stands up or repairs the *styling standard itself* (design tokens, Biome/lint enforcement, Tailwind wiring, retiring a legacy CSS vocabulary), also invoke `frontend-styling-standard` — do not improvise one.
 2. Read `04-task-plan.md` — locate **the named slice's card**. Note its behaviour/outcome and AC list; your components must make every user-visible AC operable in the UI.
 3. Read `03-implementation-plan.md` — note the **reference patterns** flagged for this slice's frontend half. These are hints, not file lists.
 4. Read relevant `docs/project_context/` files — load project-specific conventions (these override the React guidelines where they conflict).
