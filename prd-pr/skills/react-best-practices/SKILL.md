@@ -65,6 +65,16 @@ const useStore = create<State>()((set) => ({
 - Prefer **TanStack Query** for all server state — handles caching, refetch, loading/error states.
 - For React Server Components: fetch directly in component; pass data as props to client components.
 - Co-locate query keys as constants; use query factories for parameterized queries.
+- **Gate on `skipToken`, not `enabled`** - it narrows the param type, so the non-null assertion and the redundant `enabled` both disappear:
+
+```ts
+// avoid: enabled + `!`
+useQuery({ queryKey: k(dept), queryFn: () => api.list({ department: dept! }), enabled: Boolean(dept) });
+// prefer
+useQuery({ queryKey: k(dept), queryFn: dept ? () => api.list({ department: dept }) : skipToken });
+```
+
+  Narrowing only works on a `const`/param - destructure a property (`const { department } = params;`) before using it in the closure. For mutations (no `skipToken`) use a shared `requireX()` guard instead of `!`.
 
 ## Performance
 
@@ -76,10 +86,16 @@ const useStore = create<State>()((set) => ({
 
 ## Styling
 
-- Prefer **Tailwind CSS** utility classes for most styling.
+Follow the **layered model** - each layer owns one job, and you never do one layer's job in another:
+
+1. **Design tokens** - the single source of truth for every colour, space, radius, shadow, font value. No raw hex or px in components.
+2. **Components** - the library's components themed centrally (`ConfigProvider`/theme object), plus a small set of named component classes for primitives it doesn't ship. Library options: **Shadcn/ui** (Radix + Tailwind), **Ant Design**, **MUI**, or **Fluent UI** depending on project.
+3. **Utilities (Tailwind)** - layout and spacing only: flex/grid/gap/padding/margin/width. This is what replaces the inline-flex triple.
+4. **Inline `style`** - last resort, genuinely dynamic values only, with a lint-ignore + reason.
+
 - Use **CSS Modules** for complex, scoped styles that need dynamic values.
-- Design system: **Shadcn/ui** (Radix + Tailwind), **MUI**, or **Fluent UI** depending on project.
-- Never use inline styles except for truly dynamic values.
+- **Cascade gotcha**: unlayered component classes beat *any* `@layer`, including Tailwind's `utilities`. A utility can only **add** a property the class doesn't set, never **override** one it does - use a modifier class defined after the base instead.
+- Establishing, migrating to, or enforcing this standard (Biome rule, token single-sourcing, Tailwind v4 wiring, retiring a legacy vocabulary) is the **`frontend-styling-standard`** skill's job - invoke it rather than improvising.
 
 ## Testing
 
@@ -143,10 +159,11 @@ src/
 | UI | Shadcn/ui, MUI, or Fluent UI |
 | Testing | Vitest + RTL + MSW + Playwright |
 | Styling | Tailwind CSS |
-| Linting | ESLint + Prettier |
+| Linting | Biome (fast single binary; formatter off, Prettier keeps `format`) |
 
 ## Companion Skills
 
 - **`frontend-implementer`** — Implements full frontend tasks from a plan document following TDD loop
+- **`frontend-styling-standard`** — Audits, defines and tool-enforces the styling standard these conventions assume (layered model, Biome + the no-inline-style plugin, single-sourced tokens, Tailwind v4 wiring, phased migration)
 - **`playwright-explore-website`** (awesome-copilot) — Explore and document UI flows for testing
 - **`playwright-generate-test`** (awesome-copilot) — Generate Playwright E2E tests from scenarios

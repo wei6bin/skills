@@ -61,7 +61,7 @@ flowchart TD
         P8F --> P8Q
         P8Q --> P8I[impl-frontend subagent<br/>whole-story integration: every mock → real backends]
         P8I --> P8R[code-reviewer subagent<br/>full diff vs AC intent]
-        P8R --> P8S[impl-simplify subagent<br/>whole story]
+        P8R --> P8S[impl-simplify subagent<br/>isolated context → built-in simplify skill]
         P8S --> P8M[Consolidated smoke<br/>every slice's Smoke: sequence]
         P8M --> P8E[Full test suite<br/>regression over whole diff]
         P8E --> P8C[context-updater skill<br/>capture product knowledge]
@@ -102,7 +102,7 @@ flowchart TD
 | Type | Examples | Where defined |
 |---|---|---|
 | **Subagent** (blue) | `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify`, `code-reviewer`, `test-plan-walker` | `prd-pr/agents/*.md` |
-| **Skill** (orange) | `orchestrator`, `codebase-context-builder`, `vertical-slicing`, `git-worktrees`, `raise-pr`, `react-best-practices`, `restful-api-design`, `backend-implementer`, `frontend-implementer`, `context-updater`, `test-plan-walkthrough` | `*/skills/<name>/SKILL.md` |
+| **Skill** (orange) | `orchestrator`, `codebase-context-builder`, `vertical-slicing`, `git-worktrees`, `raise-pr`, `react-best-practices`, `restful-api-design`, `backend-implementer`, `frontend-implementer`, `frontend-styling-standard`, `context-updater`, `test-plan-walkthrough` | `*/skills/<name>/SKILL.md`; `simplify` is Claude Code's built-in skill |
 | **Artifact** (purple) | The 6 plan files written by `code-architect` in Phase 4, plus `06-walkthrough.md` + `screenshots/` from Phase 9 and the `07-progress.md` ledger from Phase 8 | `docs/new-feature/{id}-{summary}/` |
 
 ## Phase → component matrix
@@ -116,6 +116,6 @@ flowchart TD
 | 5 Finalize Documents | — | — | Verified/consistent docs + README index |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | Step 1 (implement only, **no per-slice integration**): the ready-frontier and critical path are computed from `04-task-plan.md`'s `## Dependency graph` block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, `impl-backend` ∥ `impl-frontend` against the frozen contract — BE implements *and conformance-tests* it, FE stays on a mock. Step 2 (once, whole story): one `impl-frontend` **whole-story integration** → `code-reviewer` → `impl-simplify` → smoke → regression → `context-updater` (review loops back on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `restful-api-design`, `context-updater` | Code + tests + single checkpoint commit + `07-progress.md` ledger |
+| 8 Slice-by-slice Impl | Step 1 (implement only, **no per-slice integration**): the ready-frontier and critical path are computed from `04-task-plan.md`'s `## Dependency graph` block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, `impl-backend` ∥ `impl-frontend` against the frozen contract — BE implements *and conformance-tests* it, FE stays on a mock. Step 2 (once, whole story): one `impl-frontend` **whole-story integration** → `code-reviewer` → `impl-simplify` (isolated context, wraps the built-in `simplify` skill) → smoke → regression → `context-updater` (review loops back on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `frontend-styling-standard` (styling-standard work only), `restful-api-design`, `simplify` (built-in, via `impl-simplify`), `context-updater` | Code + tests + single checkpoint commit + `07-progress.md` ledger |
 | 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context, **spec-first**: writes Playwright specs that self-capture screenshots, runs them headless; re-runs are changed-surface only) | `test-plan-walkthrough` | **persisted Playwright spec per slice** (appended to project e2e suite) + self-captured screenshots + `06-walkthrough.md`; loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |
