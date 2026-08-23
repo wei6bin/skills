@@ -202,23 +202,67 @@ git worktree remove <worktree-path>
 
 For Option 3: keep worktree.
 
+### Step 6: Close out the story tracker
+
+For Options 1 and 2 only.
+
+**Why this step exists.** Everything the workflow has written so far describes *this* story: `07-progress.md`,
+the plan folder, `docs/new-feature/README.md`. None of it is what a person or a future agent reads to decide
+**what to work on next**. That is the project's *backlog tracker*, and if it is not updated here it is never
+updated at all - the next session opens a story that shipped weeks ago, reads `Status: Ready`, and rebuilds it.
+
+**1. Find the tracker.** In order, stop at the first hit:
+
+```bash
+grep -rniE "single source of truth|backlog|story status|_index" CLAUDE.md AGENTS.md README.md 2>/dev/null
+ls user-stories/_index.* docs/backlog.* BACKLOG.md 2>/dev/null
+```
+
+Also consider an external tracker (Azure DevOps, Jira, GitHub Issues) if the story id looks like a work-item
+reference (`az boards work-item update --id <n> --state Resolved`). If you find no tracker, say so plainly and
+skip the step. Do not invent one.
+
+**2. Update exactly one record**, and make it evidence-bearing:
+
+| Option taken | Status to set | Evidence to record |
+|---|---|---|
+| 1. Merged locally | done / closed | the merge commit sha |
+| 2. PR raised | in review | the PR number **and** its URL |
+
+Alongside the status, write a short note of **what actually shipped** - ACs delivered, decisions taken during
+implementation that the story file did not anticipate, anything deliberately left out. That note is the only
+durable record of the difference between the plan and the result; the plan folder records intent, not outcome.
+
+**3. Never leave a story parked at "PR raised".** That state is a lie the moment the PR merges, and it is the
+single most common source of tracker drift. On Option 2, either:
+- check whether the PR has already merged (`gh pr view <n> --json state,mergeCommit`) and record the commit, or
+- tell the user in your closing report, in one line: *"<story> is marked in-review; set it to done with the
+  merge commit once PR #<n> lands."*
+
+**4. If story status lives in more than one file, stop and report it.** Count the copies and name them. N
+hand-maintained copies of one word always drift - the question is only when. Recommend collapsing to one
+authoritative record, with the others either dropped or holding only facts the tracker does not (branch, merge
+commit, plan-folder path). Do **not** quietly update all N: that hides the defect and guarantees the next
+session inherits it. Ask the user before consolidating; it is their backlog.
+
 ## Quick Reference
 
-| Option | Merge | Push | Keep Worktree | Cleanup Branch |
-|--------|-------|------|---------------|----------------|
-| 1. Merge locally | ✓ | — | — | ✓ |
-| 2. Create PR | — | ✓ | ✓ | — |
-| 3. Keep as-is | — | — | ✓ | — |
-| 4. Discard | — | — | — | ✓ (force) |
+| Option | Merge | Push | Keep Worktree | Cleanup Branch | Update Tracker |
+|--------|-------|------|---------------|----------------|----------------|
+| 1. Merge locally | ✓ | — | — | ✓ | ✓ done + sha |
+| 2. Create PR | — | ✓ | ✓ | — | ✓ in-review + PR |
+| 3. Keep as-is | — | — | ✓ | — | — |
+| 4. Discard | — | — | — | ✓ (force) | — |
 
 ## Red Flags
 
-**Never:** proceed with failing tests, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running tests on result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
+**Never:** leave a merged story showing an in-progress status, maintain story status in more than one file without flagging it, proceed with failing tests, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running tests on result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
 
-**Always:** verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
+**Always:** close out the project's backlog tracker for Options 1 & 2 (Step 6) with the merge commit or PR number as evidence, verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
 
 ## Integration
 
 Pairs with `git-worktrees` — cleans up the worktree that skill created.
 Pairs with `test-plan-walkthrough` — consumes the screenshots + `06-walkthrough.md` it produces.
 Called at the end of the `orchestrator` Phase 10 after the walkthrough is complete.
+Step 6 is the workflow's only write to the project's own backlog tracker; the plan folder and `07-progress.md` never leave `docs/new-feature/`.
