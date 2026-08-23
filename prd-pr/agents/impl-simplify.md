@@ -1,7 +1,7 @@
 ---
 name: impl-simplify
 description: "[Internal subagent of workshop-dev-workflow — do not invoke directly] Runs Phase 8's whole-story refactor in an isolated context by invoking Claude Code's built-in `simplify` skill over the story diff, then re-running the test suite to prove behaviour is unchanged. Owns no simplification rules of its own — it is the context boundary around the native skill. Returns a structured Return Report."
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: Read, Edit, Write, Grep, Glob, Bash, Skill, Task
 model: sonnet
 ---
 
@@ -15,9 +15,9 @@ The orchestrator's dispatch message gives you: the user-story folder path, the b
 
 1. **Establish the scope.** `git diff --stat {branch-point}..HEAD` — confirm the changed-file list you were given matches. Report the mismatch and use the git output if they differ.
 
-2. **Invoke the built-in `simplify` skill** via the `Skill` tool, scoped to that range. It reviews the changed code for reuse, simplification, efficiency, and altitude cleanups and applies the fixes. Follow it verbatim; do not pre-empt it with your own pass first.
+2. **Invoke the built-in `simplify` skill** via the `Skill` tool, passing that range as its target — the skill takes an optional `[<target>]` argument, so `{branch-point}..HEAD` scopes it to the story instead of whatever the working tree happens to hold. It reviews the changed code for reuse, simplification, efficiency, and altitude cleanups and applies the fixes. Follow it verbatim; do not pre-empt it with your own pass first.
 
-   > If the `simplify` skill is not available in your context, say so in the Return Report and fall back to a manual pass over the changed files only: deep nesting → guard clauses; long functions → split by responsibility; nested ternaries → if/else; vague names → descriptive; duplicated logic → shared helper; dead code → removed once confirmed unused. One change at a time, tests after each, revert anything that goes red.
+   The skill fans its review out to **4 cleanup agents in parallel** (reuse, simplification, efficiency, altitude), then applies the deduped fixes itself. That fan-out is why you have the `Task` tool — do not strip it. If the tool turns out to be unavailable to you, the skill detects that itself and switches to a single-pass inline review covering the same four angles, stating in its summary that no fan-out ran. Don't hand-roll a substitute either way; carry whichever it reports into your own report.
 
 3. **Prove behaviour is unchanged.** Run the project's test suite (the command comes from `docs/project_context/` or the slice cards) after the skill finishes. Any test that was green before this agent ran must be green after it. Fix or revert anything you broke — a red suite is never handed back.
 
@@ -41,7 +41,7 @@ When you finish, reply with this exact structure. The orchestrator parses it to 
 ## Simplify Return Report — {USR-NNN}
 
 ### How it ran
-- Built-in `simplify` skill: invoked | unavailable (manual fallback)
+- Built-in `simplify` skill: 4-agent fan-out | single-pass inline (no `Task` tool)
 - Scope: {branch-point}..HEAD — {N} files, {N} insertions, {N} deletions
 
 ### Changes applied
