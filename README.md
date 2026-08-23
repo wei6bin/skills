@@ -8,6 +8,8 @@ Plugin marketplace hosting dev-workflow plugins and standalone utility skills.
 | `prd-pr-copilot` | Copilot CLI | Same workflow, Copilot agent format |
 | `prd-pr-cursor` | Cursor | Project-local `.cursor/` adapter (not a marketplace plugin) |
 | `utility-skills` | Claude Code | Standalone user-invocable skills: `teach-me`, `learn-it`, `spec-me`, `html-it`, `my-work` |
+| `code-to-prd` | Claude Code | Reverse-engineer a codebase into a complete PRD |
+| `clinical-lecture-brief` | Claude Code | Turn a clinical/medical YouTube lecture into a published, audience-calibrated teaching artifact |
 
 The marketplace is defined in `.claude-plugin/marketplace.json` at the repo root.
 

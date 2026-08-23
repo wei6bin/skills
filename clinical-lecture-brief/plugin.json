@@ -1,0 +1,6 @@
+{
+  "name": "clinical-lecture-brief",
+  "description": "Turn a clinical or medical YouTube lecture into a published, audience-calibrated teaching artifact. Fetches the transcript, repairs speech-recognition garbling, verifies the medicine against current teaching, and builds a designed HTML study reference.",
+  "version": "1.0.0",
+  "keywords": ["clinical", "medical", "nursing", "pharmacology", "lecture", "study-guide", "teaching", "youtube-transcript", "claude-code"]
+}
