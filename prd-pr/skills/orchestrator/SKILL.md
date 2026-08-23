@@ -118,7 +118,7 @@ The architect designs the blueprint and **writes all six documents itself**. You
 
 1. Verify all six files exist and are non-empty in `docs/new-feature/{id}-{summary}/`. If any is missing or a stub, re-dispatch the architect to complete it — do not fill it in by hand-transcription (that reintroduces the gap this restructure removed).
 2. Sanity-check cross-document consistency: every slice in `04-task-plan.md` has matching test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` slice's `Contract:` also appears in `02-technical-plan.md`. Also verify the `## Dependency graph` edge table agrees with the cards — each `Blocked by:` matches its row, every blocker is a real slice ID, no cycle. A mismatch is a planning bug: fix the table and re-derive (don't just patch prose).
-3. Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
+3. Update or create `docs/new-feature/README.md` with an index entry for this enhancement. This is the plan-folder index: folder, story, branch, and later the merge commit. It is **not** the project's backlog tracker, and it should not carry a status column that duplicates one; `raise-pr` Step 6 owns the tracker at the end.
 
 ---
 
@@ -276,4 +276,6 @@ Non-Blocker findings don't gate the PR — they get listed as follow-ups in the 
 
 ## Phase 10 — Branch Completion
 
-**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, and cleans up the worktree from Phase 4.
+**Invoke the `raise-pr` skill.** It runs the test suite, re-dispatches the `test-plan-walker` subagent if walkthrough artifacts are missing, presents the 4-option choice (merge / PR / keep / discard), embeds the walkthrough summary + screenshots into the PR body for the PR option, cleans up the worktree from Phase 4, and, in its Step 6, closes out the project's **backlog tracker** with the merge commit or PR number.
+
+That last part is the one the workflow used to drop. Everything before it writes only inside `docs/new-feature/`, which describes *this* story; the backlog tracker is what the next session reads to choose the next story. A merged story still reading `Ready` there gets rebuilt. If `raise-pr` reports that status lives in more than one file, surface that to the user rather than papering over it by updating them all.
