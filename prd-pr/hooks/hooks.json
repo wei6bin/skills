@@ -21,6 +21,11 @@
           },
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/biome-on-change.sh",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ts-typecheck-on-change.sh",
             "timeout": 60
           }
