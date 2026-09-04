@@ -8,8 +8,8 @@
 #
 # Why this exists: a hook must run a tool from the directory that owns the tool's
 # CONFIG, which in a monorepo is not the nearest package.json. pnpm/npm workspaces
-# put .prettierignore, biome.json and eslint.config.js at the workspace root while
-# every app under apps/* has its own package.json. Running from the app directory
+# put .prettierignore and biome.json at the workspace root while every app under
+# apps/* has its own package.json. Running from the app directory
 # silently drops the root ignore file, so the hook reports violations on generated
 # output (dev-dist/, dist/) that CI never checks - false positives that teach the
 # agent to ignore the hook.

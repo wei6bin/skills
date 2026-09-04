@@ -2,9 +2,10 @@
 # PostToolUse hook for Edit/Write/MultiEdit.
 #
 # Runs Biome's linter on the changed file and surfaces error-level findings back to
-# the agent. Biome is this plugin's own recommended linter - the
-# `frontend-styling-standard` skill tells projects to adopt it over ESLint - so
-# without this hook, following the plugin's advice silently removes lint feedback.
+# the agent. Biome is this plugin's linter: `frontend-styling-standard` tells projects
+# to adopt it over ESLint, and this is the hook that backs that recommendation. It is
+# the only lint hook - projects still on ESLint get no lint feedback here by design,
+# and should run the migration in `frontend-styling-standard/references/biome-setup.md`.
 #
 # Reports only, never fixes: Biome marks many of its fixes unsafe (removing a
 # fragment around `render(<>{…}</>)` changes what render receives), so a blanket

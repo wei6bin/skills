@@ -10,7 +10,7 @@
 # notice when a PostToolUse hook modifies a file ("your next Edit will not fail
 # with a stale-file error"), so the staleness concern that motivated report-only
 # is handled by the harness. Lint findings still only get reported - see
-# eslint-on-change.sh and biome-on-change.sh - because those need judgement.
+# biome-on-change.sh - because those need judgement.
 #
 # Self-gates: only acts on file types Prettier owns, inside a tree where Prettier
 # is reachable via npx. Exits silently otherwise, so it is safe in a generic plugin.
