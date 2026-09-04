@@ -1,6 +1,6 @@
 ---
 name: raise-pr
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+description: Use when implementation is complete, all CI checks pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
 allowed-tools: Read, Bash, AskUserQuestion
 ---
 
@@ -10,24 +10,52 @@ allowed-tools: Read, Bash, AskUserQuestion
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
 
-**Core principle:** Verify tests → Present options → Execute choice → Clean up.
+**Core principle:** Verify the CI gate → Present options → Execute choice → Clean up.
 
 **Announce at start:** "I'm using the raise-pr skill to complete this work."
 
 ## The Process
 
-### Step 1: Verify Tests
+### Step 1: Verify the CI gate
 
-**Before presenting options, verify tests pass:**
+**Before presenting options, run everything CI runs - not just the tests.**
+
+A green test suite is not a green pipeline. Format and lint checks usually run
+*after* tests, so a branch can pass every test, every typecheck and every lint rule
+and still turn CI red on whitespace. That failure then lands on the base branch,
+where it blocks everyone until someone raises a whitespace-only fix PR.
+
+**First find out what CI actually runs. Read the workflow rather than guessing:**
 
 ```bash
-# Run project's test suite — auto-detect from project files
-npm test / cargo test / pytest / go test ./... / dotnet test
+ls .github/workflows/*.yml .gitlab-ci.yml azure-pipelines.yml Jenkinsfile 2>/dev/null
 ```
 
-**If tests fail:** Show failures. Stop. Don't proceed to Step 2.
+Run each check that workflow runs, **from the same working directory and in the same
+order**. A monorepo CI job that sets `working-directory: frontend` must be reproduced
+from `frontend/`, or the tool resolves a different config and gives a different verdict.
+Typical gates, in the order they usually appear:
 
-**If tests pass:** Continue to Step 1.5.
+| Gate | JS/TS | .NET | Rust | Go | Python |
+|---|---|---|---|---|---|
+| Build | `npm run build` | `dotnet build` | `cargo build` | `go build ./...` | - |
+| Typecheck | `npm run typecheck` | (in build) | (in build) | (in build) | `mypy .` |
+| Test | `npm test` | `dotnet test` | `cargo test` | `go test ./...` | `pytest` |
+| Lint | `npm run lint` / `biome lint .` | `dotnet format --verify-no-changes` | `cargo clippy` | `go vet ./...` | `ruff check` |
+| Format | `npm run format:check` / `prettier --check .` | `dotnet format --verify-no-changes` | `cargo fmt --check` | `gofmt -l .` | `ruff format --check` |
+
+**If any check fails:** show the failure. Stop. Do not proceed to Step 2.
+
+- Fix formatting failures with the project's own write command - `prettier --write`,
+  `biome format --write`, `dotnet format`, `cargo fmt`, `gofmt -w`, `ruff format`.
+  Never hand-edit whitespace to satisfy a formatter.
+- **A formatting-only failure is still a failure.** It is the cheapest possible red
+  build and the easiest to leave behind, because nothing about the feature is broken.
+- **If a check fails in a file this branch never touched, the branch is behind its
+  base.** Merge the base branch and re-run before touching the file - the fix is
+  probably already on main, and reformatting it by hand creates a redundant diff.
+
+**If every check passes:** Continue to Step 1.5.
 
 ### Step 1.5: Test Plan Walkthrough (artifacts check)
 
@@ -256,9 +284,9 @@ session inherits it. Ask the user before consolidating; it is their backlog.
 
 ## Red Flags
 
-**Never:** leave a merged story showing an in-progress status, maintain story status in more than one file without flagging it, proceed with failing tests, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running tests on result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
+**Never:** leave a merged story showing an in-progress status, maintain story status in more than one file without flagging it, proceed with any failing CI check - a format or lint failure is as red as a failing test, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running the CI gate on the result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
 
-**Always:** close out the project's backlog tracker for Options 1 & 2 (Step 6) with the merge commit or PR number as evidence, verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
+**Always:** close out the project's backlog tracker for Options 1 & 2 (Step 6) with the merge commit or PR number as evidence, verify the full CI gate (not just tests) before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
 
 ## Integration
 
