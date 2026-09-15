@@ -1,198 +1,96 @@
 ---
 name: test-plan-walkthrough
-description: Playbook for the Phase 9 walkthrough — drives 05-test-plan.md's end-to-end manual demos through agent-browser, writes 06-walkthrough.md and screenshots/ into the user-story folder, and persists a Playwright e2e spec per slice into the project's existing e2e suite. Invoked by the test-plan-walker subagent.
+description: Playbook for the Phase 9 walkthrough - turns each slice's end-to-end demo in 05-test-plan.md into a Playwright spec that self-captures screenshots, runs the specs headless, writes 06-walkthrough.md and screenshots/ into the user-story folder, and persists the specs into the project's existing e2e suite. Invoked by the test-plan-walker subagent.
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 ---
 
 # Test Plan Walkthrough
 
-You are turning every slice's end-to-end demo into a **persisted Playwright spec that produces its own screenshots**, then running those specs headless. From that you produce **two** outputs: (1) the **persisted Playwright e2e spec per slice**, appended to the project's existing e2e suite so the story's use case becomes a permanent regression test — not a throwaway demo; and (2) a structured report referencing the screenshots the specs captured, which the PR description embeds.
+Spec-first, not browse-first: write each slice's spec from the concrete demo steps in `05-test-plan.md`, with `page.screenshot()` at every demoable checkpoint, and let Playwright drive headless. Hand-driving each step through an LLM-controlled browser is the slow path this skill replaces; `agent-browser` is only for recovering a locator.
 
-**This skill is spec-first, not browse-first.** You do **not** hand-drive every micro-step of every slice through an LLM-controlled browser — that is what made this phase take ~an hour per pass, one slow model-in-the-loop round-trip per click. Instead you *write the spec* from `05-test-plan.md`'s concrete demo steps, put a `page.screenshot()` at each demoable checkpoint, and let Playwright do the driving headless — fast, deterministic, and re-runnable in seconds. LLM-driven browsing (`agent-browser`) is a **fallback only**, used to recover a locator when a spec fails to find an element — never the primary driver.
+**Announce at start:** "I'm using the test-plan-walkthrough skill spec-first - writing Playwright specs that self-capture screenshots and running them headless."
 
-**Announce at start:** "I'm using the test-plan-walkthrough skill spec-first — writing Playwright specs that self-capture screenshots and running them headless."
+Runs after Phase 8 is fully green (this is the story's first and only end-to-end demo, against the integrated stack) and before `raise-pr`. Inputs: the demo steps and `e2e`-type cases in `05-test-plan.md`, the slice list in `04-task-plan.md`, credentials/seed data per `02-technical-plan.md`'s "Dev/Demo Data Recovery", and the app URL. Ask rather than guess if any is missing.
 
----
+## Outputs
 
-## When this skill runs
+1. One Playwright spec per slice, appended to the project's **existing** e2e suite in its location and style, committed with the story.
+2. `06-walkthrough.md` and `screenshots/slice-{NN}-{step-NN}-{kebab-name}.png` in the user-story folder, produced by the specs (`page.screenshot({ path })` pointed there). One screenshot per demoable checkpoint (each `→` in the demo line that lands on a visible state), not per keystroke.
 
-- After **all slices in `04-task-plan.md` are implemented and the story is integrated** (Phase 8 complete — the consolidated round green over the whole diff: whole-story integration, review, refactor, smoke, regression, and the single consolidated checkpoint commit landed). Individual slices were built against contract mocks and are not demoed one-by-one; this phase is the story's first and only end-to-end demo, against the real, integrated stack.
-- **Before** `raise-pr`. The PR body depends on the artifacts this skill produces.
+No existing Playwright suite → do not create one. Skip output 1, record *"No Playwright e2e suite in this project - persisted specs skipped; recommend adding one"* under "Issues found", and still produce output 2 as far as possible.
 
-If you arrive here with unfinished slices, stop — go back and finish Phase 8 first.
+## Steps
 
----
+### 1. Locate the e2e suite
 
-## Inputs
+`find . -maxdepth 3 \( -name 'playwright.config.*' -o -name '*.spec.ts' -o -name '*.spec.js' \) -not -path '*/node_modules/*'`. Record the spec directory and naming, the run command (`package.json` scripts or `npx playwright test`), and the house style from one existing spec: imports, auth/login fixture, `baseURL`, locator conventions. Your specs must look like the same hand wrote them.
 
-| Input | Where |
-|---|---|
-| Manual demo steps | `docs/new-feature/{folder}/05-test-plan.md` → "End-to-End Test (manual demo per slice)" section |
-| Slice list | `docs/new-feature/{folder}/04-task-plan.md` |
-| Demo credentials / seed data | `docs/new-feature/{folder}/02-technical-plan.md` → "Dev/Demo Data Recovery" section, if present |
-| App URL | Project `docker-compose.yml` / `README.md` / `02-technical-plan.md` |
+### 2. Verify the stack
 
-If any of these are missing, ask the user before proceeding — do not guess.
+Confirm the app is reachable (`docker compose ps`, a health endpoint); bring it up with the project's standard command if not. Stale seed data → follow "Dev/Demo Data Recovery". Never invent credentials.
 
----
+### 3. Author the specs
 
-## Output
+`mkdir -p docs/new-feature/{folder}/screenshots`. For each slice's demo row, in slice order:
 
-1. One **Playwright spec per slice** appended to the project's **existing** e2e suite (whatever directory/naming/config the project already uses — you discover it in Step 0, you do not invent a location or scaffold a framework). These are production test files, committed with the story. Each spec captures its own screenshots via `page.screenshot()` at every demoable checkpoint.
-2. `06-walkthrough.md` and `screenshots/*.png` into the user-story folder. The screenshots are **produced by the specs**, written to `docs/new-feature/{folder}/screenshots/` (point each `page.screenshot({ path })` there). Naming: `slice-{NN}-{step-NN}-{short-kebab-name}.png` — `NN` two-digit, zero-padded. One screenshot per demoable checkpoint (a `→` in the demo line that lands on a visible state), not per trivial keystroke.
+- Decompose the demo line into checkpoints (one assertion + one screenshot each), e.g. *"Sign in as Doctor → open Checked-In appointment → save 1 drug → reload → restored"* is four.
+- One `test()` per slice, named after its behaviour, using the project's login fixture and `baseURL`. Locators from the concrete roles, labels and expected text in `05-test-plan.md` (`getByRole`, `getByLabel`, `getByTestId`); a step too vague to locate is a test-plan gap - ask, do not improvise. Assert the same expected states the plan lists, cover the slice's `e2e`-type cases, and screenshot after each assertion passes:
+  ```ts
+  await expect(page.getByText('Paracetamol')).toBeVisible();
+  await page.screenshot({ path: 'docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png' });
+  ```
+- Only when an element's accessible name genuinely cannot be known blind, take **one** `agent-browser snapshot` of that page to read the locator and encode it. Verification still happens in the headless run.
 
-If the project has **no** existing Playwright/e2e suite (no config, no runner, no spec directory), you do **not** stand one up. Skip output #2, and record in `06-walkthrough.md`'s "Issues found" section: *"No Playwright e2e suite in this project — persisted specs skipped; recommend adding one."* Output #1 still ships.
+Playwright's `fill()`/`click()` fire native events, so React Hook Form usually works; if a field still will not update, use the native value setter + `InputEvent` + `form.requestSubmit()` from `page.evaluate` (see `frontend-implementer`'s "Driving React Hook Form programmatically"). A page with nested `<form>`s (the inner submit posts the outer form as GET, serialising fields into the URL) is a known FE bug: record it under "Issues found" and assert around it via a direct `request` call.
 
----
+### 4. Run headless and triage
 
-## The Process
+Run the new specs with the project's command against the running stack. A green spec is the verification and produces its screenshots. Per failure: a spec bug (selector, missing auto-wait, timing) → fix the spec, recovering the locator with one `agent-browser snapshot` if needed, and re-run; an app bug → record under "Issues found", mark the slice ❌, leave the spec in place (expected-red until fixed), and never patch app code. Never report a green spec you did not run.
 
-### Step 0 — Locate the project's existing e2e suite
+On a re-dispatch after a fix, re-run only the affected slices' specs and amend only their rows and screenshots.
 
-Before driving anything, find where persisted specs must land — you append to the existing suite, never invent a parallel one.
-
-```bash
-# Playwright config + existing spec dir + run command
-find . -maxdepth 3 \( -name 'playwright.config.*' -o -name '*.spec.ts' -o -name '*.spec.js' \) \
-  -not -path '*/node_modules/*' 2>/dev/null | head -30
-```
-
-Determine, and record for later steps:
-- **Spec directory & naming** (e.g. `e2e/`, `tests/e2e/`, `*.spec.ts`) — match it exactly.
-- **The run command** (from `package.json` scripts, e.g. `npm run test:e2e`, or `npx playwright test`).
-- **House style** — open one existing spec and copy its import paths, fixtures/auth helpers (e.g. a `loginAs()` fixture), `baseURL`, and locator conventions (`getByRole` / `getByTestId`). Your new specs must look like they were written by the same hand.
-
-If none of this exists, note it (per **Output**) and skip spec authoring — do not scaffold Playwright, add dependencies, or write a config. Screenshots still proceed.
-
-### Step 1 — Verify environment is up
-
-```bash
-# From repo root, confirm the stack is reachable
-docker compose ps                # or whatever the project uses
-curl -fsS http://localhost:{port}/health   # or equivalent
-```
-
-If the stack is down, bring it up per the project's standard command (e.g. `docker compose up -d`). If seed data is stale (e.g. demo passwords already rotated), follow the "Dev/Demo Data Recovery" steps from `02-technical-plan.md`. Do **not** invent credentials.
-
-### Step 2 — Author the per-slice specs (spec-first, self-screenshotting)
-
-You write specs from the concrete demo steps — you do **not** drive the browser by hand to produce them. `mkdir -p docs/new-feature/{folder}/screenshots` for the screenshots the specs will write.
-
-For each row in the `05-test-plan.md` "Manual demo per slice" table (plus that slice's `e2e`-type cases), in slice order:
-
-1. **Read the demo line and decompose it into checkpoints.** Each `→` that lands on a visible state is one checkpoint (one screenshot + one assertion). Trivial keystrokes are not checkpoints. Example from USR-018:
-   > Slice 01: *"Sign in as Doctor → Checked-In appointment → save 1 drug → reload → restored"* → checkpoints: after login, after opening the appointment, after save, after reload.
-
-2. **Write one spec/`test()` per slice**, in the suite location and house style from Step 0:
-   - Use the project's existing **auth/login fixture** (never inline credentials) and its `baseURL`.
-   - Build locators from the **concrete roles/labels/expected text in `05-test-plan.md`** — `getByRole('button', { name: 'Save' })`, `getByLabel(...)`, `getByTestId(...)`. Phase 5 requires those steps be written concretely enough to translate without guessing. If a step is too vague to locate, that is a test-plan gap — ask the user, don't improvise a selector.
-   - **Screenshot at each checkpoint**, after the action lands and the assertion passes:
-     ```ts
-     await expect(page.getByText('Paracetamol')).toBeVisible();
-     await page.screenshot({ path: 'docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png' });
-     ```
-   - Name the `test()` after the slice's demoable behaviour; assert the same expected states `05-test-plan.md` lists (URL, visible text, row present). Cover the slice's `e2e`-type case assertions too.
-   - Reuse `react-best-practices`' Playwright references (`playwright-generate-test`) for structure — but integrate with the *existing* suite, do not stand up a parallel one.
-
-3. **Only if you cannot author a locator blind** (a flow so dynamic you genuinely can't tell what an element's accessible name is), take **one** `agent-browser snapshot` of that single page to read the real locator, then encode it into the spec. This is a targeted locator lookup, not a manual walkthrough — verification still happens via the headless run in Step 3, not by hand. (`agent-browser --version` must succeed for this fallback; if it's absent and you hit a case that needs it, say so rather than guessing.)
-
-**Driving forms in the spec.** Playwright's `fill()` / `getByRole().click()` trigger native events, so React Hook Form usually just works — unlike synthetic-event drivers. If an RHF field still won't update, set it via the native value-setter inside `page.evaluate`, dispatch `new InputEvent('input', { bubbles: true })`, and submit with `form.requestSubmit()` (see the `frontend-implementer` skill's "Driving forms programmatically").
-
-**Nested-form gotcha.** Some pages have invalid nested `<form>` elements (the inner submit posts the outer form as GET, serialising fields into the URL). If a spec surfaces this — query string filling with form fields — record it as a known FE bug in `06-walkthrough.md`'s "Issues found" section and assert around it via a direct `request` call; do not silently skip.
-
-### Step 3 — Run the specs headless and triage
-
-Run the specs through the project's own e2e command from Step 0, headless, against the running stack:
-
-```bash
-npm run test:e2e -- {new spec paths}     # or: npx playwright test {paths}
-```
-
-A green spec **is** the verification and produces its screenshots as a side effect — there is no separate manual pass. Triage every failure:
-
-- **Spec bug** (flaky/wrong selector, missing `await`/auto-wait, timing) — **fix the spec, not the app.** To recover a correct locator, take one `agent-browser snapshot` of the failing page. Re-run.
-- **App bug** (the app is genuinely broken) — that's a real finding: record it in "Issues found", set the slice `❌`, and leave the spec in place (expected-red until the fix). Do **not** patch app code from here — report it so the orchestrator re-dispatches the implementer.
-
-Never commit a green checkmark for a spec you did not actually run. Record each spec's pass/fail for the Return Report.
-
-### Step 3c — Re-runs after a fix (changed-surface only)
-
-When the orchestrator re-dispatches you after an implementer fix, re-run **only the affected slices' specs** — regenerating only their screenshots and amending only their rows in `06-walkthrough.md`. Do **not** re-author or re-run specs for slices that already passed: re-running a green spec is seconds and unnecessary, re-walking a whole story is the hour-long cost this skill exists to avoid. Independent slices' specs can also run in parallel (`playwright test` shards them) when the suite supports it.
-
-### Step 5 — Write `06-walkthrough.md`
-
-Use this template. Keep the body terse — one bullet per step.
+### 5. Write `06-walkthrough.md`
 
 ```markdown
-# {USR-NNN} — End-to-end Walkthrough
+# {USR-NNN} - End-to-end Walkthrough
 
-**Date:** {YYYY-MM-DD}
-**Branch:** {feat/usr-NNN-…}
-**Stack:** {commit hash from `git rev-parse --short HEAD`}
-**Browser:** {output of `agent-browser --version`}
-**Driver:** Claude Code + `test-plan-walkthrough` skill
+**Date:** {YYYY-MM-DD} · **Branch:** {branch} · **Stack:** {git rev-parse --short HEAD}
 
-> Demo steps mirror `05-test-plan.md` § "End-to-End Test (manual demo per slice)". One screenshot per step lives in `./screenshots/`.
+> Demo steps mirror `05-test-plan.md` § "End-to-End Test (manual demo per slice)". Screenshots in `./screenshots/`.
 
 ## Pre-flight
-
-- [x] Stack up: `docker compose ps` shows {N} containers healthy
-- [x] Auth: signed in as `{role/email}`
-- [x] Seed data: {note any recovery steps applied}
+- [x] Stack up: {N} services healthy
+- [x] Auth: signed in as `{role}`
+- [x] Seed data: {recovery steps applied, if any}
 
 ## Slice-by-slice results
 
-### SLICE-01 — {behaviour}
-
+### SLICE-01 - {behaviour}
 **Demo:** {verbatim from 05-test-plan.md}
-**Persisted spec:** `{e2e/…/slice-01-….spec.ts}` — ✅ green / ❌ red / — none (BE-only or no e2e suite)
+**Persisted spec:** `{path}` - ✅ green / ❌ red / - none (BE-only or no e2e suite)
 
 | # | Step | Result | Screenshot |
 |---|------|--------|------------|
 | 1 | Sign in as Doctor | ✅ Redirected to `/doctor` | ![](screenshots/slice-01-01-login.png) |
-| 2 | Open Checked-In appointment Q-001 | ✅ Visit page loaded for Chua Hui Ling | ![](screenshots/slice-01-02-visit.png) |
-| 3 | Add Paracetamol 500 mg TID × 5 days | ✅ Row saved, qty auto = 15 | ![](screenshots/slice-01-03-rx-saved.png) |
-| 4 | Reload page | ✅ Line item still present | ![](screenshots/slice-01-04-reload-restored.png) |
-
-… repeat for every slice …
 
 ## Issues found during walkthrough
-
 | Slice | Severity | Issue | Status |
 |---|---|---|---|
-| 01 | … | … | Open / Fixed in {commit} |
-
-(Leave the section but write "None" if everything passed.)
+(write "None" if everything passed)
 
 ## Summary
-
-- Slices walked: {N}
-- All AC demos passed: ✅ / ❌
-- Persisted Playwright specs added: {N} (all green: ✅ / ❌) — or "none: no e2e suite in project"
-- New bugs surfaced: {N} (see table above)
+- Slices walked: {N} · all AC demos passed: ✅/❌
+- Persisted specs added: {N} (all green: ✅/❌) - or "none: no e2e suite"
+- New bugs surfaced: {N}
 ```
 
-For each entry, paste the **verbatim** demo line from `05-test-plan.md` so the report is self-contained — a reviewer should not have to cross-reference the test plan to understand what was tested.
+Every slice in `04-task-plan.md` appears; BE-only slices get *"BE only - no UI; verified via API smoke."* Demo lines are pasted verbatim so the report stands alone. Never paste credentials.
 
-### Step 6 — Commit the artifacts
-
-Commit the walkthrough docs and the persisted specs together — one commit ties the evidence to the regression test it produced:
+### 6. Commit
 
 ```bash
-git add docs/new-feature/{folder}/06-walkthrough.md docs/new-feature/{folder}/screenshots/
-git add {e2e spec dir}          # the new/appended *.spec.* files authored in Step 2
+git add docs/new-feature/{folder}/06-walkthrough.md docs/new-feature/{folder}/screenshots/ {new spec files}
 git commit -m "test({slug}): e2e walkthrough + persisted Playwright specs"
 ```
 
-Single commit per walkthrough run. If a re-run replaces screenshots or specs, amend or add a new commit — do not leave orphan files in the working tree. If the project had no e2e suite, omit the second `git add` and use the message `docs({slug}): e2e walkthrough — screenshots + 06-walkthrough.md`.
-
-## Red flags
-
-- **Faking screenshots.** If a step's screenshot would be misleading (captured before the action landed, or showing a stale state), retake it.
-- **Skipping a slice.** Every slice in `04-task-plan.md` must appear in `06-walkthrough.md`. Backend-only slices get an entry: *"BE only — no UI; verified via API smoke."*
-- **Inventing demo steps.** Steps come verbatim from `05-test-plan.md`. If ambiguous, ask — do not improvise.
-- **Headed-mode requirement that breaks in WSL/CI.** Prefer headless. If headed is required (print preview etc.), note the dependency in "Pre-flight".
-- **Committing credentials.** Never paste passwords into `06-walkthrough.md` or a spec. Reference `02-technical-plan.md`'s seed-data section and use the project's login fixture instead.
-- **Claiming a spec is green without running it.** A committed spec must have actually run and passed headless in Step 3. No exceptions.
-- **Scaffolding a test framework.** If the project has no Playwright/e2e suite, you flag it and skip — you do not add Playwright, a config, dependencies, or a new `e2e/` tree. That's a decision for the team, not the walkthrough.
-- **Parallel/duplicate suites.** Append to the existing suite in its own directory and style. Do not create a second e2e tree under `docs/new-feature/` or anywhere else.
+One commit per run (`docs({slug}): e2e walkthrough - screenshots + 06-walkthrough.md` when there is no e2e suite). A re-run amends or adds a commit; no orphan files in the tree. Prefer headless; if a slice needs headed mode (print preview), note it under Pre-flight.

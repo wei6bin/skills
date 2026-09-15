@@ -1,169 +1,59 @@
 ---
 name: react-best-practices
-description: >-
-  Expert React frontend development using React 19, TypeScript, modern hooks,
-  state management (Zustand/RTK), React Testing Library, and Vite.
-  Apply when implementing React components, hooks, forms, or optimizing frontend performance.
+description: House conventions for React 19 + TypeScript frontends - library choices (TanStack Query, Zustand/RTK, React Hook Form + Zod, Vitest + RTL + MSW, Biome), the skipToken gating pattern, the layered styling model and its CSS-cascade gotcha. Apply when implementing React components, hooks, forms or data fetching.
 license: MIT
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
 # React Best Practices
 
-You are an expert React frontend engineer. Apply these patterns consistently.
+House choices for React 19 + TypeScript (strict) with Vite. Project conventions in `docs/project_context/` override these.
 
-## React 19 + TypeScript Foundations
+## Libraries
 
-- Use **TypeScript strictly** (`strict: true`). Infer types where obvious; annotate props, events, and hooks explicitly.
-- Prefer **functional components with hooks** — never class components.
-- Use `React.FC` sparingly; prefer explicit return types: `function Comp(): JSX.Element`.
-- Target **React 19** features when available: `use()` hook, `useFormStatus`, `useOptimistic`, `useActionState`, `<Activity>`.
-
-## Component Design
-
-- **Single Responsibility**: each component does one thing well.
-- **Composition over inheritance**: build complex UIs by composing small, focused components.
-- **Co-locate** related files: `Button/Button.tsx`, `Button/Button.test.tsx`, `Button/index.ts`.
-- Use **named exports** for components; barrel `index.ts` for public surface.
-- Extract reusable logic into **custom hooks** (`useXxx`) that return stable references.
-
-## Hooks Rules
-
-- Never call hooks conditionally or inside loops.
-- `useEffect` — declare all dependencies; clean up subscriptions and timers.
-- Prefer `useMemo` / `useCallback` only when profiling confirms a perf win; avoid premature memoization.
-- React Compiler (React 19) handles most memoization automatically — trust it.
-- `useRef` for mutable values that don't trigger re-renders (DOM refs, timers, previous values).
-
-## State Management
-
-| Scope | Tool |
+| Concern | Use |
 |---|---|
-| Local UI state | `useState` / `useReducer` |
-| Server state / caching | TanStack Query (`useQuery`, `useMutation`) |
-| Global client state | **Zustand** (simple) or **Redux Toolkit** (complex) |
-| Form state | React Hook Form + Zod validation |
+| Server state | TanStack Query v5; query keys as co-located constants / factories |
+| Global client state | Zustand (simple) or Redux Toolkit (complex) |
+| Forms | React Hook Form + Zod; React 19 Actions for server forms; field-level errors; disable submit while pending |
+| Routing | React Router v6 / TanStack Router; `React.lazy` + `Suspense` at route level |
+| UI kit | Shadcn/ui, Ant Design, MUI or Fluent UI per project, themed centrally |
+| Styling | Tailwind for layout utilities; CSS Modules for scoped dynamic styles |
+| Testing | Vitest + React Testing Library + MSW; Playwright for e2e |
+| Linting | Biome (formatter off; Prettier keeps `format`) |
 
-**Zustand pattern:**
-```ts
-const useStore = create<State>()((set) => ({
-  count: 0,
-  increment: () => set((s) => ({ count: s.count + 1 })),
-}));
-```
+Trust the React Compiler for memoization; add `useMemo`/`useCallback` only when profiling shows a win. Long lists: TanStack Virtual or `react-window`.
 
-**Redux Toolkit pattern:** use `createSlice`, `createAsyncThunk`, RTK Query for API calls.
+## Gate queries on `skipToken`, not `enabled`
 
-## Forms
-
-- Use **React Hook Form** with **Zod** schema validation.
-- Server forms: use React 19 Actions API (`<form action={serverAction}>`).
-- Always show field-level validation errors; disable submit during pending state with `useFormStatus`.
-
-## Data Fetching
-
-- Prefer **TanStack Query** for all server state — handles caching, refetch, loading/error states.
-- For React Server Components: fetch directly in component; pass data as props to client components.
-- Co-locate query keys as constants; use query factories for parameterized queries.
-- **Gate on `skipToken`, not `enabled`** - it narrows the param type, so the non-null assertion and the redundant `enabled` both disappear:
+It narrows the param type, so the non-null assertion and the redundant `enabled` both disappear:
 
 ```ts
-// avoid: enabled + `!`
+// avoid
 useQuery({ queryKey: k(dept), queryFn: () => api.list({ department: dept! }), enabled: Boolean(dept) });
 // prefer
 useQuery({ queryKey: k(dept), queryFn: dept ? () => api.list({ department: dept }) : skipToken });
 ```
 
-  Narrowing only works on a `const`/param - destructure a property (`const { department } = params;`) before using it in the closure. For mutations (no `skipToken`) use a shared `requireX()` guard instead of `!`.
+Narrowing only works on a `const`/param: destructure (`const { department } = params;`) before using it in the closure. Mutations have no `skipToken`; use a shared `requireX()` guard instead of `!`.
 
-## Performance
+## Styling: the layered model
 
-- Use `React.lazy` + `Suspense` for route-level code splitting.
-- Virtualize long lists with **TanStack Virtual** or `react-window`.
-- Avoid inline object/function creation in JSX that breaks referential equality.
-- Measure first with React DevTools Profiler before optimizing.
-- Target Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1.
+Each layer owns one job; never do one layer's job in another:
 
-## Styling
+1. **Design tokens** - single source of every colour, space, radius, shadow, font. No raw hex or px in components.
+2. **Components** - the library's components themed centrally, plus a few named classes for primitives it lacks.
+3. **Utilities (Tailwind)** - layout and spacing only: flex/grid/gap/padding/margin/width.
+4. **Inline `style`** - genuinely dynamic values only, with a lint-ignore and reason.
 
-Follow the **layered model** - each layer owns one job, and you never do one layer's job in another:
+**Cascade gotcha**: unlayered component classes beat any `@layer`, including Tailwind's `utilities`. A utility can only add a property the class does not set, never override one it does; use a modifier class defined after the base instead.
 
-1. **Design tokens** - the single source of truth for every colour, space, radius, shadow, font value. No raw hex or px in components.
-2. **Components** - the library's components themed centrally (`ConfigProvider`/theme object), plus a small set of named component classes for primitives it doesn't ship. Library options: **Shadcn/ui** (Radix + Tailwind), **Ant Design**, **MUI**, or **Fluent UI** depending on project.
-3. **Utilities (Tailwind)** - layout and spacing only: flex/grid/gap/padding/margin/width. This is what replaces the inline-flex triple.
-4. **Inline `style`** - last resort, genuinely dynamic values only, with a lint-ignore + reason.
-
-- Use **CSS Modules** for complex, scoped styles that need dynamic values.
-- **Cascade gotcha**: unlayered component classes beat *any* `@layer`, including Tailwind's `utilities`. A utility can only **add** a property the class doesn't set, never **override** one it does - use a modifier class defined after the base instead.
-- Establishing, migrating to, or enforcing this standard (Biome rule, token single-sourcing, Tailwind v4 wiring, retiring a legacy vocabulary) is the **`frontend-styling-standard`** skill's job - invoke it rather than improvising.
+Standing up, migrating to or enforcing this standard (Biome rule, token single-sourcing, Tailwind v4 wiring, retiring a legacy vocabulary) is the `frontend-styling-standard` skill's job.
 
 ## Testing
 
-Use **Vitest** + **React Testing Library** (RTL):
+Test behaviour through the rendered UI: query by role, label and text with `userEvent`; never component state or hook internals. Mock network at the boundary with MSW. Accessibility: semantic elements, accessible names, keyboard navigation, `aria-*` only where semantics fall short; WCAG 2.1 AA.
 
-```ts
-import { render, screen, userEvent } from '@testing-library/react';
+## Companion skills
 
-test('increments counter on click', async () => {
-  render(<Counter />);
-  await userEvent.click(screen.getByRole('button', { name: /increment/i }));
-  expect(screen.getByText('1')).toBeInTheDocument();
-});
-```
-
-- Test **behavior, not implementation** — query by role, label, text.
-- Mock network calls with **MSW** (Mock Service Worker).
-- E2E tests: **Playwright** (see `playwright-explore-website` + `playwright-generate-test` skills).
-- Coverage target: 80%+ for business-critical components.
-
-## Accessibility (a11y)
-
-- Use semantic HTML: `<button>`, `<nav>`, `<main>`, `<section>` correctly.
-- All interactive elements must be keyboard-navigable and have accessible names.
-- Use `aria-*` attributes only when semantic HTML is insufficient.
-- Test with axe-core (`@axe-core/react`) and keyboard navigation.
-- WCAG 2.1 AA minimum compliance.
-
-## Project Structure (Vite + React)
-
-```
-src/
-├── assets/          # Static files
-├── components/      # Shared UI components
-│   └── Button/
-│       ├── Button.tsx
-│       ├── Button.test.tsx
-│       └── index.ts
-├── features/        # Feature-sliced: each feature owns its components, hooks, api
-│   └── auth/
-│       ├── components/
-│       ├── hooks/
-│       ├── api.ts
-│       └── store.ts
-├── hooks/           # App-wide custom hooks
-├── lib/             # Third-party config (queryClient, store)
-├── pages/           # Route-level components
-├── router.tsx       # React Router v6 config
-└── main.tsx         # Entry point
-```
-
-## Key Libraries
-
-| Category | Preferred |
-|---|---|
-| Build | Vite + TypeScript |
-| Routing | React Router v6 / TanStack Router |
-| Data fetching | TanStack Query v5 |
-| State | Zustand or Redux Toolkit |
-| Forms | React Hook Form + Zod |
-| UI | Shadcn/ui, MUI, or Fluent UI |
-| Testing | Vitest + RTL + MSW + Playwright |
-| Styling | Tailwind CSS |
-| Linting | Biome (fast single binary; formatter off, Prettier keeps `format`) |
-
-## Companion Skills
-
-- **`frontend-implementer`** — Implements full frontend tasks from a plan document following TDD loop
-- **`frontend-styling-standard`** — Audits, defines and tool-enforces the styling standard these conventions assume (layered model, Biome + the no-inline-style plugin, single-sourced tokens, Tailwind v4 wiring, phased migration)
-- **`playwright-explore-website`** (awesome-copilot) — Explore and document UI flows for testing
-- **`playwright-generate-test`** (awesome-copilot) — Generate Playwright E2E tests from scenarios
+`frontend-implementer` (the per-slice TDD loop), `frontend-styling-standard` (the styling standard and its enforcement).

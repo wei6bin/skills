@@ -1,200 +1,65 @@
 ---
 name: frontend-styling-standard
 description: >-
-  Establish and enforce a styling standard for a React + Ant Design (and/or
-  Tailwind) frontend: audit how styling is done today, define a layered model
-  (antd components + design tokens + global CSS classes + Tailwind utilities,
-  with inline styles banned), single-source the design tokens, adopt Biome for
-  linting, migrate off inline styles and any legacy CSS vocabulary, and enforce
-  it all via CI-blocking lint. Use this whenever the user wants to clean up or
-  standardize frontend styling — reduce inline `style={{}}`, adopt design
-  tokens or a design system, wire up Tailwind, switch to Biome, kill a legacy
-  CSS class vocabulary, or asks for "frontend best practices", "styling
-  standard", "design-system cleanup", or "make the styling consistent" — even
-  if they don't name the specific tools. Also use it to review a frontend for
-  styling debt.
+  Establish and enforce a styling standard for a React + Ant Design (and/or Tailwind) frontend: audit current styling, define the layered model (component library + design tokens + global classes + Tailwind utilities, inline styles banned), single-source the tokens, adopt Biome, migrate off inline styles and any legacy CSS vocabulary, and enforce via CI-blocking lint. Use when the user wants to clean up or standardise frontend styling, reduce inline style={{}}, adopt design tokens or a design system, wire up Tailwind, switch to Biome, retire a legacy class vocabulary, or review a frontend for styling debt - even without naming the tools.
 license: MIT
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
 # Frontend styling standard
 
-A repeatable workflow for taking a React frontend (Ant Design and/or Tailwind,
-pnpm workspace or single app) from ad-hoc, inline-heavy styling to a
-**disciplined, tool-enforced standard** — and for authoring the standard
-document itself. It is derived from a real end-to-end migration; the sequencing
-and the non-obvious gotchas below are the parts that save the most time.
+Takes a React frontend from ad-hoc inline styling to a tool-enforced standard, and authors the standard document. Derived from a real migration; the sequencing and gotchas are the parts that save time.
 
-## The one-sentence rule
+**The rule:** component + design token + global class first; a Tailwind utility for layout; inline `style` never, unless the value is genuinely computed at runtime.
 
-**antd component + design token + global class first; a utility (Tailwind) for
-layout; inline `style` never — unless the value is genuinely computed at
-runtime.** Everything else follows from this.
+Work in phases, committing each separately. Do not start by editing components; styling debt is systemic and a scattershot pass makes it worse.
 
-## When to use this
+### Phase 0 - Audit
 
-- "Our components are full of inline styles / `style={{}}` everywhere."
-- "Adopt a design system / design tokens / a consistent theme."
-- "Set up Tailwind" or "switch us from ESLint to Biome."
-- "We have two CSS class vocabularies / a legacy stylesheet to retire."
-- "Write/enforce a frontend styling standard" or "review our frontend styling."
+With `file:line` evidence: is the component library themed centrally (`ConfigProvider` + theme object) and used consistently over raw elements; how many `style={{` sites (`rg -c 'style=\{\{'`) and of what kind (layout, sizing, colour, one-off); are there tokens or scattered hex/px, and is the same value duplicated between the JS theme and the CSS; one class vocabulary or several; is Tailwind actually installed (`@tailwind` / `tailwind.config`); what lints today; does CI actually run lint/tests on PRs (a standard nobody enforces is a suggestion).
 
-## How to work: analyze → decide → land in phases
+Reconcile the user's premise with reality before acting; "we use Tailwind" often means it is not installed. Use `AskUserQuestion` for the load-bearing forks: adopt Tailwind vs codify what exists; lint-only vs also replace the formatter.
 
-Do **not** start editing components. Styling debt is systemic; a scattershot
-pass makes it worse. Work in this order, and **commit each phase separately**
-so progress is durable and reviewable.
+### Phase 1 - Write the standard
 
-### Phase 0 — Audit first (always)
+A short authoritative doc from `references/standard-template.md`, centred on the **layered model**: tokens → components (themed centrally, plus a few named classes for primitives the library lacks) → Tailwind utilities for layout and spacing → inline style as a lint-ignored last resort. Give each rule a stable id (`STY-R1`…) so reviews and commits can cite it.
 
-Understand the *actual* state before proposing anything. Answer, with concrete
-`file:line` evidence:
+### Phase 2 - Enforcement first, at `warn`
 
-- **Component library**: Is antd (or MUI/Chakra) themed centrally
-  (`ConfigProvider` + a theme object)? How consistently are its components used
-  vs. raw `<div>`/`<button>`?
-- **Inline styles**: Count `style={{` sites and categorize them — layout
-  (flex/gap/margin), sizing (width), color, one-offs. `rg -c 'style=\{\{'`.
-- **Design tokens**: Are there CSS custom properties / a token scale, or
-  hardcoded hex + px scattered around? Is the same value duplicated between the
-  JS theme and the CSS?
-- **Class vocabularies**: One consistent prefix, or several (e.g. a modern one
-  plus a legacy/aliased one mid-migration)?
-- **Tailwind / linter**: Is Tailwind actually installed (grep for
-  `@tailwind`/`tailwind.config`)? What lints today (ESLint config, rules)?
-- **CI**: Does anything actually *run* the linter/tests on PRs? (Often the
-  biggest gap — a standard nobody enforces is a suggestion.)
+Land the linter and CI before the migration so the violation count only goes down.
 
-Then **reconcile the user's premise with reality** and surface mismatches
-before acting. Users often say "we use Tailwind" when it isn't installed, or
-"we have a design system" when it's half-migrated. Use `AskUserQuestion` for
-the genuinely load-bearing forks (adopt Tailwind vs. codify what exists;
-lint-only vs. also replace the formatter) — these change the whole plan.
+- Biome over ESLint (`references/biome-setup.md`); keep the existing formatter and turn Biome's off unless the user wants Biome to own formatting.
+- The no-inline-style rule is a Biome **GritQL plugin** (no built-in exists); config in the same reference.
+- CI, if none: install → build → typecheck → test → lint → format on PRs. In a pnpm workspace build must precede typecheck/test because consumers resolve against `dist/`.
+- Ratchet: Biome has no `--max-warnings`; flip each rule `warn`→`error` when its count hits zero.
 
-If a subagent/Explore tool is available, fan out the audit across the codebase
-and keep only the conclusion.
+### Phase 3 - Single-source the tokens
 
-### Phase 1 — Write the standard document
+One `tokens.ts` the component-library theme derives from, plus a **drift-guard test** that reads the CSS custom properties and fails on any divergence (`references/tokens-and-tailwind.md`).
 
-Produce a short, authoritative doc (see `references/standard-template.md`).
-The heart of it is the **layered model** — each layer owns one job, and you
-never do one layer's job in another:
+### Phase 4 - Wire Tailwind to the tokens (if adopting)
 
-1. **Design tokens** — the single source of truth for every colour, space,
-   radius, shadow, font value.
-2. **Components** — the library's components (Table/Form/Modal…) themed
-   centrally, plus a small set of named component classes for design-system
-   primitives the library doesn't ship.
-3. **Utilities (Tailwind)** — layout & spacing: flex/grid/gap/padding/margin/
-   width. This is what replaces the inline-flex triple.
-4. **Inline `style`** — last resort, dynamic values only, with a lint-ignore +
-   reason.
+Tailwind is the layout layer, not a replacement for the theme or component classes. CSS-first, consuming the existing tokens, preflight off (the app and library own resets). Config, the pnpm dual-Vite caveat and the spacing-scale decision are in the same reference.
 
-Give each rule a short stable id (`STY-R1`…) so reviews and commits can cite
-it. Keep it skimmable; put depth in reference files.
+### Phase 5 - Migrate in verified batches
 
-### Phase 2 — Set up enforcement early (so it ratchets)
+One area at a time; build + typecheck + test + lint + format after each batch, then commit. Mechanical swaps (class renames, `--legacy-*`→`--token-*`) are safe with `perl -pi`/`sed` across a batch, then verify, watching for duplicate `className` on elements that already had one. Mapping tables in `references/migration-patterns.md`.
 
-Land the linter + CI *before* the big migration, at `warn`, so every new
-violation is visible and the count only goes down.
+**The load-bearing gotcha:** unlayered design-system classes beat any `@layer`, including Tailwind's `utilities`. A utility can only add a property the class does not set, never override one it does (`cursor`, `background`, `margin`, `color`). To override, add a modifier class defined after the base. This explains most "why isn't my class working" during migration.
 
-- **Biome over ESLint** is the recommended linter (fast, single binary). See
-  `references/biome-setup.md`. Keep the existing formatter (usually Prettier)
-  and turn Biome's formatter off so they don't fight — unless the user wants
-  Biome to own formatting too.
-- **The "no inline style" rule** is a Biome **GritQL plugin** (Biome has no
-  built-in one). Exact plugin + config in `references/biome-setup.md`.
-- **CI**: if none exists, add a workflow that runs install → build →
-  typecheck → test → lint → format on PRs. In a pnpm workspace, **build must
-  run before typecheck/test** because packages emit to `dist/` that consumers
-  resolve against.
-- **Ratchet**: start rules at `warn` (CI stays green), migrate, then flip to
-  `error`. Biome has no per-rule `--max-warnings N`; the ratchet is severity-
-  based — flip `warn`→`error` per rule once its count hits zero.
+### Phase 6 - Enforce for real
 
-### Phase 3 — Single-source the design tokens
+At zero inline styles and legacy classes, flip rules to `error`, then clear the smaller findings the linter surfaces (a11y, non-null assertions; notably migrating `enabled`-gated TanStack Query hooks to `skipToken`).
 
-If the JS theme and the CSS variables both hardcode the same values, they
-*will* drift. Create one `tokens.ts` (raw values) that the component-library
-theme derives from, and add a **drift-guard test** that reads the CSS and
-fails if any token diverges from its matching custom property. Cheap, and it
-kills an entire bug class. Pattern in `references/tokens-and-tailwind.md`.
+## Throughout
 
-### Phase 4 — Wire Tailwind to the tokens (if adopting it)
+Behaviour-preserving: update a selector that legitimately moved, never loosen a test. Keep token values byte-identical (hex case) so value tests hold. Report honestly: counts going down (e.g. inline styles 164 → 0), what is enforced, what is deliberately exempted and why.
 
-Tailwind is the *layout/utility* layer, not a replacement for the theme or the
-component classes. Wire it CSS-first to consume the existing tokens so there's
-still one set of values. Preflight OFF (the app + component library already own
-resets). Full config, the pnpm dual-Vite caveat, and the spacing-scale decision
-are in `references/tokens-and-tailwind.md`.
+## References
 
-### Phase 5 — Migrate, in verified batches
+- `references/standard-template.md` - the fill-in standard doc (layered model, STY-R1..R7, rollout table).
+- `references/biome-setup.md` - Biome config, the GritQL plugin, the ratchet, CI workflow.
+- `references/tokens-and-tailwind.md` - `tokens.ts` + drift guard; Tailwind v4 CSS-first wiring; preflight, spacing scale, dual-Vite caveats.
+- `references/migration-patterns.md` - the cascade rule, inline→utility and legacy→token mappings, lint-cleanup patterns.
 
-Convert inline styles and any legacy vocabulary to the layered model, **one
-area at a time**, running build + tests + lint after each and committing.
-Mechanical, repetitive swaps (class renames, `--legacy-*`→`--token-*`) are
-safe to do with `perl -pi`/`sed` across a batch, then verify. The recurring
-patterns and the mapping tables are in `references/migration-patterns.md`.
-
-**The load-bearing gotcha — CSS layers.** If the design-system classes are
-*unlayered* CSS, they beat any `@layer` (including Tailwind's `utilities`
-layer). So a Tailwind utility can only **add** a property the class doesn't
-set — it can **never override** one it does (`cursor`, `background`, `margin`,
-`color`). When you must override a component class's own property, add a
-**modifier class** next to the base (defined after it), not a Tailwind utility
-that will silently lose. This single fact explains most "why isn't my class
-working" confusion during the migration.
-
-### Phase 6 — Enforce for real, then clean the tail
-
-Once inline styles and legacy classes hit zero, flip the rules to `error`. Then
-clear the smaller findings the linter surfaces (a11y, correctness, non-null
-assertions) so `lint` is fully clean — see
-`references/migration-patterns.md` for the common ones (notably migrating
-`enabled`-gated TanStack Query hooks to `skipToken` to drop `!` assertions).
-
-## Working discipline (applies throughout)
-
-- **Verify every batch**: build + typecheck + test + lint + format, then
-  commit. Never batch a broad `perl`/`sed` swap without re-running the gate —
-  and watch for duplicate `className` from swaps that hit an element that
-  already had one (the typecheck catches it).
-- **Behaviour-preserving**: a styling refactor should not change what tests
-  assert. When a test legitimately couples to a class name you renamed, update
-  the selector; don't loosen the test.
-- **Keep the token values byte-identical** through refactors (e.g. hex case) so
-  snapshot/value tests don't break.
-- **Report honestly**: state the count going down (e.g. inline styles 164 → 0),
-  what's enforced, and what's deliberately exempted (and why).
-
-## Reference files
-
-Read these as you reach the relevant phase:
-
-- `references/standard-template.md` — a fill-in-the-blanks styling standard doc
-  (layered model, rules STY-R1..R7, decision guide, phased rollout table).
-- `references/biome-setup.md` — Biome config, the GritQL no-inline-style
-  plugin, the `warn`→`error` ratchet, CI workflow, and handling a linter swap
-  that surfaces new findings without breaking the build.
-- `references/tokens-and-tailwind.md` — single-source `tokens.ts` + drift-guard
-  test; Tailwind v4 CSS-first wiring to tokens; preflight, spacing-scale, and
-  the pnpm dual-Vite type-cast caveats.
-- `references/migration-patterns.md` — the CSS-layering override rule, inline-
-  style→utility mappings, legacy-class→token mappings, and the common
-  lint-cleanup patterns (`skipToken`, guards, DOM-root, dnd-kit dynamic style).
-
-## Companion skills
-
-- **`react-best-practices`** - the per-component conventions (React 19, hooks,
-  data fetching, testing). This skill sets the *standard and its enforcement*;
-  that one is how you write code inside it. Its Styling and Key Libraries
-  sections defer to this skill.
-- **`frontend-implementer`** - the per-slice TDD loop. When a slice touches
-  styling, it follows the layered model above rather than re-deriving one.
-- **`reuse-ladder`** - climb it before adding a dependency; Biome, Tailwind and
-  a token module are each a rung worth justifying.
-
-Inside the prd-pr workflow this is normally *not* a per-slice skill. Invoke it
-when the task is standing up or repairing the styling standard itself: a Phase 2
-`code-explorer` finding of styling debt, a dedicated standards slice, or the
-user asking for a styling/linting cleanup outside a story.
+Inside the prd-pr workflow this is not a per-slice skill: invoke it when the task is standing up or repairing the styling standard itself (a Phase 2 finding of styling debt, a dedicated standards slice, or a cleanup outside a story). `react-best-practices` holds the per-component conventions; `reuse-ladder` still applies before adding Biome, Tailwind or a token module.

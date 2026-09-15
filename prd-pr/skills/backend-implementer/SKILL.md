@@ -1,63 +1,29 @@
 ---
 name: backend-implementer
-description: Implements the backend half of one vertical slice via TDD red-green-refactor against the slice's AC. Discovers files as tests demand them — does not follow a pre-listed file-task table. Reads project conventions from docs/project_context/, commits per AC behaviour.
+description: Drives the TDD red-green-refactor loop for the backend half of one vertical slice - one AC behaviour at a time, files discovered as tests demand them, one commit per cycle, a conformance test against the slice's frozen contract. Invoked by the impl-backend agent after it has loaded context.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
 # Backend Implementer
 
-You are a senior backend developer. Your job is to implement the **backend half of one vertical slice** by driving each AC behaviour through TDD red-green-refactor. You do **not** receive a pre-listed file-task table — files emerge as the tests demand them.
+Implement the backend half of the named slice by TDD. The slice card is the spec; there is no file-task list, because each red test tells you what to write next.
 
-## Inputs You Receive
+## TDD loop
 
-- Path to `docs/new-feature/{id}-{summary}/04-task-plan.md`
-- Scope: `"SLICE-NN backend half"` — work strictly within the named slice
-- The slice card: behaviour/outcome, AC list, reference patterns from `03-implementation-plan.md`
-- Pre-loaded context: REST API design conventions, plan docs, project-specific overrides (loaded by the calling agent)
+For a `BE + FE` slice the frozen `Contract:` is a commitment: ship exactly that shape (or flag it upward) and include a **conformance test** asserting your responses match its schema - field names, types, nullability, status codes. Then, per AC behaviour, simplest and happy path first:
 
-## Why no task list
+1. Grep for the closest existing handler/service/endpoint matching the slice's reference patterns and note its conventions.
+2. Write one failing integration-style test through the public API (mirror Given/When/Then if the AC is written that way). Run it; it must fail for the right reason.
+3. Make it pass with the least code: climb the `reuse-ladder` at the current lean mode first, then add only what this test demands. Nothing "for the next test".
+4. Run the whole suite. Refactor only while green.
+5. Commit: `feat(backend): SLICE-NN - {behaviour, e.g. 'register Booked patient as Checked-In'}`. One commit per cycle.
 
-Pre-listed file-tasks ("migration → repository → service → handler") are *imagined* implementation. They commit you to a bottom-up order and to file decisions you haven't yet learned are right. TDD discovers the order: each red test tells you exactly what to write next. The slice's AC is the spec; the tests are the plan.
-
-## TDD Loop
-
-Identify the AC behaviours your layer-half is responsible for (usually all of them — the FE half mocks your contract now, and the whole story integrates against real endpoints once, later). For a `BE + FE` slice, treat the frozen `Contract:` as a commitment: ship the exact shape or flag it upward, and **include a conformance test asserting your responses match the `Contract:` schema** (field names, types, nullability, status codes) — it catches drift at build time so the deferred integration stays mechanical. Then, for each behaviour:
-
-1. **Pick the next behaviour.** Take the simplest unimplemented AC behaviour for this slice. Start with the happy path; only move to error/edge behaviours once happy is green.
-2. **Find reference.** Grep for the closest existing handler/service/endpoint matching the slice's reference patterns. Note its conventions.
-3. **Write the failing test first.** Write an integration-style test that exercises the behaviour through the public API — not internal collaborators. If the AC is in Given/When/Then form, mirror that structure.
-4. **Run the test — verify it fails for the right reason.** A test that fails because a class doesn't exist is fine. A test that fails because of a typo is not.
-5. **Write the minimal code to pass.** First climb the **reuse ladder** (from the `reuse-ladder` skill) at the strictness set by the current **lean mode** — reuse / stdlib / native / already-installed beats new custom code. Then hardcode where you can. Add the migration, repository method, service, handler, route — only what this test demands. Resist adding fields or methods the next test "will probably need".
-6. **Run tests — verify green.** All tests, not just the one you just wrote.
-7. **Refactor while green.** Extract duplication, deepen modules, name better. Only refactor while green; never while red.
-8. **Commit.** `git commit -m "feat(backend): SLICE-NN — {short behaviour, e.g. 'register Booked patient as Checked-In'}"`. One commit per red-green-refactor cycle.
-9. **Repeat** until every AC behaviour in your layer-half is green.
-
-Report back when the slice's backend half is complete. Include: which ACs are now backed end-to-end by tests, files touched (discovered, not pre-listed), and anything you flagged for the FE implementer.
-
-> **Reuse ladder & lean mode** live in the `reuse-ladder` skill (invoked by the `impl-backend` agent before this skill runs). Climb the ladder before writing custom code, and honour the lean mode (`lean: lite|full`, from the slice's story-point size) throughout the loop above.
-
-## Anti-patterns to refuse
-
-- **Writing all tests first, then all implementation.** That is horizontal slicing inside a slice — same trap. One test → one implementation → next test.
-- **Adding code "for the next test".** Speculative. The next test will tell you what it needs.
-- **Mocking internal collaborators.** Tests should exercise real code paths through the public API. Mock only at the system boundary (external APIs, time, randomness).
-- **Pre-creating files before a test demands them.** If no test asks for `IPatientRepository`, don't create it.
-
-## Stack Conventions
-
-<!-- Fill in for your project before using this skill -->
-- **Framework**: [e.g. ASP.NET Core 8, Express, FastAPI, Spring Boot]
-- **Architecture pattern**: [e.g. FHIR Engine handlers, Clean Architecture, MVC controllers]
-- **Data access**: [e.g. Entity Framework Core, Dapper, SQLAlchemy]
-- **API style**: [e.g. RESTful JSON, FHIR R4 resources, GraphQL]
-- **Testing**: [e.g. xUnit + Moq, pytest + httpx, Jest + supertest]
-- **Auth**: [e.g. JWT bearer tokens, SMART on FHIR scopes, API keys]
-- **Key project_context files**: [e.g. docs/project_context/02_backend_patterns.md]
+Do not write all tests first and then all implementation; that is horizontal layering inside the slice. Mock only at system boundaries (external APIs, time, randomness), never internal collaborators.
 
 ## Rules
 
-- Stay strictly within the named slice and the backend layer-half — hand off frontend work to the FE implementer with a clear note
-- Follow the slice's reference patterns — do not invent new patterns
-- Never skip an AC behaviour — every AC the slice covers must be backed by at least one test
-- Ask before implementing if an AC is ambiguous; do not guess
+- Stay inside the named slice and the backend half; hand frontend needs to the FE half with a note.
+- Follow the reference patterns; do not invent new ones.
+- Every AC the slice covers gets at least one test. Ask (`AskUserQuestion`) when an AC is ambiguous instead of guessing.
+
+Report per the calling agent's Return Report format: ACs backed by tests, files touched, anything flagged for the FE half or orchestrator.
