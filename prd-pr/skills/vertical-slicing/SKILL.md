@@ -53,10 +53,18 @@ One PR's worth. More than ~6 ACs or two heavy halves → split. A single task th
 - AC covered: AC-1 (and parts of AC-6 if folded)
 - Verify: [what the Phase 9 end-to-end spec asserts for this behaviour]
 - Type: AFK | HITL                    # HITL = needs a human decision mid-slice
+- Kind: feature | sweep               # sweep = mechanical rewrite, no new behaviour (see Sweep slices)
 - Layers: BE + FE | BE only | FE only
 - Contract: [BE+FE only: method + path + request/response shape + error codes]
 - Blocked by: SLICE-NN | -            # real couplings only
 ```
+
+## Sweep slices
+
+A `Kind: sweep` slice rewrites existing files to a new form without adding behaviour: a helper migration, a call-site sweep, a rename. Its gate is the compiler, not the test suite. The implementer builds after each file and runs only the in-memory tests in its own files; the full suite runs once, in the orchestrator's regression gate. Two consequences:
+
+- **Disjoint sweeps are parallel-safe by construction.** They never touch the database container, so "only one container fits on this machine" is not a reason to chain them. Slice a sweep by disjoint file sets and give each set `Blocked by: -`, or only the slice that creates the new form. usr-093 chained four disjoint sweeps behind each other for a contention that never applied and paid 133 minutes for it.
+- **Judgement by model, rewrite by script.** Reading a call site to decide what it should become is the work; changing twelve arguments in a 400-line file by reading it whole and writing it back is not. The implementer applies the mechanical form with `sed` or a short script over the file set and reads only what needs a verdict.
 
 ## Dependency graph
 
@@ -96,4 +104,4 @@ Derivation: a slice is ready when every blocker is ✅ (roots start ready); wave
 
 ## When not to slice
 
-Single-layer bugfixes and behaviour-preserving refactors get a flat task list.
+Single-layer bugfixes and small behaviour-preserving refactors get a flat task list in `04-task-plan.md`. A refactor large enough to parallelise (a sweep over many files) is sliced by disjoint file set as `Kind: sweep`; the card still applies, the frozen contract does not.

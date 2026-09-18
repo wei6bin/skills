@@ -60,10 +60,10 @@ flowchart TD
         P8B --> P8Q{{Step 2 — consolidated QA round<br/>once, over the whole story}}
         P8F --> P8Q
         P8Q --> P8I[impl-frontend subagent<br/>whole-story integration: every mock → real backends]
-        P8I --> P8R[code-reviewer subagent<br/>full diff vs AC intent]
-        P8R --> P8S[impl-simplify subagent<br/>isolated context → built-in simplify skill]
-        P8S --> P8M[Consolidated smoke<br/>every slice's Smoke: sequence]
-        P8M --> P8E[Full test suite<br/>regression over whole diff]
+        P8I --> P8S[impl-simplify subagent<br/>isolated context → built-in simplify skill]
+        P8S --> P8R[code-reviewer + security-reviewer<br/>full diff as it will ship]
+        P8R --> P8M[Consolidated smoke<br/>every slice's Smoke: sequence]
+        P8M --> P8E[Full test suite - one run<br/>regression + coverage + result files]
         P8E --> P8C[context-updater skill<br/>capture product knowledge]
         P8C --> P8K[single checkpoint commit]
         P8K --> P8P[("07-progress.md<br/>ledger updated per step")]
@@ -116,6 +116,6 @@ flowchart TD
 | 5 Finalize Documents | — | — | Verified/consistent docs + README index |
 | 6 Quality Review | 2× `plan-reviewer` (parallel) | — | Review findings, doc fixes |
 | 7 Summary | — | — | Hand-off briefing |
-| 8 Slice-by-slice Impl | Step 1 (implement only, **no per-slice integration**): the ready-frontier and critical path are computed from `04-task-plan.md`'s `## Dependency graph` block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, `impl-backend` ∥ `impl-frontend` against the frozen contract — BE implements *and conformance-tests* it, FE stays on a mock. Step 2 (once, whole story): one `impl-frontend` **whole-story integration** → `code-reviewer` → `impl-simplify` (isolated context, wraps the built-in `simplify` skill) → smoke → regression → `context-updater` (review loops back on `FIXES_NEEDED`) | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `frontend-styling-standard` (styling-standard work only), `restful-api-design`, `simplify` (built-in, via `impl-simplify`), `context-updater` | Code + tests + single checkpoint commit + `07-progress.md` ledger |
+| 8 Slice-by-slice Impl | Step 1 (implement only, **no per-slice integration**): the ready-frontier and critical path are computed from `04-task-plan.md`'s `## Dependency graph` block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, `impl-backend` ∥ `impl-frontend` against the frozen contract - BE implements *and conformance-tests* it, FE stays on a mock. Step 2 (once, whole story): one `impl-frontend` **whole-story integration** → `impl-simplify` (isolated context, wraps the built-in `simplify` skill; runs first so reviewers read the diff that ships) → `code-reviewer` ∥ `security-reviewer` → smoke → regression (one run that is also the coverage gate) → `context-updater` (review loops back on `FIXES_NEEDED`). `Kind: sweep` slices gate on the build only and run concurrently; the refactor tier (set in Phase 1) drops explorers, plan review, the security reviewer and the walker | `vertical-slicing`, `backend-implementer`, `frontend-implementer`, `react-best-practices`, `frontend-styling-standard` (styling-standard work only), `restful-api-design`, `simplify` (built-in, via `impl-simplify`), `context-updater` | Code + tests + single checkpoint commit + `07-progress.md` ledger |
 | 9 Test Plan Walkthrough | 1× `test-plan-walker` (clean context, **spec-first**: writes Playwright specs that self-capture screenshots, runs them headless; re-runs are changed-surface only) | `test-plan-walkthrough` | **persisted Playwright spec per slice** (appended to project e2e suite) + self-captured screenshots + `06-walkthrough.md`; loops back to Phase 8 on `FIXES_NEEDED` |
 | 10 Branch Completion | — | `raise-pr` | PR (walkthrough + screenshots embedded) or merge + worktree cleanup |

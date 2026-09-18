@@ -13,11 +13,21 @@ Guide the developer through the phases below in order, tracking them in a todo l
 
 Capture **Title · Problem statement · Acceptance Criteria (numbered) · Stakeholders · Constraints · Dependencies** from the story (ask if not provided) and confirm your understanding before proceeding.
 
+**Then classify the story's shape** and record the tier in the todo list; it sizes every later phase.
+
+| Shape | Explorers (Ph 2) | Architect writes (Ph 4) | Plan review (Ph 6) | Reviews (Ph 8) | Walkthrough (Ph 9) | Per-slice verify (Ph 8) |
+|---|---|---|---|---|---|---|
+| **Feature, BE + FE** | 2-3 | six docs | 2 reviewers | code + security | Playwright walker | run the suite |
+| **Feature, one layer** | 1 | six docs | 1 reviewer | code + security | walker (Playwright or CLI) | run the suite |
+| **Refactor / test-only / docs** - no new behaviour, or production code untouched | 0 - your own Phase 2 census is the exploration | `00-overview.md` + `04-task-plan.md` only (flat tasks or `Kind: sweep` slices, verification steps inline) | none | code only, security brief folded in | none - run the story's own Verification section from the main session | build + greps |
+
+The third row exists because the full workflow, applied to a 71-file test-only sweep (usr-093), spent 36 architect-minutes on six documents, two plan reviewers returned zero findings, the security reviewer had no production code to read, and the walker's 27 evidence captures were two shell commands. When a later phase says "per the tier", this table is what it means.
+
 ## Phase 2 - Codebase Exploration
 
 1. If `docs/project_context/` is missing or empty, invoke `codebase-context-builder`; otherwise read `00_index.md` and load 2-4 relevant files.
 2. **Query the knowledge graph before searching the tree.** If `docs/project_context/prod_spec/graph.md` exists, read it whole and resolve the request against it: the capability map gives code anchors (your search starting points), the entity map gives every rule already constraining the entities involved, the edges tell you which decisions are `supersedes`/`amends` (a superseded entry reads like a current one; do not apply it) or `conflicts-with` (pick a side knowingly), and the open questions say whether the work is blocked or deferred - if so, say so **now**. Then load only the cited entry IDs (`grep -n "\[DR-114\]" docs/project_context/prod_spec/*.md`), not the whole folder.
-3. Dispatch **2-3 `code-explorer` subagents in parallel** (`agent_type: "prd-pr:code-explorer"`), seeded with the anchors and entry IDs from step 2: one tracing the closest similar feature end to end, one mapping the domain area's architecture and conventions, and (if full-stack) one tracing the frontend patterns. Each returns 5-10 key files.
+3. Per the tier, dispatch **`code-explorer` subagents in parallel** (`agent_type: "prd-pr:code-explorer"`), seeded with the anchors and entry IDs from step 2: one tracing the closest similar feature end to end, one mapping the domain area's architecture and conventions, and (if full-stack) one tracing the frontend patterns. Each returns 5-10 key files. **Refactor tier: none.** Do the census yourself with greps over the files the story names (declarations, call sites, counts); a refactor's exploration is a count, and explorers dispatched to re-map what you just grepped are the layer that gets thrown away.
 4. Read the key files they name, then present: reference implementation, capabilities/entities touched (graph IDs) and any superseded decision or open question in scope, layers affected, reusable code, conventions to follow.
 
 ## Phase 3 - Clarifying Questions
@@ -25,7 +35,7 @@ Capture **Title · Problem statement · Acceptance Criteria (numbered) · Stakeh
 Resolve every ambiguity before designing. **Do not skip.**
 
 - If the codebase can answer a question, explore it instead of asking; record the finding as an assumption.
-- Ask the remaining questions **one at a time**, each with your recommended answer and a one-line rationale, and let each answer shape the next. "Use your recommendation" is a valid answer; "whatever you think" means state your assumption and ask for confirmation.
+- **Batch independent questions; chain only dependent ones.** One `AskUserQuestion` call takes up to four questions: put every question whose answer does not depend on another's in the same call, each with your recommended answer and a one-line rationale. Ask a follow-up in a second call only when it genuinely depends on an earlier answer; three round-trips for three independent questions is three waits on the user. "Use your recommendation" is a valid answer; "whatever you think" means state your assumption and ask for confirmation.
 - Summarise the resolved decisions before Phase 4.
 
 ## Phase 4 - Architecture Design and Documents
@@ -40,21 +50,23 @@ Choose the user-story folder: `docs/new-feature/{id}-{summary}/` (e.g. `usr-012-
 
 Dispatch **1 `code-architect`** (`agent_type: "prd-pr:code-architect"`) with the feature description and ACs, the Phase 3 answers, the Phase 2 findings and loaded context files, and the **absolute path** of the folder. It designs the blueprint and writes `00-overview.md` … `05-test-plan.md` itself; you transcribe nothing. Its final message is a manifest: summary, slice table, waves and critical path, files written, risks.
 
+Tell the architect the tier and two facts about the machine, or it will over-serialise: how many worktree slots exist, and that `Kind: sweep` slices (see `vertical-slicing`) gate on the build, not on container tests, so disjoint sweeps are parallel-safe even when only one database container fits. On usr-093 the architect chained four disjoint file-set sweeps (133 min) for a container contention that never applied. **Refactor tier:** the architect writes `00-overview.md` and `04-task-plan.md` only.
+
 ### Step 2 - Review and confirm the slice list
 
 1. Read the six documents (they are the source of truth; the manifest is a table of contents). Check every slice has a card in `04-task-plan.md`, every `BE + FE` slice has a frozen `Contract:`, `05-test-plan.md` has concrete demo steps, and `04-task-plan.md` opens with a `## Dependency graph` block whose edge table matches the cards' `Blocked by:` lines.
-2. Present the slice list with the waves and critical path and **confirm with the user before implementation**. Which slices are parallel-safe is the most important decision here.
+2. Present the slice list with the waves and critical path and **confirm with the user before implementation** - one `AskUserQuestion` call carrying two questions. Q1: confirm the slice list (which slices are parallel-safe is the most important decision here). Q2: **the exit action once the QA round and walkthrough are green** - "Push and open a PR (Recommended)", "Merge to {base} locally", or "Stop and ask me". Record the answer as an `Exit: pr | merge | ask` line at the top of `07-progress.md` when you create it in Phase 8; `raise-pr` reads it and skips its menu. This is the last question the user must be present for: everything after it runs unattended, and the next thing they see is the PR link. Asking "what would you like to do?" at the end of an eight-hour run cost usr-093 two hours of idle waiting.
 3. Small changes: edit the docs. Structural changes: re-dispatch the architect. Do not continue until the slice list is confirmed.
 
 ## Phase 5 - Finalize Documents
 
-1. All six files exist and are complete; re-dispatch the architect for any stub rather than filling it in by hand.
+1. Every file the tier calls for exists and is complete (six for a feature, two for a refactor); re-dispatch the architect for any stub rather than filling it in by hand.
 2. Cross-document consistency: every slice has test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` contract also appears in `02-technical-plan.md`; the dependency-graph edge table agrees with the cards, every blocker is a real slice ID, no cycle. Fix the table and re-derive on a mismatch.
 3. Add an index entry to `docs/new-feature/README.md` (folder, story, branch, later the merge commit). This is the plan-folder index, not the project's backlog tracker, and must not carry a status column that duplicates one; `raise-pr` Step 6 owns the tracker.
 
 ## Phase 6 - Quality Review
 
-Dispatch **2 `plan-reviewer` subagents in parallel** (`agent_type: "prd-pr:plan-reviewer"`) over `docs/new-feature/{folder}/`: one focused on AC coverage, security, edge cases and business/technical consistency; one on slice completeness, dependency edges, test coverage and sizing. Present the consolidated findings and fix Critical and Important issues in the docs.
+Per the tier, dispatch **`plan-reviewer` subagents in parallel** (`agent_type: "prd-pr:plan-reviewer"`) over `docs/new-feature/{folder}/`: one focused on AC coverage, security, edge cases and business/technical consistency; one on slice completeness, dependency edges, test coverage and sizing (a one-layer feature gets only the first). Present the consolidated findings and fix Critical and Important issues in the docs. **Refactor tier: skip** - your Phase 5 consistency check is the review.
 
 ## Phase 7 - Summary
 
@@ -72,6 +84,8 @@ Implement every slice's halves - BE against the frozen contract, FE against a **
 ```markdown
 # Progress - {id}-{summary}
 
+Exit: pr            # pr | merge | ask - the Phase 4 answer; raise-pr reads it and skips its menu
+
 ## Per-slice implementation
 
 | Slice | BE | FE |
@@ -83,11 +97,11 @@ Implement every slice's halves - BE against the frozen contract, FE against a **
 | Step | Status |
 |------|--------|
 | Integration (whole story - every FE on the real backends, contract drift fixed) | ⬜ |
+| Refactor / simplify (whole story) | ⬜ |
 | Code review (full diff, branch point → HEAD) | ⬜ |
 | Security review (full diff, branch point → HEAD) | ⬜ |
-| Refactor / simplify (whole story) | ⬜ |
 | Smoke (every slice's smoke sequence) | ⬜ |
-| Test suite / regression (whole diff) | ⬜ |
+| Test suite / regression (whole diff, one run - also the coverage gate and the after-TRX) | ⬜ |
 | Context capture | ⬜ |
 | Checkpoint commit | ⬜ |
 ```
@@ -111,7 +125,14 @@ For each slice you start:
 
    Each implementer gets the slice card, not a file-task list, and commits per behaviour: `feat({layer}): SLICE-NN - {behaviour}`. The FE half stays on its mock; do not re-dispatch it to wire in the real backend now.
 
-2. **Verify each Return Report yourself.** The agent that wrote the report is the one it describes. Run the relevant suite(s) via Bash (backend including its conformance tests, frontend against its mock) and compare counts to the report; confirm every AC the card assigns to that half appears with a named backing test. On any mismatch or missing section, re-dispatch the owner with the discrepancy quoted verbatim, or finish the work yourself and note the takeover.
+   For a `Kind: sweep` card, append `kind: sweep` to the scope string. The implementer then gates on the compile step plus any in-memory tests in its own files, runs no container suite, applies mechanical rewrites by script rather than Read-whole-file / Write-whole-file, and appends per-site findings to a CSV rather than a Markdown table (rules in `backend-implementer`). Sweeps over disjoint file sets run concurrently, one worktree each.
+
+2. **Verify each Return Report against evidence you already hold.** The agent that wrote the report is the one it describes, so never accept it on trust - but pick the instrument by the slice's kind:
+   - **Static checks first, always** (seconds): the build is clean; the card's greps return the counts it predicts; for a test-only slice `git diff --stat {branch-point}..HEAD -- src/` is empty; every AC the card assigns to that half appears in the report with a named backing test.
+   - **`Kind: sweep`: compare, do not re-run.** Check the report's per-class test counts against the baseline test-result files (`grep -c 'testName="{Class}' {baseline}/*.trx`); a sweep must reproduce them exactly. Re-run its classes only on a mismatch. On usr-093 six independent re-runs (20 min of container time) confirmed six accurate reports; the only corrections were plan-document counts, both visible from the greps.
+   - **`Kind: feature`: re-run.** Run the relevant suite(s) via Bash (backend including its conformance tests, frontend against its mock) and compare counts to the report. This is where a self-graded "green" can be wrong.
+
+   On any mismatch or missing section, re-dispatch the owner with the discrepancy quoted verbatim, or finish the work yourself and note the takeover.
 
 3. **Mark BE/FE ✅.** Nothing else happens per slice. Start whatever this slice was blocking.
 
@@ -121,13 +142,28 @@ Precondition: every BE/FE cell is ✅.
 
 1. **Integrate the whole story.** Dispatch `impl-frontend` once, scope `"whole-story integration - replace every slice's contract mock with the real backends, run integration/e2e tests, fix contract drift"`, with the full slice list and changed-file set. If drift belongs on a backend, re-dispatch `impl-backend` for that slice with the mismatch quoted. Skip `unfrozen - serial` slices (already integrated). Mark ✅.
 
-2. **Review code and security in parallel.** In one batch, dispatch `agent_type: "prd-pr:code-reviewer"` and `agent_type: "prd-pr:security-reviewer"` over the full diff, each with the folder path and `04-task-plan.md`. The round passes only when **both** return `APPROVED`. On `FIXES_NEEDED` from either: re-dispatch the owning implementer(s) with the Blocker rows quoted verbatim, then re-dispatch only the reviewer(s) that flagged, scoped to the amended diff; loop until both approve. Non-blockers become PR follow-ups. Mark both rows ✅.
+2. **Refactor.** Dispatch `agent_type: "prd-pr:impl-simplify"` once with the folder path, the branch-point ref and the changed-file list. It wraps the built-in `simplify` skill in its own context (a whole-story refactor read here would evict the plan docs and reports you still need), re-runs the suite and commits. Confirm its report shows a green suite (re-run it yourself if that line is missing); route any blocker under "Reported, not fixed" to the owning implementer. Mark ✅. It runs **before** review so the reviewers read the diff that ships: on usr-093 the reviewers approved at 16:50 and simplify then changed 19 files, so the approved diff was not the merged one.
 
-3. **Refactor.** Dispatch `agent_type: "prd-pr:impl-simplify"` once with the folder path, the branch-point ref and the changed-file list. It wraps the built-in `simplify` skill in its own context (a whole-story refactor read here would evict the plan docs and reports you still need), re-runs the suite and commits. Confirm its report shows a green suite (re-run it yourself if that line is missing); route any blocker under "Reported, not fixed" to the owning implementer. Mark ✅.
+3. **Review code and security in parallel.** In one batch, dispatch `agent_type: "prd-pr:code-reviewer"` and `agent_type: "prd-pr:security-reviewer"` over the full diff, each with the folder path and `04-task-plan.md`. The round passes only when **both** return `APPROVED`. On `FIXES_NEEDED` from either: re-dispatch the owning implementer(s) with the Blocker rows quoted verbatim, then re-dispatch only the reviewer(s) that flagged, scoped to the amended diff; loop until both approve. Non-blockers become PR follow-ups. Mark both rows ✅.
+
+   **Refactor tier** (`git diff --stat {branch-point}..HEAD -- src/` is empty): dispatch **one** reviewer, `code-reviewer`, with the security reviewer's test-specific brief folded into its prompt - "every denial, scoping and visibility test still proves what its name says after the rewrite". The check is worth keeping; two agents reading the same 76-file diff for it is not. Mark the security row `-`.
 
 4. **Smoke.** Run every slice's `Smoke:` sequence from `04-task-plan.md` in slice order against the running stack. After a fix, re-run only the failed sequences. Mark ✅.
 
-5. **Regression.** Run the project's full existing suite (unit, integration, component, pre-existing e2e) over the whole diff. Fix failures before marking ✅. Do not write or run the story's new browser e2e here; that is Phase 9.
+5. **Regression - one run serves every gate.** Run the project's full existing suite (unit, integration, component, pre-existing e2e) over the whole diff **once**, through the target that also measures coverage and keeps the test-result files (for StaffDirect, `make coverage RESULTS=<dir>`), so the same run is the regression gate, the coverage gate, the container-budget pin and the "after" half of any before/after diff the story requires. Do not run a bare suite first "for the TRX" and the coverage suite again for the threshold; on usr-093 that was the same 1,800 tests twice. Fix failures before marking ✅. Do not write or run the story's new browser e2e here; that is Phase 9.
+
+   **Gates run strictly one at a time.** Never launch one detached while another runs in the foreground: a coverlet-instrumented container suite starved by a parallel `pnpm -r build` fails on database timeouts and the whole run is wasted. If a make target already chains the gates serially, call it rather than decomposing it.
+
+   **Long jobs get a bounded watcher, never an open-ended one.** A job longer than the Bash tool's ceiling runs detached with a `DONE` marker (`nohup run.sh &`, with `echo "exit=$?" > DONE` as the script's last line). The watcher must exit on its own before the ceiling, because its exit is what re-invokes you; a loop killed at the ceiling re-invokes nothing:
+
+   ```bash
+   for i in $(seq 1 17); do [ -f "$S/DONE" ] && break; sleep 30; done
+   if   [ -f "$S/DONE" ];                       then echo "DONE: $(cat "$S/DONE")"
+   elif [ -n "$(find "$S/run.log" -mmin -3)" ]; then echo "RUNNING - re-arm the watcher"
+   else echo "STALLED - log silent for 3 min; check uptime and orphaned test hosts before relaunching"; fi
+   ```
+
+   On `RUNNING` re-arm the same watcher immediately; on `STALLED` diagnose before relaunching. Never write "the watcher will need one re-arm" and stop; that sentence cost usr-093 85 idle minutes.
 
 6. **Capture product knowledge.** Invoke `context-updater` in the main session (never as a subagent) once for the whole story: behaviour implemented, domain rules enforced, config decisions, non-obvious design choices. Mark ✅.
 
@@ -141,6 +177,8 @@ Slice-by-slice summary (behaviour, files), what the refactor changed, review/smo
 
 Precondition: every cell in `07-progress.md` is ✅ (or `-`). Otherwise return to Phase 8.
 
+**Refactor tier: no walker.** Run the story's own Verification section (or the cards' `Verify:` lines) from the main session and write `06-walkthrough.md` yourself: one row per slice or task with its command, observed output and ✅/❌, under an `ALL_GREEN` / `FIXES_NEEDED` verdict. Then go to Phase 10; `raise-pr` Step 1.5 accepts this file as-is. A refactor has no browser flow to record.
+
 Dispatch `agent_type: "prd-pr:test-plan-walker"` in a clean context (the walkthrough produces dozens of screenshots) with the folder path, branch name, app URL, and a pointer to where demo credentials live - never the credentials. It writes a Playwright spec per slice from `05-test-plan.md` (self-capturing screenshots), runs them headless, persists them into the project's e2e suite and writes `06-walkthrough.md`.
 
 - `ALL_GREEN` → Phase 10.
@@ -151,4 +189,4 @@ Non-blocker findings go into the PR body as follow-ups.
 
 ## Phase 10 - Branch Completion
 
-Invoke `raise-pr`. It verifies the CI gate, checks the walkthrough artifacts (re-dispatching the walker if missing), offers merge / PR / keep / discard, embeds the walkthrough summary and screenshots in the PR body, cleans up the worktree, and in its Step 6 closes out the project's **backlog tracker** with the merge commit or PR number. That last step is the one the workflow used to drop: everything before it writes only inside `docs/new-feature/`, and a shipped story still reading `Ready` in the tracker gets rebuilt. If `raise-pr` finds status in more than one file, surface that to the user rather than updating them all.
+Invoke `raise-pr`. It verifies the CI gate, checks the walkthrough artifacts (re-dispatching the walker if missing), executes the `Exit:` action recorded in `07-progress.md` (offering merge / PR / keep / discard only when it reads `ask`), embeds the walkthrough summary and screenshots in the PR body, cleans up the worktree, and in its Step 6 closes out the project's **backlog tracker** with the merge commit or PR number. That last step is the one the workflow used to drop: everything before it writes only inside `docs/new-feature/`, and a shipped story still reading `Ready` in the tracker gets rebuilt. If `raise-pr` finds status in more than one file, surface that to the user rather than updating them all.

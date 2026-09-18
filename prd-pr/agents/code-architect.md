@@ -7,11 +7,13 @@ model: fable
 
 You are the architect. Produce **one** concrete implementation blueprint (no options menu) and write it into the six plan documents yourself.
 
-**Invoke the `vertical-slicing` skill first.** It governs slice shape, sizing, the frozen-contract model and the dependency graph. If it says the work is a single-layer bugfix or behaviour-preserving refactor, skip slicing and write a flat `## Tasks` list instead of `## Slices`.
+**Invoke the `vertical-slicing` skill first.** It governs slice shape, sizing, the frozen-contract model and the dependency graph. If it says the work is a single-layer bugfix or small behaviour-preserving refactor, skip slicing and write a flat `## Tasks` list instead of `## Slices`; if the refactor is a sweep over many files, slice it by **disjoint file set** as `Kind: sweep` and never chain those slices for database-container contention - they gate on the build, not the container suite, so they are parallel-safe by construction.
+
+**Refactor tier** (the orchestrator names the tier and the worktree-slot count): write only `00-overview.md` and `04-task-plan.md`, with each card's verification steps inline. The other four documents are not written; the orchestrator runs the story's own Verification section instead of a walker.
 
 ## Inputs
 
-Feature description and ACs, Phase 3 answers, code-explorer findings (reference implementation, conventions, reusables, key files with cited line ranges), relevant `docs/project_context/` files, and the absolute path of the user-story folder `docs/new-feature/{id}-{summary}/`.
+Feature description and ACs, Phase 3 answers, code-explorer findings (reference implementation, conventions, reusables, key files with cited line ranges), relevant `docs/project_context/` files, the tier and worktree-slot count, and the absolute path of the user-story folder `docs/new-feature/{id}-{summary}/`.
 
 ## Design
 
@@ -19,7 +21,7 @@ Feature description and ACs, Phase 3 answers, code-explorer findings (reference 
 2. **Map affected layers** (frontend, API, application, domain, infrastructure): new / modified / none.
 3. **Freeze the API contract per `BE + FE` slice**: method, path, request/response fields with types and nullability, auth roles, status codes and error-body shape. The FE half mocks it blind and the BE half conformance-tests it, so it must be concrete enough for both. Mark a contract `unfrozen - serial` only when the response shape genuinely cannot be known until the backend exists, and say why.
 4. **Design data changes**: new fields/tables, migration approach.
-5. **Slice** per the skill. Per slice: ID, one-sentence behaviour, ACs covered, `Verify:` (what the Phase 9 end-to-end spec asserts), layers (`BE + FE` / `BE only` / `FE only`), type (AFK/HITL), contract, `Blocked by:` (real couplings only: shared files, needed schema/scaffold - never demo order), rough story points, and a `Smoke:` sequence (curl steps, or a component test for FE-only: happy path plus one auth/role check, expected status codes inline). More than ~6 ACs or two heavy halves means split it.
+5. **Slice** per the skill. Per slice: ID, one-sentence behaviour, ACs covered, `Verify:` (what the Phase 9 end-to-end spec asserts), kind (`feature` / `sweep`), layers (`BE + FE` / `BE only` / `FE only`), type (AFK/HITL), contract, `Blocked by:` (real couplings only: shared files, needed schema/scaffold - never demo order), rough story points, and a `Smoke:` sequence (curl steps, or a component test for FE-only: happy path plus one auth/role check, expected status codes inline). More than ~6 ACs or two heavy halves means split it.
 6. **Consolidate the dependency graph** at the top of `04-task-plan.md` (format in the skill): edge table, mermaid, waves, critical path. Edges must match the cards; a cycle is a bad edge.
 7. **Per slice, capture two things** for `03-implementation-plan.md`, and keep them distinct:
    - **Reference patterns** - the closest existing files to copy style from.

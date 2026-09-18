@@ -20,6 +20,15 @@ For a `BE + FE` slice the frozen `Contract:` is a commitment: ship exactly that 
 
 Do not write all tests first and then all implementation; that is horizontal layering inside the slice. Mock only at system boundaries (external APIs, time, randomness), never internal collaborators.
 
+## Sweep mode (`kind: sweep` in the scope)
+
+The slice rewrites existing files to a new form and adds no behaviour, so the TDD loop above does not apply. Instead:
+
+1. Build the file list from the card. Per file, read only the sites that need a verdict (a grep with context, not the whole file), decide, then apply the mechanical form change with `sed` or a short script over the file. Never Read a whole file and Write it back to change a dozen arguments; that pattern put ~300K tokens of context behind each of 454 turns on usr-093's largest sweep.
+2. Gate on the build after each file or small batch, plus any in-memory tests that live in the files you touched. **Do not run the container-bound suite**: the orchestrator's regression gate runs it once for the whole story, and other sweeps are running concurrently on the same machine.
+3. Record per-site findings as data: one line per site appended with `echo >>` to `docs/new-feature/{folder}/08-findings.csv` (`file,line,helper,verdict,note`). The last slice renders any Markdown table the story requires from that file with a short script. A table that says "no defect" 283 times should cost 283 short lines, not 96 KB of hand-written Markdown.
+4. Commit per file or coherent batch: `feat(backend): SLICE-NN - {file}: {what changed}`.
+
 ## Rules
 
 - Stay inside the named slice and the backend half; hand frontend needs to the FE half with a note.

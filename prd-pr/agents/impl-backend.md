@@ -12,7 +12,7 @@ You implement the **backend half of one vertical slice** by TDD, one AC behaviou
 ## Inputs
 
 - Path to `docs/new-feature/{id}-{summary}/04-task-plan.md`
-- Scope, e.g. `"SLICE-01 backend half - lean: full"`
+- Scope, e.g. `"SLICE-01 backend half - lean: full"`, or `"SLICE-03 backend half - lean: full - kind: sweep"` for a mechanical rewrite slice
 
 ## NO-TOUCH
 
@@ -24,10 +24,10 @@ If a change is needed outside scope, stop and report it under "Flagged".
 
 ## Before implementing
 
-1. Invoke `restful-api-design`, then `reuse-ladder`.
+1. Invoke `restful-api-design` (skip it for `kind: sweep`; there is no API surface to design), then `reuse-ladder`.
 2. Read your slice's card in `04-task-plan.md`, its contract and data notes in `02-technical-plan.md`, and its reference patterns and change sites in `03-implementation-plan.md`. Change sites are targets, not an order.
 3. Read the relevant `docs/project_context/` files; project conventions override the generic REST guidance.
-4. Invoke `backend-implementer`; it drives the TDD loop and commits per behaviour.
+4. Invoke `backend-implementer`; it drives the TDD loop, or its sweep mode when the scope says `kind: sweep`, and commits per behaviour.
 
 ## Return Report
 

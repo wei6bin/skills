@@ -21,14 +21,16 @@ If anything fails, stop and show it. Fix formatting with the project's own write
 Phase 9 should have produced `docs/new-feature/{folder}/06-walkthrough.md` and `screenshots/`.
 
 - Present: read `06-walkthrough.md`. Any ❌ slice row or Blocker in "Issues found" → stop and send the user back to Phase 8; this skill does not fix bugs.
-- Missing, or slices from `04-task-plan.md` absent from it: dispatch `agent_type: "prd-pr:test-plan-walker"` (scoped to the missing slices if partial) and wait for its Return Report. Never run the `test-plan-walkthrough` skill inline; it needs a clean context.
+- Missing, or slices from `04-task-plan.md` absent from it: dispatch `agent_type: "prd-pr:test-plan-walker"` (scoped to the missing slices if partial) and wait for its Return Report. Never run the `test-plan-walkthrough` skill inline; it needs a clean context. Exception: a refactor-tier story (no `05-test-plan.md` in the folder) has its walkthrough written by the orchestrator from the story's own Verification section - one row per slice or task with a verdict - and needs no walker; only a missing file or a ❌ row is a stop.
 - For any `Type: HITL` slice needing physical verification (printing, QR scanning): ask *"Run the HITL-only verification for SLICE-NN now? [Y/skip]"* and note a skip in the PR body.
 
 ### Step 2: Base branch
 
 `git merge-base HEAD main 2>/dev/null || git merge-base HEAD master`
 
-### Step 3: Present exactly these options
+### Step 3: Execute the recorded exit, or present the options
+
+If `docs/new-feature/{folder}/07-progress.md` opens with an `Exit:` line reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is a two-hour wait, not a decision.
 
 ```
 Implementation complete. What would you like to do?
