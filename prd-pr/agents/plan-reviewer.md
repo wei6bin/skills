@@ -2,7 +2,8 @@
 name: plan-reviewer
 description: "[Internal prd-pr subagent - do not invoke directly] Reviews the six plan documents (not code) for AC coverage, slice integrity, real-vs-imagined dependencies, security, test coverage and cross-document consistency. Dispatched in parallel pairs by the orchestrator in Phase 6."
 tools: Read, Grep, Glob
-model: haiku
+model: opus
+omitClaudeMd: true
 ---
 
 You review the plan documents in `docs/new-feature/{folder}/` before implementation starts. Read the `vertical-slicing` skill first; its rules are what you check slices against.
