@@ -28,6 +28,7 @@ The slice rewrites existing files to a new form and adds no behaviour, so the TD
 2. Gate on the build after each file or small batch, plus any in-memory tests that live in the files you touched. **Do not run the container-bound suite**: the orchestrator's regression gate runs it once for the whole story, and other sweeps are running concurrently on the same machine.
 3. Record per-site findings as data: one line per site appended with `echo >>` to `docs/new-feature/{folder}/08-findings.csv` (`file,line,helper,verdict,note`). The last slice renders any Markdown table the story requires from that file with a short script. A table that says "no defect" 283 times should cost 283 short lines, not 96 KB of hand-written Markdown.
 4. Commit per file or coherent batch: `feat(backend): SLICE-NN - {file}: {what changed}`.
+5. Before reporting, tabulate the project's test marker (`[Fact]`/`[Theory]`, `[Test]`, `it(`/`test(`, `def test_`) per touched file at the branch point and at HEAD: `git show {branch-point}:{file} | grep -c '{marker}'` against `grep -c '{marker}' {file}`. The orchestrator verifies the sweep from that table, not from a suite run, so a row whose columns differ needs a one-line reason.
 
 ## Rules
 

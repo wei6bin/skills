@@ -26,11 +26,11 @@ Phase 9 should have produced `docs/new-feature/{folder}/06-walkthrough.md` and `
 
 ### Step 2: Base branch
 
-`git merge-base HEAD main 2>/dev/null || git merge-base HEAD master`
+Read the `Base:` line of `docs/new-feature/{folder}/07-progress.md` (`grep -m1 '^Base:'`): the branch the orchestrator cut the worktree from. If the line is missing (a ledger written before it existed), ask; never assume `main` and do not derive it from git - `@{upstream}` is the feature branch's own remote after `push -u`, and the branch reflog says `Created from HEAD` unless the base was named. A story cut from a release or integration branch and merged into `main` unattended is the wrong merge, with the feature branch deleted behind it. The branch point for the diff is `git merge-base HEAD {base}`.
 
 ### Step 3: Execute the recorded exit, or present the options
 
-If `docs/new-feature/{folder}/07-progress.md` opens with an `Exit:` line reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is a two-hour wait, not a decision.
+If `docs/new-feature/{folder}/07-progress.md` has an `Exit:` line (`grep -m1 '^Exit:'`) reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is a two-hour wait, not a decision.
 
 ```
 Implementation complete. What would you like to do?
@@ -43,9 +43,9 @@ Implementation complete. What would you like to do?
 
 ### Step 4: Execute
 
-**1. Merge locally**: checkout base, pull, merge, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
+**1. Merge locally**: `git checkout {base} && git pull`, merge the feature branch, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
 
-**2. Push and create PR**: detect the host from `git remote get-url origin`: `github.com` → `gh pr create --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
+**2. Push and create PR**: detect the host from `git remote get-url origin`: `github.com` → `gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --target-branch {base} --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
 
 ```markdown
 ## Summary
@@ -77,7 +77,7 @@ Full report and screenshots: [06-walkthrough.md]({absolute link})
 - GitHub: `https://github.com/{owner}/{repo}/raw/{branch}/docs/new-feature/{folder}/screenshots/{file}.png` for images, `.../blob/{branch}/...` for markdown files.
 - Azure DevOps: `https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo}/items?path=/docs/new-feature/{folder}/screenshots/{file}.png&versionDescriptor.version={branch}&versionDescriptor.versionType=branch&api-version=7.1`.
 
-If the head branch is deleted after merge, switch links to the merge commit SHA or `main`. Return the PR URL, then Step 5.
+If the head branch is deleted after merge, switch links to the merge commit SHA or `{base}`. Return the PR URL, then Step 5.
 
 **3. Keep as-is**: report the branch and worktree path; do not clean up.
 

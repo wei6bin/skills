@@ -13,13 +13,13 @@ Guide the developer through the phases below in order, tracking them in a todo l
 
 Capture **Title · Problem statement · Acceptance Criteria (numbered) · Stakeholders · Constraints · Dependencies** from the story (ask if not provided) and confirm your understanding before proceeding.
 
-**Then classify the story's shape** and record the tier in the todo list; it sizes every later phase.
+**Then classify the story's shape** and record the tier in the todo list; it sizes every later phase, and Phase 8 copies it into `07-progress.md` as the `Tier:` line so later steps read the classification instead of re-deriving it from the diff.
 
 | Shape | Explorers (Ph 2) | Architect writes (Ph 4) | Plan review (Ph 6) | Reviews (Ph 8) | Walkthrough (Ph 9) | Per-slice verify (Ph 8) |
 |---|---|---|---|---|---|---|
-| **Feature, BE + FE** | 2-3 | six docs | 2 reviewers | code + security | Playwright walker | run the suite |
-| **Feature, one layer** | 1 | six docs | 1 reviewer | code + security | walker (Playwright or CLI) | run the suite |
-| **Refactor / test-only / docs** - no new behaviour, or production code untouched | 0 - your own Phase 2 census is the exploration | `00-overview.md` + `04-task-plan.md` only (flat tasks or `Kind: sweep` slices, verification steps inline) | none | code only, security brief folded in | none - run the story's own Verification section from the main session | build + greps |
+| **Feature, BE + FE** (`full-stack`) | 2-3 | six docs | 2 reviewers | code + security | Playwright walker | run the suite |
+| **Feature, one layer** (`one-layer`) | 1 | six docs | 1 reviewer | code + security | walker (Playwright or CLI) | run the suite |
+| **Refactor / test-only / docs** (`refactor`) - no new behaviour, or production code untouched | 0 - your own Phase 2 census is the exploration | `00-overview.md` + `04-task-plan.md` only (flat tasks or `Kind: sweep` slices, verification steps inline) | none | code only, security brief folded in | none - run the story's own Verification section from the main session | build + greps |
 
 The third row exists because the full workflow, applied to a 71-file test-only sweep (usr-093), spent 36 architect-minutes on six documents, two plan reviewers returned zero findings, the security reviewer had no production code to read, and the walker's 27 evidence captures were two shell commands. When a later phase says "per the tier", this table is what it means.
 
@@ -55,7 +55,7 @@ Tell the architect the tier and two facts about the machine, or it will over-ser
 ### Step 2 - Review and confirm the slice list
 
 1. Read the six documents (they are the source of truth; the manifest is a table of contents). Check every slice has a card in `04-task-plan.md`, every `BE + FE` slice has a frozen `Contract:`, `05-test-plan.md` has concrete demo steps, and `04-task-plan.md` opens with a `## Dependency graph` block whose edge table matches the cards' `Blocked by:` lines.
-2. Present the slice list with the waves and critical path and **confirm with the user before implementation** - one `AskUserQuestion` call carrying two questions. Q1: confirm the slice list (which slices are parallel-safe is the most important decision here). Q2: **the exit action once the QA round and walkthrough are green** - "Push and open a PR (Recommended)", "Merge to {base} locally", or "Stop and ask me". Record the answer as an `Exit: pr | merge | ask` line at the top of `07-progress.md` when you create it in Phase 8; `raise-pr` reads it and skips its menu. This is the last question the user must be present for: everything after it runs unattended, and the next thing they see is the PR link. Asking "what would you like to do?" at the end of an eight-hour run cost usr-093 two hours of idle waiting.
+2. Present the slice list with the waves and critical path and **confirm with the user before implementation** - one `AskUserQuestion` call carrying two questions. Q1: confirm the slice list (which slices are parallel-safe is the most important decision here). Q2: **the exit action once the QA round and walkthrough are green** - "Push and open a PR (Recommended)", "Merge to {base} locally", or "Stop and ask me". Record the answer as the `Exit:` line of `07-progress.md` when you create it in Phase 8, next to a `Base:` line naming the branch the worktree was cut from in Step 0; `raise-pr` reads both, skips its menu, and merges into or targets the PR at that base instead of assuming `main`. This is the last question the user must be present for: everything after it runs unattended, and the next thing they see is the PR link. Asking "what would you like to do?" at the end of an eight-hour run cost usr-093 two hours of idle waiting.
 3. Small changes: edit the docs. Structural changes: re-dispatch the architect. Do not continue until the slice list is confirmed.
 
 ## Phase 5 - Finalize Documents
@@ -84,7 +84,9 @@ Implement every slice's halves - BE against the frozen contract, FE against a **
 ```markdown
 # Progress - {id}-{summary}
 
-Exit: pr            # pr | merge | ask - the Phase 4 answer; raise-pr reads it and skips its menu
+Tier: {full-stack | one-layer | refactor}
+Base: {base}
+Exit: {pr | merge | ask}
 
 ## Per-slice implementation
 
@@ -105,6 +107,8 @@ Exit: pr            # pr | merge | ask - the Phase 4 answer; raise-pr reads it a
 | Context capture | ⬜ |
 | Checkpoint commit | ⬜ |
 ```
+
+`Tier:` is the Phase 1 classification, `Base:` the branch the worktree was cut from (Phase 4 Step 0), `Exit:` the Phase 4 answer. Keep the three lines bare - `raise-pr` and the tier branches below `grep '^Tier:'` / `'^Base:'` / `'^Exit:'` them.
 
 `⬜` pending · `✅` done · `❌` failed/blocked (one-line note under the table) · `-` N/A (e.g. FE on a BE-only slice). Update a row the moment it completes. The file is orchestrator-owned; subagents never write to it.
 
@@ -128,8 +132,8 @@ For each slice you start:
    For a `Kind: sweep` card, append `kind: sweep` to the scope string. The implementer then gates on the compile step plus any in-memory tests in its own files, runs no container suite, applies mechanical rewrites by script rather than Read-whole-file / Write-whole-file, and appends per-site findings to a CSV rather than a Markdown table (rules in `backend-implementer`). Sweeps over disjoint file sets run concurrently, one worktree each.
 
 2. **Verify each Return Report against evidence you already hold.** The agent that wrote the report is the one it describes, so never accept it on trust - but pick the instrument by the slice's kind:
-   - **Static checks first, always** (seconds): the build is clean; the card's greps return the counts it predicts; for a test-only slice `git diff --stat {branch-point}..HEAD -- src/` is empty; every AC the card assigns to that half appears in the report with a named backing test.
-   - **`Kind: sweep`: compare, do not re-run.** Check the report's per-class test counts against the baseline test-result files (`grep -c 'testName="{Class}' {baseline}/*.trx`); a sweep must reproduce them exactly. Re-run its classes only on a mismatch. On usr-093 six independent re-runs (20 min of container time) confirmed six accurate reports; the only corrections were plan-document counts, both visible from the greps.
+   - **Static checks first, always** (seconds): the build is clean; the card's greps return the counts it predicts; for a `Kind: sweep` or test-only slice every path in `git diff --name-only {branch-point}..HEAD` belongs to the card's file set (a path outside it is over-reach, whatever the repo layout); every AC the card assigns to that half appears in the report with a named backing test.
+   - **`Kind: sweep`: compare, do not re-run.** The report carries a per-file table of test-marker counts at the branch point and at HEAD (the project's marker: `[Fact]`/`[Theory]`, `[Test]`, `it(`/`test(`, `def test_`). Re-derive it with the same one-liner (`git show {branch-point}:{file} | grep -c '{marker}'` against `grep -c '{marker}' {file}`) and require the columns to match file by file: a sweep that eats an attribute line still compiles, so the build alone proves nothing about lost tests. Re-run a file's classes only on a mismatch; the whole suite runs once, in Step 2.5, where the total is checked against the worktree baseline. On usr-093 six independent re-runs (20 min of container time) confirmed six accurate reports; the only corrections were plan-document counts, both visible from the greps.
    - **`Kind: feature`: re-run.** Run the relevant suite(s) via Bash (backend including its conformance tests, frontend against its mock) and compare counts to the report. This is where a self-graded "green" can be wrong.
 
    On any mismatch or missing section, re-dispatch the owner with the discrepancy quoted verbatim, or finish the work yourself and note the takeover.
@@ -146,15 +150,24 @@ Precondition: every BE/FE cell is ✅.
 
 3. **Review code and security in parallel.** In one batch, dispatch `agent_type: "prd-pr:code-reviewer"` and `agent_type: "prd-pr:security-reviewer"` over the full diff, each with the folder path and `04-task-plan.md`. The round passes only when **both** return `APPROVED`. On `FIXES_NEEDED` from either: re-dispatch the owning implementer(s) with the Blocker rows quoted verbatim, then re-dispatch only the reviewer(s) that flagged, scoped to the amended diff; loop until both approve. Non-blockers become PR follow-ups. Mark both rows ✅.
 
-   **Refactor tier** (`git diff --stat {branch-point}..HEAD -- src/` is empty): dispatch **one** reviewer, `code-reviewer`, with the security reviewer's test-specific brief folded into its prompt - "every denial, scoping and visibility test still proves what its name says after the rewrite". The check is worth keeping; two agents reading the same 76-file diff for it is not. Mark the security row `-`.
+   **Refactor tier** (`Tier: refactor` in `07-progress.md`): dispatch **one** reviewer, `code-reviewer`, with the security reviewer's test-specific brief folded into its prompt - "every denial, scoping and visibility test still proves what its name says after the rewrite". The check is worth keeping; two agents reading the same 76-file diff for it is not. Mark the security row `-`.
 
 4. **Smoke.** Run every slice's `Smoke:` sequence from `04-task-plan.md` in slice order against the running stack. After a fix, re-run only the failed sequences. Mark ✅.
 
-5. **Regression - one run serves every gate.** Run the project's full existing suite (unit, integration, component, pre-existing e2e) over the whole diff **once**, through the target that also measures coverage and keeps the test-result files (for StaffDirect, `make coverage RESULTS=<dir>`), so the same run is the regression gate, the coverage gate, the container-budget pin and the "after" half of any before/after diff the story requires. Do not run a bare suite first "for the TRX" and the coverage suite again for the threshold; on usr-093 that was the same 1,800 tests twice. Fix failures before marking ✅. Do not write or run the story's new browser e2e here; that is Phase 9.
+5. **Regression - one run serves every gate.** Run the project's full existing suite (unit, integration, component, pre-existing e2e) over the whole diff **once**, through the target that also measures coverage and keeps the test-result files (for StaffDirect, `make coverage RESULTS=<dir>`), so the same run is the regression gate, the coverage gate, the container-budget pin and the "after" half of any before/after diff the story requires. Its passing count must be at least the baseline `git-worktrees` reported at worktree creation plus the story's new tests; a lower total is a lost test, whatever the sweep reports said. Do not run a bare suite first "for the TRX" and the coverage suite again for the threshold; on usr-093 that was the same 1,800 tests twice. Fix failures before marking ✅. Do not write or run the story's new browser e2e here; that is Phase 9.
 
    **Gates run strictly one at a time.** Never launch one detached while another runs in the foreground: a coverlet-instrumented container suite starved by a parallel `pnpm -r build` fails on database timeouts and the whole run is wasted. If a make target already chains the gates serially, call it rather than decomposing it.
 
-   **Long jobs get a bounded watcher, never an open-ended one.** A job longer than the Bash tool's ceiling runs detached with a `DONE` marker (`nohup run.sh &`, with `echo "exit=$?" > DONE` as the script's last line). The watcher must exit on its own before the ceiling, because its exit is what re-invokes you; a loop killed at the ceiling re-invokes nothing:
+   **Long jobs get a bounded watcher, never an open-ended one.** A job longer than the Bash tool's ceiling runs detached (`nohup run.sh &`) and writes its `DONE` marker from an `EXIT` trap, never from a last line: a last line is skipped when `set -e` aborts the script, and under `| tee` a bare `$?` is tee's 0, so the failure path - the one the marker exists for - never produces one.
+
+   ```bash
+   # run.sh
+   set -o pipefail
+   trap 'echo "exit=$?" > "$S/DONE"' EXIT
+   make coverage RESULTS="$S" 2>&1 | tee "$S/run.log"   # the project's suite-with-coverage target
+   ```
+
+   The watcher must exit on its own before the ceiling, because its exit is what re-invokes you; a loop killed at the ceiling re-invokes nothing. The loop below sleeps up to 8.5 min, so call it with the tool's maximum timeout (`timeout: 600000`); under the default 2-minute ceiling shorten it to `seq 1 3`. If the harness blocks a foreground `sleep`, use its Monitor / until-loop tool on the same `DONE`-file condition instead:
 
    ```bash
    for i in $(seq 1 17); do [ -f "$S/DONE" ] && break; sleep 30; done

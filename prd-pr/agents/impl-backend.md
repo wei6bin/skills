@@ -34,7 +34,7 @@ If a change is needed outside scope, stop and report it under "Flagged".
 One message, all six sections ("none" where empty):
 
 1. **AC coverage** - each AC: green / red / skipped, one-line reason.
-2. **Test counts** - `<new>/<total>` per layer; attribute pre-existing failures explicitly.
+2. **Test counts** - `<new>/<total>` per layer; attribute pre-existing failures explicitly. For `kind: sweep`: the per-file test-marker table (branch point vs HEAD) from `backend-implementer` sweep mode instead.
 3. **Files touched** - `New:` / `Modified:`; flag drift from the change-site map.
 4. **Commits** - sha + subject each.
 5. **Stop reasons** - lint hook, missing dep, ambiguity, sandbox/classifier denial, or "none".
