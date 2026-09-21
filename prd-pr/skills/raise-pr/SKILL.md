@@ -21,14 +21,16 @@ If anything fails, stop and show it. Fix formatting with the project's own write
 Phase 9 should have produced `docs/new-feature/{folder}/06-walkthrough.md` and `screenshots/`.
 
 - Present: read `06-walkthrough.md`. Any ❌ slice row or Blocker in "Issues found" → stop and send the user back to Phase 8; this skill does not fix bugs.
-- Missing, or slices from `04-task-plan.md` absent from it: dispatch `agent_type: "prd-pr:test-plan-walker"` (scoped to the missing slices if partial) and wait for its Return Report. Never run the `test-plan-walkthrough` skill inline; it needs a clean context.
+- Missing, or slices from `04-task-plan.md` absent from it: dispatch `agent_type: "prd-pr:test-plan-walker"` (scoped to the missing slices if partial) and wait for its Return Report. Never run the `test-plan-walkthrough` skill inline; it needs a clean context. Exception: a refactor-tier story (no `05-test-plan.md` in the folder) has its walkthrough written by the orchestrator from the story's own Verification section - one row per slice or task with a verdict - and needs no walker; only a missing file or a ❌ row is a stop.
 - For any `Type: HITL` slice needing physical verification (printing, QR scanning): ask *"Run the HITL-only verification for SLICE-NN now? [Y/skip]"* and note a skip in the PR body.
 
 ### Step 2: Base branch
 
-`git merge-base HEAD main 2>/dev/null || git merge-base HEAD master`
+Read the `Base:` line of `docs/new-feature/{folder}/07-progress.md` (`grep -m1 '^Base:'`): the branch the orchestrator cut the worktree from. If the line is missing (a ledger written before it existed), ask; never assume `main` and do not derive it from git - `@{upstream}` is the feature branch's own remote after `push -u`, and the branch reflog says `Created from HEAD` unless the base was named. A story cut from a release or integration branch and merged into `main` unattended is the wrong merge, with the feature branch deleted behind it. The branch point for the diff is `git merge-base HEAD {base}`.
 
-### Step 3: Present exactly these options
+### Step 3: Execute the recorded exit, or present the options
+
+If `docs/new-feature/{folder}/07-progress.md` has an `Exit:` line (`grep -m1 '^Exit:'`) reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is idle time measured in hours, not a decision.
 
 ```
 Implementation complete. What would you like to do?
@@ -41,9 +43,9 @@ Implementation complete. What would you like to do?
 
 ### Step 4: Execute
 
-**1. Merge locally**: checkout base, pull, merge, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
+**1. Merge locally**: `git checkout {base} && git pull`, merge the feature branch, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
 
-**2. Push and create PR**: `git push -u origin <feature-branch>`, then detect the host from `git remote get-url origin`: `github.com` → `gh pr create --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
+**2. Push and create PR**: `git push -u origin <feature-branch>`, then detect the host from `git remote get-url origin`: `github.com` → `gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --target-branch {base} --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
 
 ```markdown
 ## Summary
@@ -70,12 +72,14 @@ Full report and screenshots: [06-walkthrough.md]({absolute link})
 {verbatim from 05-test-plan.md}
 ```
 
+**Refactor tier** (no `01-business-plan.md` or `05-test-plan.md` in the folder): the template's sources do not exist, so do not invent them. `## Summary` and `## Acceptance Criteria` come from `00-overview.md` (its success criteria are the ACs); `## Slices shipped` and `## Test Plan Walkthrough` collapse into one `## Verification` table copied from `06-walkthrough.md` (command · observed · ✅) under the full-report link, with no screenshots; `## Test Plan (automated)` keeps the suite-count line only; `## Rollback` is a revert of the merge unless `00-overview.md` says otherwise.
+
 **Screenshot and file links must be absolute and pinned to the head branch.** PR descriptions are not rendered against the head branch on either host, so relative paths 404.
 
 - GitHub: `https://github.com/{owner}/{repo}/raw/{branch}/docs/new-feature/{folder}/screenshots/{file}.png` for images, `.../blob/{branch}/...` for markdown files.
 - Azure DevOps: `https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo}/items?path=/docs/new-feature/{folder}/screenshots/{file}.png&versionDescriptor.version={branch}&versionDescriptor.versionType=branch&api-version=7.1`.
 
-If the head branch is deleted after merge, switch links to the merge commit SHA or `main`. Return the PR URL, then Step 5.
+If the head branch is deleted after merge, switch links to the merge commit SHA or `{base}`. Return the PR URL, then Step 5.
 
 **3. Keep as-is**: report the branch and worktree path; do not clean up.
 
