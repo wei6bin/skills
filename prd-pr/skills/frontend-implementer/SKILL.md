@@ -1,6 +1,6 @@
 ---
 name: frontend-implementer
-description: Drives the TDD red-green-refactor loop for the frontend half of one vertical slice against a typed mock of its frozen contract - one user-visible AC behaviour at a time, files discovered as tests demand them, one commit per cycle - and, in "whole-story integration" scope, swaps every slice's mock for the real backends once. Invoked by the impl-frontend agent after it has loaded context.
+description: Drives the TDD red-green-refactor loop for the frontend half of one vertical slice against a typed mock of its frozen contract - one user-visible AC behaviour at a time, files discovered as tests demand them, one commit per cycle - or its sweep mode for a mechanical-rewrite slice, and, in "whole-story integration" scope, swaps every slice's mock for the real backends once. Invoked by the impl-frontend agent after it has loaded context.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
@@ -30,6 +30,16 @@ Every slice has shipped. In one dispatch:
 4. Commit `feat(frontend): integrate whole story against real backends` and report, per slice, which tests now run against the real backend and any drift.
 
 This pass is mechanical wiring plus a test run. If it turns into a rewrite, some contract was not actually frozen; say which slice.
+
+## Sweep mode (`kind: sweep` in the scope)
+
+The slice rewrites existing files to a new form and adds no behaviour - a hook or component rename, a prop migration, a call-site sweep - so the TDD loop above does not apply, and there is no contract to mock. Instead:
+
+1. Build the file list from the card's `Files:` line. Per file, read only the sites that need a verdict (a grep with context, not the whole file), decide, then apply the mechanical form change with `sed` or a short script over the file. Never Read a whole component and Write it back to rename one import.
+2. Gate on the typecheck/build after each file or small batch, plus the unit/component tests that sit beside the files you touched. Do not run the whole FE suite or any e2e; the orchestrator's regression gate runs them once for the whole story, and other sweeps are running concurrently.
+3. Record per-site findings as data: one line per site appended with `echo >>` to `docs/new-feature/{folder}/08-findings-SLICE-NN.csv`, your slice's own file (header `file,line,helper,verdict,note` first, `note` double-quoted). Commit it with the slice; the orchestrator assembles the per-slice files once.
+4. Commit per file or coherent batch: `feat(frontend): SLICE-NN - {file}: {what changed}`.
+5. Before reporting, tabulate the project's test marker (`it(`/`test(`, or the framework's equivalent) per touched file at the branch point and at HEAD: `git show {branch-point}:{file} | grep -c '{marker}'` against `grep -c '{marker}' {file}`. The orchestrator verifies the sweep from that table, so a row whose columns differ needs a one-line reason.
 
 ## Driving React Hook Form programmatically
 

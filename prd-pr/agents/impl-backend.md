@@ -25,7 +25,7 @@ If a change is needed outside scope, stop and report it under "Flagged".
 ## Before implementing
 
 1. Invoke `restful-api-design` (skip it for `kind: sweep`; there is no API surface to design), then `reuse-ladder`.
-2. Read your slice's card in `04-task-plan.md`, its contract and data notes in `02-technical-plan.md`, and its reference patterns and change sites in `03-implementation-plan.md`. Change sites are targets, not an order.
+2. Read your slice's card in `04-task-plan.md`. Feature tier: also its contract and data notes in `02-technical-plan.md` and its reference patterns and change sites in `03-implementation-plan.md` (targets, not an order). `kind: sweep`, or a refactor-tier story (the folder has only `00-overview.md` and `04-task-plan.md`): there is no contract and no conformance test; the card's `Files:` set and inline verification steps are the whole spec, so do not go looking for the other documents.
 3. Read the relevant `docs/project_context/` files; project conventions override the generic REST guidance.
 4. Invoke `backend-implementer`; it drives the TDD loop, or its sweep mode when the scope says `kind: sweep`, and commits per behaviour.
 

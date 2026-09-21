@@ -72,6 +72,8 @@ Full report and screenshots: [06-walkthrough.md]({absolute link})
 {verbatim from 05-test-plan.md}
 ```
 
+**Refactor tier** (no `01-business-plan.md` or `05-test-plan.md` in the folder): the template's sources do not exist, so do not invent them. `## Summary` and `## Acceptance Criteria` come from `00-overview.md` (its success criteria are the ACs); `## Slices shipped` and `## Test Plan Walkthrough` collapse into one `## Verification` table copied from `06-walkthrough.md` (command · observed · ✅) under the full-report link, with no screenshots; `## Test Plan (automated)` keeps the suite-count line only; `## Rollback` is a revert of the merge unless `00-overview.md` says otherwise.
+
 **Screenshot and file links must be absolute and pinned to the head branch.** PR descriptions are not rendered against the head branch on either host, so relative paths 404.
 
 - GitHub: `https://github.com/{owner}/{repo}/raw/{branch}/docs/new-feature/{folder}/screenshots/{file}.png` for images, `.../blob/{branch}/...` for markdown files.
