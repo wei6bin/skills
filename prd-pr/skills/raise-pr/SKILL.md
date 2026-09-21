@@ -45,7 +45,7 @@ Implementation complete. What would you like to do?
 
 **1. Merge locally**: `git checkout {base} && git pull`, merge the feature branch, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
 
-**2. Push and create PR**: detect the host from `git remote get-url origin`: `github.com` → `gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --target-branch {base} --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
+**2. Push and create PR**: `git push -u origin <feature-branch>`, then detect the host from `git remote get-url origin`: `github.com` → `gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --target-branch {base} --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
 
 ```markdown
 ## Summary

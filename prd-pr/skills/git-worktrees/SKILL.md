@@ -14,9 +14,9 @@ In priority order:
 
 1. An existing `.worktrees/` (preferred) or `worktrees/` directory in the repo.
 2. A location named in `CLAUDE.md` (`grep -i "worktree.*director" CLAUDE.md`).
-3. Otherwise ask: `.worktrees/` (project-local, hidden) or `~/.config/superpowers/worktrees/<project>/` (global).
+3. Otherwise ask: `.worktrees/` (project-local, hidden) or `~/.config/prd-pr/worktrees/<project>/` (global).
 
-For a project-local directory, verify it is ignored (`git check-ignore -q .worktrees`); if not, add it to `.gitignore` and commit before creating the worktree, so worktree contents never get tracked.
+For a project-local directory, verify it is ignored (`git check-ignore -q <dir>`, where `<dir>` is `.worktrees` or `worktrees`, whichever was chosen); if not, add it to `.gitignore` and commit before creating the worktree, so worktree contents never get tracked.
 
 ## Create
 
