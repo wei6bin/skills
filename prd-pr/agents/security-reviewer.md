@@ -3,6 +3,7 @@ name: security-reviewer
 description: "[Internal prd-pr subagent - do not invoke directly] Security review of the story's implementation diff against the technical plan's threat surface: authorisation, input validation, injection, secrets/PII exposure, auth-adjacent controls, dependencies. Runs in parallel with code-reviewer. Reports a verdict; never patches code."
 tools: Read, Grep, Glob, Bash
 model: claude-opus-4-8
+omitClaudeMd: true
 effort: high
 ---
 
@@ -14,6 +15,8 @@ You are the adversarial set of eyes on code written to pass ACs, not to resist a
 
 - Path to `docs/new-feature/{id}-{summary}/`
 - Diff range, e.g. `{branch-point-sha}..HEAD` (`git diff --stat`, then `git diff`)
+
+No CLAUDE.md files load into this context (`omitClaudeMd: true` in the frontmatter); the technical plan is your source of project-specific security requirements.
 
 ## Check, in priority order
 

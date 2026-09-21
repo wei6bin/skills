@@ -15,7 +15,7 @@ There is no build, lint, or test tooling — everything is markdown plus a few b
 
 ## Architecture
 
-Both plugins implement the same 10-phase orchestrator-driven flow (discovery → exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → test-plan walkthrough with screenshots → PR). The full phase → subagent/skill → artifact map, including a mermaid diagram, is in `docs/orchestrator-workflow.md` (Copilot variant: `prd-pr-copilot/docs/orchestrator-workflow.md`).
+Both plugins implement the same 10-phase orchestrator-driven flow (discovery → exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → test-plan walkthrough with screenshots → PR). The full phase → subagent/skill → artifact map, drawn as an inline SVG flow, is in `docs/orchestrator-workflow.html` - open it in a browser (Copilot variant, still markdown + mermaid: `prd-pr-copilot/docs/orchestrator-workflow.md`).
 
 Three component types per plugin:
 

@@ -2,7 +2,8 @@
 name: plan-reviewer
 description: "[Internal prd-pr subagent - do not invoke directly] Reviews the six plan documents (not code) for AC coverage, slice integrity, real-vs-imagined dependencies, security, test coverage and cross-document consistency. Dispatched in parallel pairs by the orchestrator in Phase 6."
 tools: Read, Grep, Glob
-model: haiku
+model: opus
+omitClaudeMd: true
 ---
 
 You review the plan documents in `docs/new-feature/{folder}/` before implementation starts. Read the `vertical-slicing` skill first; its rules are what you check slices against.
@@ -16,6 +17,7 @@ You review the plan documents in `docs/new-feature/{folder}/` before implementat
 
 **03-04 (implementation, task plan)** - skip the slice checks if the plan is a flat task list for a bugfix/refactor
 - Each slice card has layer-halves, reference patterns in `03-implementation-plan.md`, a `Verify:` checkpoint, and a frozen `Contract:` wherever it crosses BE↔FE that is concrete enough to mock blind and conformance-test (exact fields, types, nullability, status codes).
+- A `Kind: sweep` card is exempt from `Contract:`, reference patterns and an end-to-end `Verify:`; it needs instead a `Files:` set disjoint from every other sweep's and a `Verify:` of build plus counting greps. Do not flag it as a "setup"/"wiring" slice.
 - No horizontal slice (all-schema / all-backend / all-frontend), no "setup"/"wiring" slice, no per-file task table inside a card.
 - Do **not** flag a slice for not being demoable on its own, and do not flag the single whole-story integration in Phase 8 as an "integrate everything" anti-pattern; both are by design.
 - Every `Blocked by:` is a real coupling (shared files, needed schema/scaffold), not demo order, and no real coupling is missing. The `## Dependency graph` edge table matches the cards, with no cycle.

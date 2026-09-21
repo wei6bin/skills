@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>prd-pr Orchestrator Workflow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --ink: #1a1f26;
+    --muted: #5d6672;
+    --line: #d5dbe3;
+    --line-soft: #e6eaf0;
+    --code-bg: #eaeef3;
+    --sub: #1565c0;      --sub-bg: #e3f2fd;   --sub-line: #1976d2;
+    --skill: #d15f00;    --skill-bg: #fff3e0; --skill-line: #f57c00;
+    --art: #6a1b9a;      --art-bg: #f3e5f5;   --art-line: #7b1fa2;
+    --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1116;
+      --surface: #151a21;
+      --ink: #e6e9ee;
+      --muted: #9aa4b0;
+      --line: #2b333d;
+      --line-soft: #202730;
+      --code-bg: #1e252e;
+      --sub: #86bfff;    --sub-bg: #10233a;   --sub-line: #4a8fe0;
+      --skill: #ffa64f;  --skill-bg: #33200b; --skill-line: #e0821e;
+      --art: #d5a3f5;    --art-bg: #2b1738;   --art-line: #a35ccc;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1116;
+    --surface: #151a21;
+    --ink: #e6e9ee;
+    --muted: #9aa4b0;
+    --line: #2b333d;
+    --line-soft: #202730;
+    --code-bg: #1e252e;
+    --sub: #86bfff;    --sub-bg: #10233a;   --sub-line: #4a8fe0;
+    --skill: #ffa64f;  --skill-bg: #33200b; --skill-line: #e0821e;
+    --art: #d5a3f5;    --art-bg: #2b1738;   --art-line: #a35ccc;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.55;
+    padding-inline: clamp(16px, 3vw, 40px);
+    padding-block: 32px 64px;
+  }
+  h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+  h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; line-height: 1.05; }
+  h2 { font-size: 22px; font-weight: 600; line-height: 1.2; }
+  p { margin: 0; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--sub-line); outline-offset: 2px; }
+
+  /* ---------- header ---------- */
+  .masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 24px 48px;
+    align-items: end;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .lede { max-width: 68ch; margin-top: 14px; color: var(--muted); font-size: 16px; }
+  .lede code { color: var(--ink); }
+
+  .legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .legend-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .key {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 500;
+    padding: 5px 10px 5px 7px;
+    border: 1px solid; border-radius: 4px;
+  }
+  .key i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; border: 1px solid; }
+  .key-sub   { color: var(--sub);   background: var(--sub-bg);   border-color: var(--sub-line); }
+  .key-sub i { background: var(--sub-bg); border-color: var(--sub-line); }
+  .key-skill   { color: var(--skill); background: var(--skill-bg); border-color: var(--skill-line); }
+  .key-skill i { background: var(--skill-bg); border-color: var(--skill-line); }
+  .key-art   { color: var(--art);   background: var(--art-bg);   border-color: var(--art-line); }
+  .key-art i { background: var(--art-bg); border-color: var(--art-line); }
+
+  @media (max-width: 760px) {
+    .masthead { grid-template-columns: 1fr; align-items: start; }
+  }
+
+  /* ---------- phase strip ---------- */
+  .phases {
+    list-style: none; margin: 0; padding: 0;
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 24px;
+  }
+  @media (max-width: 1100px) { .phases { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  @media (max-width: 560px)  { .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .phases li {
+    background: var(--surface);
+    padding: 10px 12px;
+    display: flex; gap: 10px; align-items: baseline;
+    font-size: 13.5px; font-weight: 500;
+  }
+  .phases b {
+    font-family: var(--mono); font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted); font-size: 12px;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 48px; }
+  .section-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .section-head p { color: var(--muted); max-width: 72ch; }
+
+  /* ---------- diagram ---------- */
+  figure { margin: 0; }
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .flow { width: 100%; height: auto; min-width: 1180px; display: block; color: var(--ink); font-family: var(--body); }
+  .flow .lane { stroke: currentColor; stroke-opacity: .18; }
+  .flow .rule { stroke: currentColor; stroke-opacity: .5; stroke-width: 2; }
+  .flow .nd { fill: var(--surface); stroke: currentColor; stroke-width: 1; }
+  .flow .nd.sub { fill: var(--sub-bg); stroke: var(--sub-line); }
+  .flow .nd.skill { fill: var(--skill-bg); stroke: var(--skill-line); }
+  .flow .nd.art { fill: var(--art-bg); stroke: var(--art-line); }
+  .flow .ph { fill: var(--bg); stroke: currentColor; stroke-width: 1; }
+  .flow .grp { fill: var(--bg); stroke: currentColor; stroke-opacity: .55; stroke-dasharray: 5 4; }
+  .flow .t { fill: currentColor; font-size: 12px; }
+  .flow .t.sub { fill: var(--sub); }
+  .flow .t.skill { fill: var(--skill); }
+  .flow .t.art { fill: var(--art); }
+  .flow .t.muted { fill: var(--muted); }
+  .flow .mono { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; fill: var(--muted); }
+  .flow .ph-n { font-family: var(--mono); font-size: 16px; fill: var(--muted); }
+  .flow .ph-t { font-size: 12.5px; font-weight: 600; fill: currentColor; }
+  .flow .ln { fill: none; stroke: currentColor; stroke-width: 1.25; }
+  .flow .dot { stroke-dasharray: 4 3; }
+  .flow .lb { fill: var(--surface); }
+  .flow .lt { fill: var(--muted); font-size: 11px; font-family: var(--mono); }
+  figcaption {
+    font-size: 13px; color: var(--muted);
+    padding: 10px 2px 0;
+  }
+  figcaption code { font-size: 12px; }
+
+  /* ---------- tables ---------- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 720px; }
+  th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line-soft); }
+  th {
+    font-family: var(--mono); font-weight: 500;
+    font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.n {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    color: var(--muted); width: 2.5em; padding-right: 0;
+  }
+  td.phase { font-weight: 600; white-space: nowrap; }
+  td .sub { color: var(--muted); font-weight: 400; display: block; white-space: normal; }
+  .none { color: var(--muted); }
+  .matrix td:nth-child(3), .matrix td:nth-child(4), .matrix td:nth-child(5) { min-width: 200px; }
+  .matrix td:nth-child(3) { max-width: 46ch; }
+  .matrix td:nth-child(4) { max-width: 34ch; }
+  .matrix td:nth-child(5) { max-width: 34ch; }
+  td p + p { margin-top: 8px; }
+
+  /* component chips: the diagram's colour language carried into the tables */
+  .c { border: 1px solid; }
+  .c-sub   { color: var(--sub);   background: var(--sub-bg);   border-color: var(--sub-line); }
+  .c-skill { color: var(--skill); background: var(--skill-bg); border-color: var(--skill-line); }
+  .c-art   { color: var(--art);   background: var(--art-bg);   border-color: var(--art-line); }
+
+  .type { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  .type i { width: 14px; height: 14px; border-radius: 2px; border: 1px solid; flex: none; }
+  .type-sub i   { background: var(--sub-bg);   border-color: var(--sub-line); }
+  .type-skill i { background: var(--skill-bg); border-color: var(--skill-line); }
+  .type-art i   { background: var(--art-bg);   border-color: var(--art-line); }
+  .type small { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .diagram { scroll-behavior: smooth; }
+  }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div>
+    <p class="eyebrow">prd-pr plugin · docs/orchestrator-workflow.html</p>
+    <h1>Orchestrator workflow</h1>
+    <p class="lede">The <code>orchestrator</code> skill drives a feature from a user story to a merged PR through 10 phases. Each phase dispatches helper subagents or invokes companion skills as needed. The diagram below maps phase → components → artifacts.</p>
+  </div>
+  <div class="legend">
+    <span class="legend-title">Node colours</span>
+    <div class="legend-row">
+      <span class="key key-sub"><i></i>Subagent</span>
+      <span class="key key-skill"><i></i>Skill</span>
+      <span class="key key-art"><i></i>Artifact</span>
+    </div>
+  </div>
+</header>
+
+<ol class="phases" aria-label="The 10 phases in order">
+  <li><b>01</b>Discovery</li>
+  <li><b>02</b>Codebase Exploration</li>
+  <li><b>03</b>Clarifying Questions</li>
+  <li><b>04</b>Architecture &amp; Documents</li>
+  <li><b>05</b>Finalize Documents</li>
+  <li><b>06</b>Quality Review</li>
+  <li><b>07</b>Summary</li>
+  <li><b>08</b>Slice-by-Slice Implementation</li>
+  <li><b>09</b>Test Plan Walkthrough</li>
+  <li><b>10</b>Branch Completion</li>
+</ol>
+
+<section>
+  <div class="section-head">
+    <h2>Phase flow</h2>
+    <p>Phases run top to bottom along the left spine; inside each phase the work reads left to right. Solid arrows are the main path; dotted arrows are guidance, bootstrap and the two loop-backs (next ready slice, and <code>FIXES_NEEDED</code> from Phase 9 into Phase 8).</p>
+  </div>
+  <figure class="diagram">
+<svg class="flow" viewBox="0 0 1500 1632" role="img" aria-label="The ten orchestrator phases from user story to PR, with the subagents dispatched, skills invoked and artifacts written in each, and the loop-backs from Phase 9 to Phase 8.">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<line class="lane" x1="0" y1="60" x2="1500" y2="60"/>
+<line class="lane" x1="0" y1="152" x2="1500" y2="152"/>
+<line class="lane" x1="0" y1="312" x2="1500" y2="312"/>
+<line class="lane" x1="0" y1="404" x2="1500" y2="404"/>
+<line class="lane" x1="0" y1="616" x2="1500" y2="616"/>
+<line class="lane" x1="0" y1="708" x2="1500" y2="708"/>
+<line class="lane" x1="0" y1="800" x2="1500" y2="800"/>
+<line class="lane" x1="0" y1="892" x2="1500" y2="892"/>
+<line class="lane" x1="0" y1="1344" x2="1500" y2="1344"/>
+<line class="lane" x1="0" y1="1454" x2="1500" y2="1454"/>
+<line class="lane" x1="0" y1="1564" x2="1500" y2="1564"/>
+<rect class="nd" x="20" y="8" width="180" height="36" rx="18.0"/>
+<text class="t" x="110.0" y="30.0" text-anchor="middle">User story / AC / ADO ticket</text>
+<rect class="ph" x="20" y="82.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="112">01</text>
+<text class="ph-t" x="70" y="110.5">Discovery</text>
+<path class="ln" d="M110,44 L110,82.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,106 L240,106" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="174.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="204">02</text>
+<text class="ph-t" x="70" y="195.0">Codebase</text>
+<text class="ph-t" x="70" y="210.0">Exploration</text>
+<path class="ln" d="M110,130.0 L110,174.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,198 L240,198" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="334.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="364">03</text>
+<text class="ph-t" x="70" y="355.0">Clarifying</text>
+<text class="ph-t" x="70" y="370.0">Questions</text>
+<path class="ln" d="M110,222.0 L110,334.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,358 L240,358" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="426.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="456">04</text>
+<text class="ph-t" x="70" y="447.0">Architecture Design</text>
+<text class="ph-t" x="70" y="462.0">&amp; Documents</text>
+<path class="ln" d="M110,382.0 L110,426.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,450 L240,450" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="638.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="668">05</text>
+<text class="ph-t" x="70" y="659.0">Finalize</text>
+<text class="ph-t" x="70" y="674.0">Documents</text>
+<path class="ln" d="M110,474.0 L110,638.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,662 L240,662" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="730.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="760">06</text>
+<text class="ph-t" x="70" y="758.5">Quality Review</text>
+<path class="ln" d="M110,686.0 L110,730.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,754 L240,754" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="822.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="852">07</text>
+<text class="ph-t" x="70" y="850.5">Summary</text>
+<path class="ln" d="M110,778.0 L110,822.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,846 L240,846" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="1007.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="1037">08</text>
+<text class="ph-t" x="70" y="1028.0">Slice-by-Slice</text>
+<text class="ph-t" x="70" y="1043.0">Implementation</text>
+<path class="ln" d="M110,870.0 L110,1007.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,1031 L240,1031" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="1366.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="1396">09</text>
+<text class="ph-t" x="70" y="1387.0">Test Plan</text>
+<text class="ph-t" x="70" y="1402.0">Walkthrough</text>
+<path class="ln" d="M110,1055.0 L110,1366.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,1390 L240,1390" marker-end="url(#arr)"/>
+<rect class="ph" x="20" y="1476.0" width="180" height="48" rx="3"/>
+<text class="ph-n" x="34" y="1506">10</text>
+<text class="ph-t" x="70" y="1497.0">Branch</text>
+<text class="ph-t" x="70" y="1512.0">Completion</text>
+<path class="ln" d="M110,1414.0 L110,1476.0" marker-end="url(#arr)"/>
+<path class="ln" d="M200,1500 L240,1500" marker-end="url(#arr)"/>
+<rect class="nd" x="20" y="1580" width="180" height="36" rx="18.0"/>
+<text class="t" x="110.0" y="1602.0" text-anchor="middle">Done</text>
+<path class="ln" d="M110,1524.0 L110,1580" marker-end="url(#arr)"/>
+<rect class="nd" x="240" y="84" width="200" height="44" rx="3"/>
+<text class="t" x="340.0" y="102.5" text-anchor="middle">Capture title, ACs,</text>
+<text class="t" x="340.0" y="117.5" text-anchor="middle">priority, ticket ID</text>
+<rect class="nd" x="240" y="176" width="210" height="44" rx="3"/>
+<text class="t" x="345.0" y="202.0" text-anchor="middle">Read docs/project_context/</text>
+<rect class="nd sub" x="490" y="176" width="200" height="44" rx="3"/>
+<text class="t sub" x="590.0" y="194.5" text-anchor="middle">2–3× code-explorer</text>
+<text class="t sub" x="590.0" y="209.5" text-anchor="middle">parallel subagents</text>
+<path class="ln" d="M450,198 L490,198" marker-end="url(#arr)"/>
+<rect class="nd skill" x="240" y="248" width="210" height="44" rx="3"/>
+<text class="t skill" x="345.0" y="266.5" text-anchor="middle">codebase-context-builder</text>
+<text class="t skill" x="345.0" y="281.5" text-anchor="middle">skill, if context missing</text>
+<path class="ln dot" d="M345,248 L345,220" marker-end="url(#arr)"/>
+<rect class="lb" x="349.0" y="226" width="69.4" height="16" rx="2"/>
+<text class="lt" x="353" y="238" text-anchor="start">bootstrap</text>
+<rect class="nd" x="240" y="336" width="220" height="44" rx="3"/>
+<text class="t" x="350.0" y="354.5" text-anchor="middle">Batch independent questions</text>
+<text class="t" x="350.0" y="369.5" text-anchor="middle">with recommended answer</text>
+<rect class="nd skill" x="240" y="428" width="190" height="44" rx="3"/>
+<text class="t skill" x="335.0" y="446.5" text-anchor="middle">git-worktrees skill</text>
+<text class="t skill" x="335.0" y="461.5" text-anchor="middle">isolate branch FIRST</text>
+<rect class="nd sub" x="470" y="428" width="250" height="44" rx="3"/>
+<text class="t sub" x="595.0" y="446.5" text-anchor="middle">1× code-architect</text>
+<text class="t sub" x="595.0" y="461.5" text-anchor="middle">designs AND writes the 6 docs</text>
+<path class="ln" d="M430,450 L470,450" marker-end="url(#arr)"/>
+<rect class="nd art" x="760" y="428" width="200" height="44" rx="3"/>
+<text class="t art" x="860.0" y="454.0" text-anchor="middle">docs/new-feature/{id}/</text>
+<path class="ln" d="M720,450 L760,450" marker-end="url(#arr)"/>
+<path class="ln" d="M960,450 L1000,450"/>
+<path class="ln" d="M1000,440 L1000,580"/>
+<rect class="nd art" x="1030" y="428" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="444.0" text-anchor="middle">00-overview.md</text>
+<path class="ln" d="M1000,440 L1030,440" marker-end="url(#arr)"/>
+<rect class="nd art" x="1030" y="456" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="472.0" text-anchor="middle">01-business-plan.md</text>
+<path class="ln" d="M1000,468 L1030,468" marker-end="url(#arr)"/>
+<rect class="nd art" x="1030" y="484" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="500.0" text-anchor="middle">02-technical-plan.md</text>
+<path class="ln" d="M1000,496 L1030,496" marker-end="url(#arr)"/>
+<rect class="nd art" x="1030" y="512" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="528.0" text-anchor="middle">03-implementation-plan.md</text>
+<path class="ln" d="M1000,524 L1030,524" marker-end="url(#arr)"/>
+<rect class="nd art" x="1030" y="540" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="556.0" text-anchor="middle">04-task-plan.md</text>
+<path class="ln" d="M1000,552 L1030,552" marker-end="url(#arr)"/>
+<rect class="nd art" x="1030" y="568" width="210" height="24" rx="3"/>
+<text class="t art" x="1135.0" y="584.0" text-anchor="middle">05-test-plan.md</text>
+<path class="ln" d="M1000,580 L1030,580" marker-end="url(#arr)"/>
+<rect class="nd skill" x="470" y="504" width="250" height="44" rx="3"/>
+<text class="t skill" x="595.0" y="522.5" text-anchor="middle">vertical-slicing skill</text>
+<text class="t skill" x="595.0" y="537.5" text-anchor="middle">guides slice shape + frozen contracts</text>
+<path class="ln dot" d="M595,504 L595,472" marker-end="url(#arr)"/>
+<rect class="lb" x="599.0" y="482" width="49.6" height="16" rx="2"/>
+<text class="lt" x="603" y="494" text-anchor="start">guides</text>
+<rect class="nd" x="240" y="640" width="230" height="44" rx="3"/>
+<text class="t" x="355.0" y="658.5" text-anchor="middle">Verify 6 docs complete,</text>
+<text class="t" x="355.0" y="673.5" text-anchor="middle">cross-check, index README</text>
+<rect class="nd sub" x="240" y="732" width="190" height="44" rx="3"/>
+<text class="t sub" x="335.0" y="750.5" text-anchor="middle">2× plan-reviewer</text>
+<text class="t sub" x="335.0" y="765.5" text-anchor="middle">parallel subagents</text>
+<rect class="nd" x="240" y="824" width="180" height="44" rx="3"/>
+<text class="t" x="330.0" y="842.5" text-anchor="middle">Decisions, risks,</text>
+<text class="t" x="330.0" y="857.5" text-anchor="middle">next steps</text>
+<rect class="grp" x="240" y="928" width="360" height="206" rx="4"/>
+<text class="mono" x="254" y="946">STEP 1 · IMPLEMENT ONLY</text>
+<text class="t" x="254" y="963">parallel-safe slices concurrent, one worktree each;</text>
+<text class="t" x="254" y="978">no per-slice integration</text>
+<rect class="nd sub" x="260" y="990" width="320" height="56" rx="3"/>
+<text class="t sub" x="420.0" y="1007.0" text-anchor="middle">impl-backend</text>
+<text class="t sub" x="420.0" y="1022.0" text-anchor="middle">TDD; implements + conformance-tests</text>
+<text class="t sub" x="420.0" y="1037.0" text-anchor="middle">the frozen contract</text>
+<rect class="nd sub" x="260" y="1060" width="320" height="56" rx="3"/>
+<text class="t sub" x="420.0" y="1077.0" text-anchor="middle">impl-frontend</text>
+<text class="t sub" x="420.0" y="1092.0" text-anchor="middle">TDD against a typed contract mock,</text>
+<text class="t sub" x="420.0" y="1107.0" text-anchor="middle">stays on the mock</text>
+<path class="ln dot" d="M600,1088 L632,1088 L632,1018 L600,1018" marker-end="url(#arr)"/>
+<rect class="lb" x="636.0" y="1045" width="115.6" height="16" rx="2"/>
+<text class="lt" x="640" y="1057" text-anchor="start">next ready slice</text>
+<path class="ln" d="M540,1134 L540,1154 L732.5,1154 L732.5,1176" marker-end="url(#arr)"/>
+<rect class="lb" x="558.6" y="1146" width="155.2" height="16" rx="2"/>
+<text class="lt" x="636.25" y="1158" text-anchor="middle">all slices implemented</text>
+<line class="rule" x1="240" y1="1176" x2="240" y2="1320"/>
+<text class="mono" x="252" y="1192">STEP 2 · CONSOLIDATED QA ROUND</text>
+<text class="t" x="252" y="1210">once, over the whole story</text>
+<text class="t muted" x="252" y="1228">reviewers read the diff that ships;</text>
+<text class="t muted" x="252" y="1243">one test run is also the coverage gate</text>
+<rect class="nd sub" x="640" y="1176" width="185" height="56" rx="3"/>
+<text class="t sub" x="732.5" y="1193.0" text-anchor="middle">impl-frontend</text>
+<text class="t sub" x="732.5" y="1208.0" text-anchor="middle">whole-story integration:</text>
+<text class="t sub" x="732.5" y="1223.0" text-anchor="middle">every mock → real backends</text>
+<path class="ln" d="M825,1204 L855,1204" marker-end="url(#arr)"/>
+<rect class="nd sub" x="855" y="1176" width="185" height="56" rx="3"/>
+<text class="t sub" x="947.5" y="1193.0" text-anchor="middle">impl-simplify</text>
+<text class="t sub" x="947.5" y="1208.0" text-anchor="middle">isolated context →</text>
+<text class="t sub" x="947.5" y="1223.0" text-anchor="middle">built-in simplify skill</text>
+<path class="ln" d="M1040,1204 L1070,1204" marker-end="url(#arr)"/>
+<rect class="nd sub" x="1070" y="1176" width="185" height="56" rx="3"/>
+<text class="t sub" x="1162.5" y="1193.0" text-anchor="middle">code-reviewer</text>
+<text class="t sub" x="1162.5" y="1208.0" text-anchor="middle">+ security-reviewer</text>
+<text class="t sub" x="1162.5" y="1223.0" text-anchor="middle">full diff as it will ship</text>
+<path class="ln" d="M1255,1204 L1285,1204" marker-end="url(#arr)"/>
+<rect class="nd" x="1285" y="1176" width="185" height="56" rx="3"/>
+<text class="t" x="1377.5" y="1193.0" text-anchor="middle">Consolidated smoke</text>
+<text class="t" x="1377.5" y="1208.0" text-anchor="middle">every slice's Smoke:</text>
+<text class="t" x="1377.5" y="1223.0" text-anchor="middle">sequence</text>
+<rect class="nd" x="640" y="1264" width="185" height="56" rx="3"/>
+<text class="t" x="732.5" y="1281.0" text-anchor="middle">Full test suite - one run</text>
+<text class="t" x="732.5" y="1296.0" text-anchor="middle">regression + coverage</text>
+<text class="t" x="732.5" y="1311.0" text-anchor="middle">+ result files</text>
+<path class="ln" d="M825,1292 L855,1292" marker-end="url(#arr)"/>
+<rect class="nd skill" x="855" y="1264" width="185" height="56" rx="3"/>
+<text class="t skill" x="947.5" y="1288.5" text-anchor="middle">context-updater skill</text>
+<text class="t skill" x="947.5" y="1303.5" text-anchor="middle">capture product knowledge</text>
+<path class="ln" d="M1040,1292 L1070,1292" marker-end="url(#arr)"/>
+<rect class="nd" x="1070" y="1264" width="185" height="56" rx="3"/>
+<text class="t" x="1162.5" y="1296.0" text-anchor="middle">single checkpoint commit</text>
+<path class="ln" d="M1255,1292 L1285,1292" marker-end="url(#arr)"/>
+<rect class="nd art" x="1285" y="1264" width="185" height="56" rx="3"/>
+<text class="t art" x="1377.5" y="1288.5" text-anchor="middle">07-progress.md</text>
+<text class="t art" x="1377.5" y="1303.5" text-anchor="middle">ledger updated per step</text>
+<path class="ln" d="M1377.5,1232 L1377.5,1248 L732.5,1248 L732.5,1264" marker-end="url(#arr)"/>
+<rect class="nd sub" x="240" y="1368" width="190" height="44" rx="3"/>
+<text class="t sub" x="335.0" y="1386.5" text-anchor="middle">test-plan-walker</text>
+<text class="t sub" x="335.0" y="1401.5" text-anchor="middle">clean context</text>
+<rect class="nd skill" x="470" y="1362" width="230" height="56" rx="3"/>
+<text class="t skill" x="585.0" y="1379.0" text-anchor="middle">test-plan-walkthrough skill</text>
+<text class="t skill" x="585.0" y="1394.0" text-anchor="middle">spec-first: write specs,</text>
+<text class="t skill" x="585.0" y="1409.0" text-anchor="middle">run headless</text>
+<path class="ln" d="M430,1390 L470,1390" marker-end="url(#arr)"/>
+<rect class="nd art" x="740" y="1362" width="300" height="56" rx="3"/>
+<text class="t art" x="890.0" y="1379.0" text-anchor="middle">persisted Playwright spec per slice</text>
+<text class="t art" x="890.0" y="1394.0" text-anchor="middle">+ self-captured screenshots</text>
+<text class="t art" x="890.0" y="1409.0" text-anchor="middle">+ 06-walkthrough.md</text>
+<path class="ln" d="M700,1390 L740,1390" marker-end="url(#arr)"/>
+<polygon class="nd" points="1150.0,1360 1220,1390.0 1150.0,1420 1080,1390.0"/>
+<text class="t" x="1150.0" y="1394.0" text-anchor="middle">ALL_GREEN?</text>
+<path class="ln" d="M1040,1390 L1080,1390" marker-end="url(#arr)"/>
+<path class="ln dot" d="M1220,1390 L1485,1390 L1485,906 L480,906 L480,928" marker-end="url(#arr)"/>
+<rect class="lb" x="955.4" y="898" width="89.2" height="16" rx="2"/>
+<text class="lt" x="1000" y="910" text-anchor="middle">FIXES_NEEDED</text>
+<rect class="nd skill" x="240" y="1478" width="160" height="44" rx="3"/>
+<text class="t skill" x="320.0" y="1504.0" text-anchor="middle">raise-pr skill</text>
+<rect class="nd" x="440" y="1478" width="170" height="44" rx="3"/>
+<text class="t" x="525.0" y="1504.0" text-anchor="middle">Run full test suite</text>
+<path class="ln" d="M400,1500 L440,1500" marker-end="url(#arr)"/>
+<polygon class="nd" points="730.0,1468 810,1500.0 730.0,1532 650,1500.0"/>
+<text class="t" x="730.0" y="1496.5" text-anchor="middle">Merge / PR /</text>
+<text class="t" x="730.0" y="1511.5" text-anchor="middle">keep / discard</text>
+<path class="ln" d="M610,1500 L650,1500" marker-end="url(#arr)"/>
+<rect class="nd" x="850" y="1472" width="240" height="56" rx="3"/>
+<text class="t" x="970.0" y="1496.5" text-anchor="middle">Embed walkthrough</text>
+<text class="t" x="970.0" y="1511.5" text-anchor="middle">+ screenshots in PR body</text>
+<path class="ln" d="M810,1500 L850,1500" marker-end="url(#arr)"/>
+<rect class="nd" x="1130" y="1478" width="170" height="44" rx="3"/>
+<text class="t" x="1215.0" y="1504.0" text-anchor="middle">Clean up worktree</text>
+<path class="ln" d="M1090,1500 L1130,1500" marker-end="url(#arr)"/>
+</svg>
+    <figcaption>Phase → components → artifacts for one user story. Blue nodes are subagents dispatched via the task tool, orange nodes are skills invoked in the main session, purple nodes are files written to <code>docs/new-feature/{id}-{summary}/</code>.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Component legend</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Type</th><th>Examples</th><th>Where defined</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="type type-sub"><i></i>Subagent <small>blue</small></span></td>
+          <td><div class="chips"><code class="c c-sub">code-explorer</code> <code class="c c-sub">code-architect</code> <code class="c c-sub">plan-reviewer</code> <code class="c c-sub">impl-backend</code> <code class="c c-sub">impl-frontend</code> <code class="c c-sub">impl-simplify</code> <code class="c c-sub">code-reviewer</code> <code class="c c-sub">security-reviewer</code> <code class="c c-sub">test-plan-walker</code></div></td>
+          <td><code>prd-pr/agents/*.md</code></td>
+        </tr>
+        <tr>
+          <td><span class="type type-skill"><i></i>Skill <small>orange</small></span></td>
+          <td><div class="chips"><code class="c c-skill">orchestrator</code> <code class="c c-skill">codebase-context-builder</code> <code class="c c-skill">vertical-slicing</code> <code class="c c-skill">git-worktrees</code> <code class="c c-skill">raise-pr</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">frontend-styling-standard</code> <code class="c c-skill">context-updater</code> <code class="c c-skill">test-plan-walkthrough</code></div></td>
+          <td><code>*/skills/&lt;name&gt;/SKILL.md</code><span class="sub"><code>simplify</code> is Claude Code's built-in skill</span></td>
+        </tr>
+        <tr>
+          <td><span class="type type-art"><i></i>Artifact <small>purple</small></span></td>
+          <td>The 6 plan files written by <code class="c c-sub">code-architect</code> in Phase 4, plus <code class="c c-art">06-walkthrough.md</code> + <code class="c c-art">screenshots/</code> from Phase 9 and the <code class="c c-art">07-progress.md</code> ledger created at Phase 4 confirmation and driven through Phase 8</td>
+          <td><code>docs/new-feature/{id}-{summary}/</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="section-head">
+    <h2>Phase → component matrix</h2>
+    <p>Which subagents each phase dispatches, which skills it invokes, and what it leaves behind.</p>
+  </div>
+  <div class="table-wrap">
+    <table class="matrix">
+      <thead>
+        <tr><th></th><th>Phase</th><th>Subagents dispatched</th><th>Skills invoked</th><th>Output</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="n">1</td>
+          <td class="phase">Discovery</td>
+          <td class="none">-</td>
+          <td class="none">-</td>
+          <td>Captured ACs, ticket metadata, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase</td>
+        </tr>
+        <tr>
+          <td class="n">2</td>
+          <td class="phase">Codebase Exploration</td>
+          <td>2–3× <code class="c c-sub">code-explorer</code> (parallel); 1 for a one-layer feature; none for the refactor tier, where the orchestrator's own grep census is the exploration</td>
+          <td><code class="c c-skill">codebase-context-builder</code> (if missing)</td>
+          <td>Reference impl, patterns, key files</td>
+        </tr>
+        <tr>
+          <td class="n">3</td>
+          <td class="phase">Clarifying Questions</td>
+          <td class="none">-</td>
+          <td class="none">-</td>
+          <td>Resolved decisions</td>
+        </tr>
+        <tr>
+          <td class="n">4</td>
+          <td class="phase">Architecture Design &amp; Documents</td>
+          <td>1× <code class="c c-sub">code-architect</code> (designs <strong>and writes</strong> the 6 docs directly - no orchestrator transcription, closing the old ~20-min gap)</td>
+          <td><code class="c c-skill">git-worktrees</code> (isolate, <strong>first</strong>), <code class="c c-skill">vertical-slicing</code> (slice shape + frozen per-slice contracts + the machine-readable dependency DAG)</td>
+          <td>6 plan files in <code>docs/new-feature/{id}/</code>; slice list + frozen contracts + a <code>## Dependency graph</code> block in <code class="c c-art">04-task-plan.md</code> (authoritative edge table + waves + critical path)</td>
+        </tr>
+        <tr>
+          <td class="n">5</td>
+          <td class="phase">Finalize Documents</td>
+          <td class="none">-</td>
+          <td class="none">-</td>
+          <td>Verified/consistent docs + README index</td>
+        </tr>
+        <tr>
+          <td class="n">6</td>
+          <td class="phase">Quality Review</td>
+          <td>2× <code class="c c-sub">plan-reviewer</code> (parallel); 1 for a one-layer feature; none for the refactor tier</td>
+          <td class="none">-</td>
+          <td>Review findings, doc fixes</td>
+        </tr>
+        <tr>
+          <td class="n">7</td>
+          <td class="phase">Summary</td>
+          <td class="none">-</td>
+          <td class="none">-</td>
+          <td>Hand-off briefing</td>
+        </tr>
+        <tr>
+          <td class="n">8</td>
+          <td class="phase">Slice-by-slice Impl</td>
+          <td>
+            <p><strong>Step 1</strong> (implement only, <strong>no per-slice integration</strong>): the ready-frontier and critical path are computed from <code class="c c-art">04-task-plan.md</code>'s <code>## Dependency graph</code> block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, <code class="c c-sub">impl-backend</code> and <code class="c c-sub">impl-frontend</code> in parallel against the frozen contract - BE implements <em>and conformance-tests</em> it, FE stays on a mock.</p>
+            <p><strong>Step 2</strong> (once, whole story): one <code class="c c-sub">impl-frontend</code> <strong>whole-story integration</strong> → <code class="c c-sub">impl-simplify</code> (isolated context, wraps the built-in <code>simplify</code> skill; runs first so reviewers read the diff that ships) → <code class="c c-sub">code-reviewer</code> and <code class="c c-sub">security-reviewer</code> in parallel → smoke → regression (one run that is also the coverage gate) → <code class="c c-skill">context-updater</code> (review loops back on <code>FIXES_NEEDED</code>).</p>
+            <p><code>Kind: sweep</code> slices gate on the build only and run concurrently; the refactor tier (set in Phase 1) drops explorers, plan review, the security reviewer and the walker.</p>
+          </td>
+          <td><div class="chips"><code class="c c-skill">vertical-slicing</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">frontend-styling-standard</code> <span class="none">(styling-standard work only)</span> <code class="c c-skill">restful-api-design</code> <code>simplify</code> <span class="none">(built-in, via <code class="c c-sub">impl-simplify</code>)</span> <code class="c c-skill">context-updater</code></div></td>
+          <td>Code + tests + single checkpoint commit + <code class="c c-art">07-progress.md</code> ledger</td>
+        </tr>
+        <tr>
+          <td class="n">9</td>
+          <td class="phase">Test Plan Walkthrough</td>
+          <td>1× <code class="c c-sub">test-plan-walker</code> (clean context, <strong>spec-first</strong>: writes Playwright specs that self-capture screenshots, runs them headless; re-runs are changed-surface only). Refactor tier: no walker - the orchestrator runs the story's own Verification section inline and writes <code class="c c-art">06-walkthrough.md</code> itself</td>
+          <td><code class="c c-skill">test-plan-walkthrough</code></td>
+          <td><strong>persisted Playwright spec per slice</strong> (appended to project e2e suite) + self-captured screenshots + <code class="c c-art">06-walkthrough.md</code>; loops back to Phase 8 on <code>FIXES_NEEDED</code></td>
+        </tr>
+        <tr>
+          <td class="n">10</td>
+          <td class="phase">Branch Completion</td>
+          <td class="none">-</td>
+          <td><code class="c c-skill">raise-pr</code></td>
+          <td>PR (walkthrough + screenshots embedded) or merge + worktree cleanup</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+</body>
+</html>
