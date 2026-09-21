@@ -30,7 +30,7 @@ Read the `Base:` line of `docs/new-feature/{folder}/07-progress.md` (`grep -m1 '
 
 ### Step 3: Execute the recorded exit, or present the options
 
-If `docs/new-feature/{folder}/07-progress.md` has an `Exit:` line (`grep -m1 '^Exit:'`) reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is a two-hour wait, not a decision.
+If `docs/new-feature/{folder}/07-progress.md` has an `Exit:` line (`grep -m1 '^Exit:'`) reading `pr` or `merge`, that decision was taken at plan confirmation (orchestrator Phase 4): announce it in one line and go straight to Step 4 with that option. Present the menu only when the line is absent or reads `ask`. The menu at the end of a long unattended run is idle time measured in hours, not a decision.
 
 ```
 Implementation complete. What would you like to do?
