@@ -86,11 +86,11 @@ You are reviewing the documents in `docs/new-feature/{folder-name}/`.
 
 ## Confidence Scoring
 
-Rate each issue 0–100. **Only report issues with confidence ≥ 75.**
+Report every issue you find, including ones you are unsure about - the orchestrator consolidates both reviews and decides what to fix, so coverage matters more than precision here. Rate each issue 0–100:
 
-- **100** — Definitely a gap/inconsistency that will cause problems
-- **75** — Very likely a real issue worth fixing before implementation starts
-- **50** — Possible issue, may depend on context — do not report
+- **90-100** - Definitely a gap/inconsistency that will cause problems
+- **75-89** - Very likely a real issue worth fixing before implementation starts
+- **below 75** - Possible issue, may depend on context
 
 ## Output Format
 
@@ -103,6 +103,9 @@ Rate each issue 0–100. **Only report issues with confidence ≥ 75.**
 ### Important Issues (confidence 75–89)
 [issue] — [file, section] — [why it matters] — [suggested fix]
 
+### Possible Issues (confidence < 75)
+[issue] - [file, section] - [confidence] - [why it might matter]
+
 ### No Issues Found
 [confirm areas that look complete and consistent]
 
@@ -110,4 +113,4 @@ Rate each issue 0–100. **Only report issues with confidence ≥ 75.**
 [overall assessment: ready to proceed / needs fixes before implementation]
 ```
 
-If no high-confidence issues are found, say so clearly. Do not invent issues to appear thorough.
+If you find no issues, say so clearly. Do not invent issues to appear thorough.

@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 
 You are turning every slice's end-to-end demo into a **persisted Playwright spec that produces its own screenshots**, then running those specs headless. From that you produce **two** outputs: (1) the **persisted Playwright e2e spec per slice**, appended to the project's existing e2e suite so the story's use case becomes a permanent regression test — not a throwaway demo; and (2) a structured report referencing the screenshots the specs captured, which the PR description embeds.
 
-**This skill is spec-first, not browse-first.** You do **not** hand-drive every micro-step of every slice through an LLM-controlled browser — that is what made this phase take ~an hour per pass, one slow model-in-the-loop round-trip per click. Instead you *write the spec* from `05-test-plan.md`'s concrete demo steps, put a `page.screenshot()` at each demoable checkpoint, and let Playwright do the driving headless — fast, deterministic, and re-runnable in seconds. LLM-driven browsing (`agent-browser`) is a **fallback only**, used to recover a locator when a spec fails to find an element — never the primary driver.
+**This skill is spec-first, not browse-first.** You do **not** hand-drive every micro-step of every slice through an LLM-controlled browser - that costs one slow model-in-the-loop round-trip per click. Instead you *write the spec* from `05-test-plan.md`'s concrete demo steps, put a `page.screenshot()` at each demoable checkpoint, and let Playwright do the driving headless - fast, deterministic, and re-runnable in seconds. LLM-driven browsing (`agent-browser`) is a **fallback only**, used to recover a locator when a spec fails to find an element - never the primary driver.
 
 **Announce at start:** "I'm using the test-plan-walkthrough skill spec-first — writing Playwright specs that self-capture screenshots and running them headless."
 
@@ -41,7 +41,7 @@ If any of these are missing, ask the user before proceeding — do not guess.
 1. One **Playwright spec per slice** appended to the project's **existing** e2e suite (whatever directory/naming/config the project already uses — you discover it in Step 0, you do not invent a location or scaffold a framework). These are production test files, committed with the story. Each spec captures its own screenshots via `page.screenshot()` at every demoable checkpoint.
 2. `06-walkthrough.md` and `screenshots/*.png` into the user-story folder. The screenshots are **produced by the specs**, written to `docs/new-feature/{folder}/screenshots/` (point each `page.screenshot({ path })` there). Naming: `slice-{NN}-{step-NN}-{short-kebab-name}.png` — `NN` two-digit, zero-padded. One screenshot per demoable checkpoint (a `→` in the demo line that lands on a visible state), not per trivial keystroke.
 
-If the project has **no** existing Playwright/e2e suite (no config, no runner, no spec directory), you do **not** stand one up. Skip output #2, and record in `06-walkthrough.md`'s "Issues found" section: *"No Playwright e2e suite in this project — persisted specs skipped; recommend adding one."* Output #1 still ships.
+If the project has **no** existing Playwright/e2e suite (no config, no runner, no spec directory), you do **not** stand one up. Skip output #1, and record in `06-walkthrough.md`'s "Issues found" section: *"No Playwright e2e suite in this project - persisted specs skipped; recommend adding one."* Output #2 still ships as far as possible.
 
 ---
 
@@ -62,7 +62,7 @@ Determine, and record for later steps:
 - **The run command** (from `package.json` scripts, e.g. `npm run test:e2e`, or `npx playwright test`).
 - **House style** — open one existing spec and copy its import paths, fixtures/auth helpers (e.g. a `loginAs()` fixture), `baseURL`, and locator conventions (`getByRole` / `getByTestId`). Your new specs must look like they were written by the same hand.
 
-If none of this exists, note it (per **Output**) and skip spec authoring — do not scaffold Playwright, add dependencies, or write a config. Screenshots still proceed.
+If none of this exists, note it (per **Output**) and skip spec authoring - do not scaffold Playwright, add dependencies, or write a config. Output #2 still ships as far as possible.
 
 ### Step 1 — Verify environment is up
 
@@ -117,7 +117,7 @@ Never commit a green checkmark for a spec you did not actually run. Record each 
 
 ### Step 3c — Re-runs after a fix (changed-surface only)
 
-When the orchestrator re-dispatches you after an implementer fix, re-run **only the affected slices' specs** — regenerating only their screenshots and amending only their rows in `06-walkthrough.md`. Do **not** re-author or re-run specs for slices that already passed: re-running a green spec is seconds and unnecessary, re-walking a whole story is the hour-long cost this skill exists to avoid. Independent slices' specs can also run in parallel (`playwright test` shards them) when the suite supports it.
+When the orchestrator re-dispatches you after an implementer fix, re-run **only the affected slices' specs** - regenerating only their screenshots and amending only their rows in `06-walkthrough.md`. Do **not** re-author or re-run specs for slices that already passed - their results and screenshots still stand. Independent slices' specs can also run in parallel (`playwright test` shards them) when the suite supports it.
 
 ### Step 5 — Write `06-walkthrough.md`
 
@@ -129,7 +129,6 @@ Use this template. Keep the body terse — one bullet per step.
 **Date:** {YYYY-MM-DD}
 **Branch:** {feat/usr-NNN-…}
 **Stack:** {commit hash from `git rev-parse --short HEAD`}
-**Browser:** {output of `agent-browser --version`}
 **Driver:** Copilot CLI + `test-plan-walkthrough` skill
 
 > Demo steps mirror `05-test-plan.md` § "End-to-End Test (manual demo per slice)". One screenshot per step lives in `./screenshots/`.
@@ -196,5 +195,3 @@ Single commit per walkthrough run. If a re-run replaces screenshots or specs, am
 - **Claiming a spec is green without running it.** A committed spec must have actually run and passed in Step 3. No exceptions.
 - **Scaffolding a test framework.** If the project has no Playwright/e2e suite, you flag it and skip — you do not add Playwright, a config, dependencies, or a new `e2e/` tree. That's a decision for the team, not the walkthrough.
 - **Parallel/duplicate suites.** Append to the existing suite in its own directory and style. Do not create a second e2e tree under `docs/new-feature/` or anywhere else.
-</content>
-</invoke>

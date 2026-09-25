@@ -62,9 +62,9 @@ You are guiding a developer through a new feature or enhancement. Follow these p
 
 ## Phase 3 — Clarifying Questions
 
-**Goal**: Resolve every ambiguity before designing. **Do not skip.**
+**Goal**: Resolve every material ambiguity before designing. **Do not skip.**
 
-Interview the user relentlessly about every aspect of the plan until you reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+Walk down each branch of the design tree with the user, resolving dependencies between decisions one-by-one, until you reach a shared understanding.
 
 1. Review the codebase findings and the feature request / ticket ACs.
 2. Identify underspecified areas: edge cases, error handling, role/permission boundaries, data model questions, integration points, out-of-scope boundaries.
@@ -106,7 +106,7 @@ Launch **1 `code-architect` subagent** using the task tool with `agent_type: "pr
 - Loaded context files from `docs/project_context/`
 - The folder path — instruct it to write `00-overview.md` … `05-test-plan.md` **directly** into it
 
-The architect designs the blueprint and **writes all six documents itself**. You do **not** transcribe a returned blueprint into files — that hand-copy used to cost ~20 minutes of dead main-agent time between design and review and dropped detail every time it was abbreviated. The architect's final message is a short **manifest**: a one-line summary, the slice list (ID · behaviour · AC · Layers · Contract · Blocked-by · size), the six file paths it wrote, and key risks.
+The architect designs the blueprint and **writes all six documents itself**. You do **not** transcribe a returned blueprint into files - the architect's files are the plan, and a hand copy loses detail. The architect's final message is a short **manifest**: a one-line summary, the slice list (ID · behaviour · AC · Layers · Contract · Blocked-by · size), the six file paths it wrote, and key risks.
 
 ### Step 2 — Review and confirm the slice list
 
@@ -120,7 +120,7 @@ The architect designs the blueprint and **writes all six documents itself**. You
 
 **Goal**: Confirm the six plan files are complete and index them. (The architect already wrote them in Phase 4 — this phase is verification, not authoring.)
 
-1. Verify all six files exist and are non-empty in `docs/new-feature/{id}-{summary}/`. If any is missing or a stub, re-dispatch the architect to complete it — do not fill it in by hand-transcription (that reintroduces the gap this restructure removed).
+1. Verify all six files exist and are non-empty in `docs/new-feature/{id}-{summary}/`. If any is missing or a stub, re-dispatch the architect to complete it - do not fill it in by hand-transcription (a hand-written fill-in loses the architect's design detail).
 2. Sanity-check cross-document consistency: every slice in `04-task-plan.md` has matching test cases in `05-test-plan.md` and change sites in `03-implementation-plan.md`; every `BE + FE` slice's `Contract:` also appears in `02-technical-plan.md`. Also verify the `## Dependency graph` edge table agrees with the cards — each `Blocked by:` matches its row, every blocker is a real slice ID, no cycle. A mismatch is a planning bug: fix the table and re-derive (don't just patch prose). ADO mapping stays manual: each slice = one ADO Task under the parent User Story; each layer-half = one impl-{layer} subagent dispatch.
 3. Update or create `docs/new-feature/README.md` with an index entry for this enhancement.
 
@@ -149,12 +149,7 @@ Present:
 4. Next steps:
    - Review the 6 plan documents
    - Create Azure DevOps tasks from `04-task-plan.md` — one ADO Task per slice under the parent User Story (manual — no automated ADO integration in Copilot)
-   - Start implementation with **SLICE-01** (the walking skeleton)
-
----
-
-> **Note:** Unlike the OpenCode version, there is no `/create-dev-ops-tasks` automation in GitHub Copilot.
-> You must manually create ADO tasks from `04-task-plan.md` (one Task per slice under the parent User Story), or use the OpenCode dev-workflow for that step.
+   - Start implementation (Phase 8) from the ready slices in `04-task-plan.md`'s dependency graph
 
 ---
 
@@ -166,11 +161,11 @@ Present:
 
 Before dispatching any implementation agent, check which model the current session is running on.
 
-If the session model is `claude-opus-4.8` or higher, pause and warn the user:
+If the session model is an Opus- or Fable-tier model, pause and warn the user:
 
-> ⚠️ **Cost notice:** `impl-backend` and `impl-frontend` are configured for `claude-sonnet-4.6`, but your current session model is `claude-opus-4.8`. The global model setting overrides per-agent configuration, so these agents will run on Opus — roughly **5× more expensive** than intended.
+> ⚠️ **Cost notice:** `impl-backend` and `impl-frontend` are configured for `claude-sonnet-4.6`, but your current session model is `{session model}`. The global model setting overrides per-agent configuration, so these agents will run on `{session model}` at a higher per-token price than intended.
 >
-> To use Sonnet for implementation, switch your session model to `claude-sonnet-4.6` now (via the model picker), then confirm. Or type **proceed** to continue on Opus anyway.
+> To use Sonnet for implementation, switch your session model to `claude-sonnet-4.6` now (via the model picker), then confirm. Or type **proceed** to continue on `{session model}` anyway.
 
 Wait for the user to confirm before dispatching implementation agents.
 
@@ -219,13 +214,13 @@ After implementation and the consolidated quality round both complete, present:
 3. The consolidated regression outcome (the browser-level e2e runs in Phase 9)
 4. **Learning points** — patterns observed, conventions reinforced
 5. Any slices skipped or flagged, with reason
-6. Next steps (run full test suite, walk through e2e demos in a real browser, open PR, review commits)
+6. Next: the Phase 9 walkthrough, then Phase 10 (branch completion)
 
 ---
 
 ## Phase 9 — Test Plan Walkthrough
 
-**Goal**: turn `05-test-plan.md`'s end-to-end demos into **persisted Playwright specs per slice** that produce their own screenshots, run headless, and are committed to the project's existing e2e suite — so verification is fast and deterministic and the story's use case becomes a permanent regression test. The walker is **spec-first**: it writes the spec (with `page.screenshot()` at each demoable checkpoint), runs it headless for pass/fail, and only drops to LLM-driven browsing (`agent-browser`) to repair a failing locator. That is what keeps this phase from ballooning — the old approach hand-drove every micro-step through the browser and took ~an hour per pass. Two outputs: (1) `06-walkthrough.md` + spec-produced screenshots for Phase 10's PR body, and (2) the committed specs.
+**Goal**: turn `05-test-plan.md`'s end-to-end demos into **persisted Playwright specs per slice** that produce their own screenshots, run headless, and are committed to the project's existing e2e suite - so verification is fast and deterministic and the story's use case becomes a permanent regression test. The walker is **spec-first**: it writes the spec (with `page.screenshot()` at each demoable checkpoint), runs it headless for pass/fail, and only drops to LLM-driven browsing (`agent-browser`) to repair a failing locator. That is what keeps this phase from ballooning - hand-driving every micro-step through the browser takes about an hour per pass. Two outputs: (1) `06-walkthrough.md` + spec-produced screenshots for Phase 10's PR body, and (2) the committed specs.
 
 **Pre-condition**: the consolidated whole-story integration + refactor + regression round from Phase 8 is green over the whole diff (every FE half is on the real backends, not its mock), and the single consolidated checkpoint commit has landed. If anything is still red, return to Phase 8.
 

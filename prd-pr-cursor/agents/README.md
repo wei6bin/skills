@@ -20,12 +20,14 @@ Plugin `model: sonnet` is **not** applied automatically in Cursor.
 
 | Agent | `model:` | Rationale |
 |-------|----------|-----------|
-| `code-explorer` | `composer-2` | Fast parallel exploration |
-| `code-architect` | `claude-opus-4-7` | Strongest blueprint / slicing |
+| `code-explorer` | `composer-2.5` | Fast parallel exploration |
+| `code-architect` | `claude-opus-4-8` | Strongest blueprint / slicing |
 | `plan-reviewer` | `gpt-5.5` | Independent review pass |
 | `impl-backend`, `impl-frontend` | `composer-2.5` | Implementation (standard tier) |
-| `impl-simplify` | `composer-2.5-fast` | Cheap post-slice cleanup |
-| `test-plan-walker` | `inherit` | Long browser run — matches parent |
+| `impl-simplify` | `composer-2.5-fast` | Cheap whole-story cleanup |
+| `code-reviewer` | `gpt-5.5` | Independent review of the whole-story diff |
+| `security-reviewer` | `claude-opus-4-8` | Adversarial review of the whole-story diff |
+| `test-plan-walker` | `composer-2.5` | Spec-first Playwright run |
 
 Slugs must match **Cursor Settings → Models** on your account. Verify with
 [SMOKE-TEST.md](./SMOKE-TEST.md).
@@ -41,7 +43,7 @@ Upstream playbooks (when refreshing content):
 ~/.cursor/plugins/cache/wei6bin-skills/prd-pr/*/agents/*.md
 ```
 
-After copying body text from upstream, **keep** Cursor frontmatter (`model: inherit` / `composer-2.5-fast`) — do not restore `sonnet` / `opus` / `haiku`.
+After copying body text from upstream, **keep** Cursor frontmatter (picker slugs such as `composer-2.5`) - do not restore `sonnet` / `opus` / `haiku`.
 
 ## Skills (workflows)
 
@@ -56,7 +58,7 @@ Subagents call **skills** from the installed **prd-pr** plugin (not duplicated i
 | Parent runs full workflow | `orchestrator` |
 | `impl-backend` | `backend-implementer`, `restful-api-design` |
 | `test-plan-walker` | `test-plan-walkthrough` |
-| After each slice (parent) | `context-updater` |
+| Once per story, after implementation (parent) | `context-updater` |
 
 Plugin skills use Claude Code `agent_type: "prd-pr:…"` in places — **ignore that** in Cursor;
 follow `.cursor/rules/prd-pr-cursor.mdc` (`Task` + `subagent_type`).

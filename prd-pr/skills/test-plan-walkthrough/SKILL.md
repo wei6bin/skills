@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 
 # Test Plan Walkthrough
 
-Spec-first, not browse-first: write each slice's spec from the concrete demo steps in `05-test-plan.md`, with `page.screenshot()` at every demoable checkpoint, and let Playwright drive headless. Hand-driving each step through an LLM-controlled browser is the slow path this skill replaces; `agent-browser` is only for recovering a locator.
+Spec-first, not browse-first: write each slice's spec from the concrete demo steps in `05-test-plan.md`, with `page.screenshot()` at every demoable checkpoint, and let Playwright drive headless. Hand-driving each step through an LLM-controlled browser costs a model round-trip per click; `agent-browser` is only for recovering a locator.
 
 **Announce at start:** "I'm using the test-plan-walkthrough skill spec-first - writing Playwright specs that self-capture screenshots and running them headless."
 

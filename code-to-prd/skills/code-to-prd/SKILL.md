@@ -10,93 +10,11 @@ metadata:
   version: 2.2.0
 ---
 
-## Name
-
-Code → PRD
-
-## Description
-
-Reverse-engineer any frontend, backend, or fullstack codebase into a complete Product Requirements Document (PRD). Analyzes routes, components, models, APIs, and user interactions to produce business-readable documentation detailed enough for engineers or AI agents to fully reconstruct every page and endpoint.
-
 # Code → PRD: Reverse-Engineer Any Codebase into Product Requirements
-
-## Features
-
-- **3-phase workflow**: global scan → page-by-page analysis → structured document generation
-- **Frontend support**: React, Vue, Angular, Svelte, Next.js (App + Pages Router), Nuxt, SvelteKit, Remix
-- **Backend support**: NestJS, Express, Django, Django REST Framework, FastAPI, Flask
-- **.NET / ASP.NET support**: Web API/MVC controllers, WCF services, ASP.NET Web Forms (`.aspx`)
-- **Native mobile support**: Android (Java/Kotlin — activities, fragments, Retrofit), iOS (Swift/Objective-C — view controllers, storyboards, URLSession/AFNetworking)
-- **Fullstack support**: Combined frontend + backend analysis with unified PRD output
-- **Mock detection**: Automatically distinguishes real API integrations from mock/fixture data
-- **Enum extraction**: Exhaustively lists all status codes, type mappings, and constants — including C# `[EnumMember]`, Java/Kotlin enums, Swift `enum`/Objective-C `NS_ENUM`
-- **Model extraction**: Parses Django models, NestJS entities, Pydantic schemas, .NET POCOs/EF entities, Android POJOs/Room entities, iOS Codable structs/NSObject models
-- **Automation scripts**: `codebase_analyzer.py` for scanning, `prd_scaffolder.py` for directory generation
-- **Quality checklist**: Validation checklist for completeness, accuracy, readability
-
-## Usage
-
-```bash
-# Analyze a project and generate PRD skeleton
-python3 scripts/codebase_analyzer.py /path/to/project -o analysis.json
-python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
-
-# Or use the slash command
-/code-to-prd /path/to/project
-```
-
-## Examples
-
-### Frontend (React)
-```bash
-/code-to-prd ./src
-# → Scans components, routes, API calls, state management
-# → Generates prd/ with per-page docs, enum dictionary, API inventory
-```
-
-### Backend (Django)
-```bash
-/code-to-prd ./myproject
-# → Detects Django via manage.py, scans urls.py, views.py, models.py
-# → Documents endpoints, model schemas, admin config, permissions
-```
-
-### Fullstack (Next.js)
-```bash
-/code-to-prd .
-# → Analyzes both app/ pages and api/ routes
-# → Generates unified PRD covering UI pages and API endpoints
-```
-
-### .NET / ASP.NET (Web API, WCF, Web Forms)
-```bash
-/code-to-prd ./MyService
-# → Detects via .sln/.csproj; scans [ApiController]/[Route]/[Http*] and
-#   WCF [ServiceContract]/[OperationContract]/[WebInvoke] operations
-# → Documents controllers/services, EF entities, and enums
-```
-
-### Native Android (Java/Kotlin)
-```bash
-/code-to-prd ./app
-# → Detects via build.gradle + AndroidManifest.xml
-# → Documents activities/fragments as screens, Retrofit/OkHttp API calls,
-#   POJO/Room models and enums
-```
-
-### Native iOS (Swift/Objective-C)
-```bash
-/code-to-prd ./MyApp
-# → Detects via .xcodeproj/Podfile or .swift/.m source
-# → Documents view controllers and storyboard scenes as screens,
-#   URLSession/AFNetworking calls, Codable/NSObject models and enums
-```
-
----
 
 ## Role
 
-You are a senior product analyst and technical architect. Your job is to read a frontend codebase, understand every page's business purpose, and produce a complete PRD in **product-manager-friendly language**.
+You are a senior product analyst and technical architect. Your job is to read a codebase, understand every page's business purpose, and produce a complete PRD in **product-manager-friendly language**.
 
 ### Dual Audience
 
@@ -492,9 +410,7 @@ Each page's Markdown should be **standalone** — reading just that file gives c
 
 ## Execution Pacing
 
-**Large projects (>15 pages):** Work in batches of 3-5 pages per module. Complete system overview + page inventory first. Output each batch for user review before proceeding.
-
-**Small projects (≤15 pages):** Complete all analysis in one pass.
+Complete the system overview and page inventory first, then work module by module until every page in the inventory has its file. On a large project, check in with the user once after the inventory if its scope or module grouping is ambiguous - not after every batch of pages.
 
 ---
 

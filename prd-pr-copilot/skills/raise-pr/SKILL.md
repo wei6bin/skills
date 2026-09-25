@@ -74,14 +74,14 @@ Which option?
 #### Option 1: Merge Locally
 
 ```bash
+cd "$(git worktree list --porcelain | awk '/^worktree /{print substr($0,10); exit}')"   # main worktree: <base-branch> is checked out there, so it cannot be checked out in the feature worktree
 git checkout <base-branch>
 git pull
 git merge <feature-branch>
 <test command>          # Verify on merged result
-git branch -d <feature-branch>
 ```
 
-Then: Cleanup worktree (Step 5)
+Then: Cleanup worktree and branch (Step 5)
 
 #### Option 2: Push and Create PR
 
@@ -186,18 +186,20 @@ Report: "Keeping branch <name>. Worktree preserved at <path>."
 Confirm first — require the user to type `discard` before proceeding:
 
 ```bash
-git checkout <base-branch>
-git branch -D <feature-branch>
-git worktree remove <worktree-path>
+cd "$(git worktree list --porcelain | awk '/^worktree /{print substr($0,10); exit}')"
+git worktree remove --force <worktree-path>   # the user typed discard; uncommitted files go too
+git branch -D <feature-branch>                # only after the worktree is gone: git refuses to delete a checked-out branch
 ```
 
 ### Step 5: Cleanup Worktree
 
-For Options 1, 2, 4:
+For Options 1 and 2 (Option 4 already did this):
 
 ```bash
-git worktree list | grep $(git branch --show-current)
+cd "$(git worktree list --porcelain | awk '/^worktree /{print substr($0,10); exit}')"   # removing the worktree you are standing in strands the shell
+git worktree list                     # find <worktree-path> for <feature-branch>
 git worktree remove <worktree-path>
+git branch -d <feature-branch>        # Option 1 only, after the removal; Option 2 keeps the branch for the PR
 ```
 
 For Option 3: keep worktree.
@@ -207,15 +209,9 @@ For Option 3: keep worktree.
 | Option | Merge | Push | Keep Worktree | Cleanup Branch |
 |--------|-------|------|---------------|----------------|
 | 1. Merge locally | ✓ | — | — | ✓ |
-| 2. Create PR | — | ✓ | ✓ | — |
+| 2. Create PR | — | ✓ | — | — |
 | 3. Keep as-is | — | — | ✓ | — |
 | 4. Discard | — | — | — | ✓ (force) |
-
-## Red Flags
-
-**Never:** proceed with failing tests, open a PR when `06-walkthrough.md` is missing or has unresolved ❌ rows, merge without re-running tests on result, paste raw `06-walkthrough.md` (megabytes) into the PR body, delete work without typed confirmation.
-
-**Always:** verify tests before options, verify walkthrough artifacts exist (run the skill if not), summarise the walkthrough in the PR body (link to the full file), present exactly 4 options, clean up worktree for Options 1 & 4 only, use absolute branch-pinned URLs for PR-body images and walkthrough links on **both** GitHub and Azure DevOps (PR descriptions never render against the head branch — relative paths 404).
 
 ## Integration
 

@@ -7,7 +7,7 @@ model: sonnet
 
 # Impl Frontend
 
-You implement the **frontend half of one vertical slice** by TDD, one user-visible AC behaviour at a time. Two scopes:
+You implement the **frontend half of one vertical slice** by TDD, one user-visible AC behaviour at a time. Three scopes:
 
 - `"SLICE-NN frontend half"` - build against a **typed mock** of the card's frozen `Contract:`, concurrently with the backend half. Do not read or wait for the backend and do not integrate; leave the mock in place when you report.
 - `"SLICE-NN frontend half - kind: sweep"` - a mechanical rewrite with no new behaviour: no mock, no contract; the card's `Files:` set and inline verification are the spec (the `frontend-implementer` skill's sweep mode).

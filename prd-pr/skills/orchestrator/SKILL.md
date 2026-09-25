@@ -70,7 +70,7 @@ Per the tier, dispatch **`plan-reviewer` subagents in parallel** (`agent_type: "
 
 ## Phase 7 - Summary
 
-Present the folder path, key decisions and assumptions, reviewer-flagged risks, and next steps (review the docs; create one ADO Task per slice under the parent story, manually; start with SLICE-01).
+Present the folder path, key decisions and assumptions, reviewer-flagged risks, and next steps (review the docs; create one ADO Task per slice under the parent story, manually; start Phase 8 from the ready slices in the dependency graph).
 
 ## Phase 8 - Slice-by-Slice Implementation
 
@@ -149,7 +149,7 @@ Precondition: every BE/FE cell is ✅ (or `-`). If sweeps wrote `08-findings-SLI
 
 3. **Review code and security in parallel.** In one batch, dispatch `agent_type: "prd-pr:code-reviewer"` and `agent_type: "prd-pr:security-reviewer"` over the full diff, each with the folder path, `04-task-plan.md` and the `Tier:` line (a refactor-tier folder has no `02-technical-plan.md`; say so, so the reviewer does not go looking for it). The round passes only when **both** return `APPROVED`. On `FIXES_NEEDED` from either: re-dispatch the owning implementer(s) with the Blocker rows quoted verbatim, then re-dispatch only the reviewer(s) that flagged, scoped to the amended diff; loop until both approve. Non-blockers become PR follow-ups. Mark both rows ✅.
 
-   **Refactor tier** (`Tier: refactor` in `07-progress.md`): dispatch **one** reviewer, `code-reviewer`, with the security reviewer's test-specific brief folded into its prompt - "every denial, scoping and visibility test still proves what its name says after the rewrite". The check is worth keeping; two agents reading the same 76-file diff for it is not. Mark the security row `-`.
+   **Refactor tier** (`Tier: refactor` in `07-progress.md`): dispatch **one** reviewer, `code-reviewer`, with the security reviewer's test-specific brief folded into its prompt - "every denial, scoping and visibility test still proves what its name says after the rewrite". The check is worth keeping; two agents reading the same diff for it is not. Mark the security row `-`.
 
 4. **Smoke.** Run every `Kind: feature` slice's `Smoke:` sequence from `04-task-plan.md` in slice order against the running stack; sweeps have none, and a story made only of sweeps marks the row `-`. After a fix, re-run only the failed sequences. Mark ✅.
 
@@ -201,4 +201,4 @@ Non-blocker findings go into the PR body as follow-ups.
 
 ## Phase 10 - Branch Completion
 
-Invoke `raise-pr`. It verifies the CI gate, checks the walkthrough artifacts (re-dispatching the walker if missing), executes the `Exit:` action recorded in `07-progress.md` (offering merge / PR / keep / discard only when it reads `ask`), embeds the walkthrough summary and screenshots in the PR body, cleans up the worktree, and in its Step 6 closes out the project's **backlog tracker** with the merge commit or PR number. That last step is the one the workflow used to drop: everything before it writes only inside `docs/new-feature/`, and a shipped story still reading `Ready` in the tracker gets rebuilt. If `raise-pr` finds status in more than one file, surface that to the user rather than updating them all.
+Invoke `raise-pr`. It verifies the CI gate, checks the walkthrough artifacts (re-dispatching the walker if missing), executes the `Exit:` action recorded in `07-progress.md` (offering merge / PR / keep / discard only when it reads `ask`), embeds the walkthrough summary and screenshots in the PR body, cleans up the worktree, and in its Step 6 closes out the project's **backlog tracker** with the merge commit or PR number. Do not treat that last step as optional: everything before it writes only inside `docs/new-feature/`, and a shipped story still reading `Ready` in the tracker gets rebuilt. If `raise-pr` finds status in more than one file, surface that to the user rather than updating them all.

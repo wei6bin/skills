@@ -64,7 +64,7 @@ colour, shadow, type).
 ## 7. Tailwind adoption
 
 Config, how it consumes `--x-*`, preflight-off, the spacing-scale decision, and
-the layering rule (§7.2a): Tailwind can only *add* to `.x-*`, never *override* —
+the layering rule: Tailwind can only *add* to `.x-*`, never *override* -
 use a modifier class for overrides.
 
 ## 8. Enforcement
@@ -72,7 +72,7 @@ use a modifier class for overrides.
 What runs in CI, the `warn`→`error` ratchet, and what's exempted (test-file
 assertions, the one designated `!important` override file) and why.
 
-### 7.3 / 8.x Phased rollout table
+### Phased rollout table
 
 Track the phases so anyone can see status:
 
