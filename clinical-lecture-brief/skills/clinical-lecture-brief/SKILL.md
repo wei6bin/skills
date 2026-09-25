@@ -21,10 +21,12 @@ The output is a published HTML Artifact. A Word `.docx` is available as a follow
 ## Step 1 - Fetch the transcript
 
 ```bash
-~/.claude/skills/clinical-lecture-brief/scripts/fetch-transcript.sh '<url>' --chapters
+scripts/fetch-transcript.sh '<url>' --chapters
 ```
 
-Quote the URL. The script prints the transcript path as its last stdout line.
+The path is relative to this skill's base directory, which is given to you when the skill
+is invoked - `cd` there first or prefix it. Quote the URL. The script prints the
+transcript path as its last stdout line.
 
 It handles this machine's TLS-inspection problem, which otherwise breaks the `yt-dlp`
 fallback that YouTube forces you onto. Do not try to fix SSL failures by disabling
@@ -77,15 +79,15 @@ Concretely:
 Then read `references/page-design.md` for the structure, the palette, and the components
 this kind of reference needs.
 
-Two non-negotiables from the user's global CLAUDE.md:
+Two requirements for every page:
 
 - Use the **full viewport width**, never a narrow centred column.
 - **No em dashes.** Use a plain `-`.
 
 ## Step 7 - Publish
 
-Publish with the `Artifact` tool. Give it a real name (a short noun phrase naming the
-subject, not "Study Notes"), a one-sentence `description`, and a stable `favicon`.
+Publish with the `Artifact` tool. Give the page a real `<title>` (a short noun phrase
+naming the subject, not "Study Notes"), a one-sentence `description`, and an `icon`.
 
 Then tell the user, briefly:
 

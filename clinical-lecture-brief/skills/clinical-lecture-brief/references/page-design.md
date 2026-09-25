@@ -15,7 +15,8 @@ trace for cardiology. Ground the palette in something real about the material.
 
 Avoid the current AI-generated defaults called out in `artifact-design`: warm cream with
 a serif and terracotta accent, near-black with one acid pop, Inter or Space Grotesk,
-emoji section markers, everything centred.
+emoji section markers, everything centred. Also avoid italic accent words in headlines,
+pill-shaped buttons, and monospace used for labels rather than for values.
 
 ## Layout
 
