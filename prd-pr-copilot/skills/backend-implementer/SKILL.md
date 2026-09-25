@@ -46,14 +46,7 @@ Report back when the slice's backend half is complete. Include: which ACs are no
 
 ## Stack Conventions
 
-<!-- Fill in for your project before using this skill -->
-- **Framework**: [e.g. ASP.NET Core 8, Express, FastAPI, Spring Boot]
-- **Architecture pattern**: [e.g. FHIR Engine handlers, Clean Architecture, MVC controllers]
-- **Data access**: [e.g. Entity Framework Core, Dapper, SQLAlchemy]
-- **API style**: [e.g. RESTful JSON, FHIR R4 resources, GraphQL]
-- **Testing**: [e.g. xUnit + Moq, pytest + httpx, Jest + supertest]
-- **Auth**: [e.g. JWT bearer tokens, SMART on FHIR scopes, API keys]
-- **Key project_context files**: [e.g. docs/project_context/02_backend_patterns.md]
+The project's stack, patterns and test tooling come from the `docs/project_context/` files the calling agent loaded; they override the REST conventions where they conflict.
 
 ## Rules
 

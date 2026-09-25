@@ -60,14 +60,7 @@ This pass is deliberately mechanical — wiring plus a test run across the story
 
 ## Stack Conventions
 
-<!-- Fill in for your project before using this skill -->
-- **Framework**: [e.g. React 18, Next.js 14, Vue 3]
-- **Component structure**: [e.g. feature-folder with index.tsx + styles.module.css]
-- **State management**: [e.g. Zustand for global state, React Query for server state]
-- **Data fetching**: [e.g. React Query hooks in hooks/ folder, axios client in lib/api.ts]
-- **Styling**: [e.g. Tailwind CSS, CSS Modules]
-- **Testing**: [e.g. Vitest + React Testing Library, test files co-located as *.test.tsx]
-- **Key project_context files**: [e.g. docs/project_context/03_frontend_patterns.md]
+The project's framework, structure, styling and test tooling come from the `docs/project_context/` files the calling agent loaded; they override the React conventions where they conflict.
 
 ## Rules
 

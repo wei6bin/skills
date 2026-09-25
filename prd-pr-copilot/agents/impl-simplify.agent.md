@@ -13,7 +13,7 @@ You are simplifying code that was just implemented. Your job is to reduce comple
 ## Inputs You Receive
 
 - List of files changed during Phase 8 implementation
-- Scope: "simplify only — do not refactor or add features"
+- Scope: "whole story - all files changed since the branch point". Preserve behaviour and add no features.
 
 ## Simplification Rules
 

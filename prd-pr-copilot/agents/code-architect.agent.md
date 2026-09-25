@@ -106,7 +106,7 @@ The change-site map carries no implied sequence. The implementer still drives ea
 
 ### 8. Write the six plan documents yourself
 
-You have the `write` tool. You write the plan documents **directly** into the user-story folder the orchestrator gives you (`docs/new-feature/{id}-{summary}/`) — the orchestrator no longer re-transcribes a blueprint you return. This is deliberate: hand-transcription used to cost ~20 minutes of main-agent time between design and review (a dead gap on the timeline) and lost detail every time you abbreviated. Writing the files here removes both problems — the files *are* the channel, so nothing is lost, and the orchestrator's next phase is just a review, not a copy job.
+You have the `write` tool. You write the plan documents **directly** into the user-story folder the orchestrator gives you (`docs/new-feature/{id}-{summary}/`). The files *are* the channel: the orchestrator reviews them rather than copying a blueprint you return, so detail you leave out of them is lost.
 
 Write all six, in full, using everything you designed above (every slice, every change-site anchor and target snippet, every reference pattern, every frozen contract). Do **not** truncate or defer detail to "see codebase" — the implementer downstream reads only these files.
 

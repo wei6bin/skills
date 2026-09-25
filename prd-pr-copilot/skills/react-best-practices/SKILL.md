@@ -16,24 +16,19 @@ You are an expert React frontend engineer. Apply these patterns consistently.
 
 - Use **TypeScript strictly** (`strict: true`). Infer types where obvious; annotate props, events, and hooks explicitly.
 - Prefer **functional components with hooks** — never class components.
-- Use `React.FC` sparingly; prefer explicit return types: `function Comp(): JSX.Element`.
+- Use `React.FC` sparingly; prefer explicit return types: `function Comp(): React.JSX.Element`.
 - Target **React 19** features when available: `use()` hook, `useFormStatus`, `useOptimistic`, `useActionState`, `<Activity>`.
 
 ## Component Design
 
-- **Single Responsibility**: each component does one thing well.
-- **Composition over inheritance**: build complex UIs by composing small, focused components.
 - **Co-locate** related files: `Button/Button.tsx`, `Button/Button.test.tsx`, `Button/index.ts`.
 - Use **named exports** for components; barrel `index.ts` for public surface.
 - Extract reusable logic into **custom hooks** (`useXxx`) that return stable references.
 
 ## Hooks Rules
 
-- Never call hooks conditionally or inside loops.
-- `useEffect` — declare all dependencies; clean up subscriptions and timers.
 - Prefer `useMemo` / `useCallback` only when profiling confirms a perf win; avoid premature memoization.
-- React Compiler (React 19) handles most memoization automatically — trust it.
-- `useRef` for mutable values that don't trigger re-renders (DOM refs, timers, previous values).
+- If the project enables React Compiler, it memoizes automatically - do not add manual `useMemo` / `useCallback`.
 
 ## State Management
 
@@ -70,9 +65,8 @@ const useStore = create<State>()((set) => ({
 
 - Use `React.lazy` + `Suspense` for route-level code splitting.
 - Virtualize long lists with **TanStack Virtual** or `react-window`.
-- Avoid inline object/function creation in JSX that breaks referential equality.
 - Measure first with React DevTools Profiler before optimizing.
-- Target Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1.
+- Target Core Web Vitals: LCP < 2.5s, INP < 200ms, CLS < 0.1.
 
 ## Styling
 
@@ -86,11 +80,13 @@ const useStore = create<State>()((set) => ({
 Use **Vitest** + **React Testing Library** (RTL):
 
 ```ts
-import { render, screen, userEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 test('increments counter on click', async () => {
+  const user = userEvent.setup();
   render(<Counter />);
-  await userEvent.click(screen.getByRole('button', { name: /increment/i }));
+  await user.click(screen.getByRole('button', { name: /increment/i }));
   expect(screen.getByText('1')).toBeInTheDocument();
 });
 ```
@@ -102,9 +98,7 @@ test('increments counter on click', async () => {
 
 ## Accessibility (a11y)
 
-- Use semantic HTML: `<button>`, `<nav>`, `<main>`, `<section>` correctly.
 - All interactive elements must be keyboard-navigable and have accessible names.
-- Use `aria-*` attributes only when semantic HTML is insufficient.
 - Test with axe-core (`@axe-core/react`) and keyboard navigation.
 - WCAG 2.1 AA minimum compliance.
 

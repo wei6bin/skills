@@ -88,8 +88,8 @@ case $LOCATION in
   .worktrees|worktrees)
     path="$LOCATION/$BRANCH_NAME"
     ;;
-  ~/.config/prd-pr/worktrees/*)
-    path="~/.config/prd-pr/worktrees/$project/$BRANCH_NAME"
+  "$HOME"/.config/prd-pr/worktrees*|"~"/.config/prd-pr/worktrees*)
+    path="$HOME/.config/prd-pr/worktrees/$project/$BRANCH_NAME"   # "~" does not expand inside quotes
     ;;
 esac
 
@@ -100,25 +100,7 @@ cd "$path"
 
 ### 3. Run Project Setup
 
-Auto-detect and run appropriate setup:
-
-```bash
-# Node.js
-if [ -f package.json ]; then npm install; fi
-
-# Rust
-if [ -f Cargo.toml ]; then cargo build; fi
-
-# Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
-
-# Go
-if [ -f go.mod ]; then go mod download; fi
-
-# .NET
-if ls *.sln *.csproj 2>/dev/null | head -1 | grep -q .; then dotnet restore; fi
-```
+Install dependencies with the project's own package manager, detected from its manifest and lockfile (`package.json` with `pnpm-lock.yaml` / `yarn.lock` / `package-lock.json`, `Cargo.toml`, `pyproject.toml` / `requirements.txt`, `go.mod`, `*.sln` / `*.csproj`). Skip this step if there is no manifest.
 
 ### 4. Verify Clean Baseline
 
@@ -129,7 +111,7 @@ Run tests to ensure worktree starts clean:
 npm test / cargo test / pytest / go test ./... / dotnet test
 ```
 
-**If tests fail:** Report failures, ask whether to proceed or investigate.
+**If tests fail:** Report failures, ask whether to proceed or investigate - a dirty baseline makes new bugs indistinguishable from pre-existing ones.
 
 **If tests pass:** Report ready.
 
@@ -152,24 +134,3 @@ Ready to implement <feature-name>
 | Directory not ignored | Add to .gitignore + commit |
 | Tests fail during baseline | Report failures + ask |
 | No package.json/Cargo.toml | Skip dependency install |
-
-## Common Mistakes
-
-- **Skipping ignore verification** — worktree contents get tracked, pollute git status
-- **Assuming directory location** — follow priority: existing > CLAUDE.md > ask
-- **Proceeding with failing tests** — can't distinguish new bugs from pre-existing issues
-- **Hardcoding setup commands** — auto-detect from project files instead
-
-## Red Flags
-
-**Never:**
-- Create worktree without verifying it's ignored (project-local)
-- Skip baseline test verification
-- Proceed with failing tests without asking
-- Assume directory location when ambiguous
-
-**Always:**
-- Follow directory priority: existing > CLAUDE.md > ask
-- Verify directory is ignored for project-local
-- Auto-detect and run project setup
-- Verify clean test baseline

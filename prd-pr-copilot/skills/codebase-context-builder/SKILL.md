@@ -1,20 +1,20 @@
 ---
 name: codebase-context-builder
-description: Generates docs/project_context/ files by analysing a codebase from scratch. Use this only for context GENERATION — it does NOT handle user stories or task breakdown. Called by user-story-workflow when project context is missing. Can also be invoked directly to bootstrap a new repo.
+description: Generates docs/project_context/ files by analysing a codebase from scratch. Use this only for context GENERATION - it does NOT handle user stories or task breakdown. Called by the orchestrator when project context is missing. Can also be invoked directly to bootstrap a new repo.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Codebase Context Builder
 
 **Scope**: Context file generation only — no user story analysis, no task breakdown.
-Called automatically by `user-story-workflow` when `docs/project_context/` is absent or empty.
+Called automatically by the `orchestrator` skill when `docs/project_context/` is absent or empty.
 Can be invoked directly to onboard a new repo.
 
 ---
 
 ## When to Invoke
 
-- `user-story-workflow` determines context is missing → chains here
+- The `orchestrator` skill finds context missing → chains here
 - User says: "build project context", "analyse this codebase", "set up project context"
 - Fresh repo with no `CLAUDE.md` or empty one from `/init`
 
@@ -63,24 +63,7 @@ Identify:
 
 ## Phase 3 — Pattern Sampling
 
-Sample 2–3 files per layer to extract conventions. Use Glob then Read:
-
-```
-# UI/Component layer
-src/**/components/*.tsx  OR  src/**/*Controller.cs  OR  app/**/views/*.py
-
-# API endpoint / handler
-grep -rl "endpoint\|controller\|router\|Endpoint\|Controller" src/ --include="*.ts" --include="*.cs" --include="*.py" | head -3
-
-# Service / business logic  
-grep -rl "Service\|Handler\|UseCase" src/ --include="*.cs" --include="*.py" --include="*.ts" | head -3
-
-# Repository / data access
-grep -rl "Repository\|DbContext\|session\|Session" src/ --include="*.cs" --include="*.py" | head -3
-
-# Domain models / DTOs
-grep -rl "interface\|type.*=\|public class\|public record\|dataclass\|BaseModel" src/ --include="*.ts" --include="*.cs" --include="*.py" | grep -i "model\|entity\|dto\|types" | head -5
-```
+Sample 2–3 representative files per layer found in Phase 2 (UI components, API endpoints/handlers, services, data access, domain models/DTOs) - files typical of the codebase, not just the first search hit.
 
 Extract from samples:
 - Naming conventions
@@ -93,18 +76,7 @@ Extract from samples:
 
 ## Phase 4 — Domain Entity Detection
 
-Find and read 3–5 core model files:
-
-```bash
-# TypeScript
-grep -rl "export type\|export interface" src/ --include="*.ts" | grep -i "types\|models\|entities" | head -5
-
-# C#
-grep -rl "public class\|public record" src/ --include="*.cs" | grep -iv "test\|spec\|migration" | head -5
-
-# Python
-grep -rl "class.*BaseModel\|@dataclass" src/ --include="*.py" | grep -iv "test" | head -5
-```
+Find and read the 3–5 core domain model files - the entities the rest of the code most often references.
 
 Extract: entity names, key fields, relationships, lifecycle states.
 
@@ -131,7 +103,7 @@ Create `docs/project_context/` if it doesn't exist.
 | REST endpoints found | `05_api_contracts.md` |
 | CI/CD pipeline file found | `20_deployment_pipeline.md` |
 
-Use the template files already in `docs/project_context/` as the base structure.
+If `docs/project_context/` already holds template files, use them as the base structure; otherwise create the files in the table above.
 Fill in discovered values; leave template placeholders where information is not discoverable from code.
 
 **Always create `docs/project_context/prod_spec/`** — seed it with empty-but-structured files so the `context-updater` skill has a place to write product knowledge post-implementation:
@@ -168,7 +140,7 @@ Sections requiring manual input:
   ⚠️  10_integration_points.md — external system credentials/URLs
   [list gaps]
 
-Ready for user-story-workflow.
+Ready for the orchestrator.
 ```
 
 Then **return control** — do not proceed to story analysis or task breakdown.

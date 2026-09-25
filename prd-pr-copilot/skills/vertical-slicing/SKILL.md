@@ -8,9 +8,9 @@ allowed-tools: Read, Write
 
 ## Why
 
-Horizontal sequencing — *all schema, then all services, then all APIs, then all UI* — leaves the agent blind until final integration and serialises everything. So does the old "every slice must be demoable on its own": that gate invents demo-driven dependencies and forces a per-slice integration pass.
+Horizontal sequencing - *all schema, then all services, then all APIs, then all UI* - leaves the agent blind until final integration and serialises everything. So does requiring every slice to be demoable on its own: that gate invents demo-driven dependencies and forces a per-slice integration pass.
 
-A **slice** (still `SLICE-NN`) is a thin, vertical **work-unit** bounded by a **frozen API contract** wherever it crosses BE↔FE. The contract — not a per-slice demo — is the feedback loop: BE implements it, FE mocks it, both check against it. Slices with no *real* dependency run concurrently; the whole story is integrated and demoed **once, at the end** (Phase 9).
+A **slice** (`SLICE-NN`) is a thin, vertical **work-unit** bounded by a **frozen API contract** wherever it crosses BE↔FE. The contract - not a per-slice demo - is the feedback loop: BE implements it, FE mocks it, both check against it. Slices with no *real* dependency run concurrently; the whole story is integrated and demoed **once, at the end** (Phase 9).
 
 ## What counts as a slice
 
@@ -46,7 +46,7 @@ Within a `BE + FE` slice the two halves do **not** run one-after-the-other. They
 
 Fall back to serial BE→FE only when the contract genuinely can't be frozen up front (response shape unknown until the backend exists — rare for CRUD); say why in the card.
 
-Two latency wins: within a slice, a 27-min BE + 22-min FE collapse from ~49 min serial to ~27 min; across the story, N per-slice integrations collapse to one. The price is contract discipline — an honest frozen contract, a conformance test, and one integration pass.
+Two latency wins: within a slice, the BE and FE halves take as long as the slower one instead of the sum of both; across the story, N per-slice integrations collapse to one. The price is contract discipline - an honest frozen contract, a conformance test, and one integration pass.
 
 ## Sizing
 
