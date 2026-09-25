@@ -14,10 +14,12 @@ parent chat model and not the plugin’s Claude Code `sonnet`/`opus`/`haiku` sho
 | `impl-backend`     | `composer-2.5`       | Composer 2.5                   |
 | `impl-frontend`    | `composer-2.5`       | Composer 2.5                   |
 | `impl-simplify`    | `composer-2.5-fast`  | Composer 2.5 Fast (cheap pass) |
-| `test-plan-walker` | `inherit`            | Same as parent                 |
+| `code-reviewer`    | `gpt-5.5`            | GPT-5.5                        |
+| `security-reviewer`| `claude-opus-4-8`    | Claude 4.8 Opus                |
+| `test-plan-walker` | `composer-2.5`       | Composer 2.5                   |
 
 
-**Prerequisite:** In **Cursor Settings → Models**, enable every model above. Opus 4.7 and
+**Prerequisite:** In **Cursor Settings → Models**, enable every model above. Opus 4.8 and
 GPT-5.5 may require **Max Mode** on your plan. If a model is blocked, Cursor substitutes
 another model silently — the smoke test will look “green” but wrong.
 
@@ -47,7 +49,7 @@ ls .cursor/agents/code-explorer.md
 1. Open **n-lite** in Cursor.
 2. Start a **new** Agent chat.
 3. Pick a **parent** model that is **different** from subagents (e.g. **Composer 2.5 Fast**
-  or anything except Opus-only), so `inherit` on `test-plan-walker` is distinguishable.
+  or anything except Opus-only), so a subagent that silently falls back to the parent model is distinguishable.
 4. Ensure **prd-pr** plugin is enabled; do **not** use `agent_type: "prd-pr:…"` in prompts.
 
 ---
@@ -85,7 +87,7 @@ For **each** subagent run in the Cursor UI (subagent panel / trace):
 | Check                              | Pass                                                                       |
 | ---------------------------------- | -------------------------------------------------------------------------- |
 | Agent name matches `subagent_type` | e.g. `code-explorer`, not `explore`                                        |
-| Model badge / label                | Matches **Expected mapping** (Composer 2, Opus 4.7, GPT-5.5, Composer 2.5) |
+| Model badge / label                | Matches **Expected mapping** (Composer 2.5, Opus 4.8, GPT-5.5) |
 | Output contains `SMOKE … ok`       | Subagent actually ran                                                      |
 | Parent did not implement inline    | Parent only dispatched Task                                                |
 
