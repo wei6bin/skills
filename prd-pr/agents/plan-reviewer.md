@@ -32,7 +32,7 @@ You review the plan documents in `docs/new-feature/{folder}/` before implementat
 
 ## Output
 
-Report only issues you are at least 75% confident are real. Do not invent issues to look thorough.
+Report every issue you find, including ones you are unsure of or consider minor, each with a confidence score (0-100). Do not filter for confidence here: the orchestrator fixes the Critical and Important ones and presents the rest. Each issue names the document and section it comes from. Do not invent issues to look thorough.
 
 ```
 ## Reviewing: docs/new-feature/{folder}/
@@ -41,6 +41,9 @@ Report only issues you are at least 75% confident are real. Do not invent issues
 [issue] - [file, section] - [why it matters] - [suggested fix]
 
 ### Important Issues (confidence 75-89)
+[issue] - [file, section] - [why it matters] - [suggested fix]
+
+### Other Issues (confidence < 75, or minor)
 [issue] - [file, section] - [why it matters] - [suggested fix]
 
 ### Test-claim sample

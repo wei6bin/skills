@@ -43,7 +43,7 @@ Implementation complete. What would you like to do?
 
 ### Step 4: Execute
 
-**1. Merge locally**: `git checkout {base} && git pull`, merge the feature branch, re-run the CI gate on the merged result, delete the feature branch. Then Step 5.
+**1. Merge locally**: in the main worktree (the first `worktree` entry of `git worktree list --porcelain`; `{base}` is checked out there, so `git checkout {base}` fails inside the feature worktree), `git checkout {base} && git pull`, merge the feature branch and re-run the CI gate on the merged result. Then Step 5, which deletes the branch.
 
 **2. Push and create PR**: `git push -u origin <feature-branch>`, then detect the host from `git remote get-url origin`: `github.com` → `gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com` → `az repos pr create --target-branch {base} --description "$(cat body.md)"`; anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars. Body from this template (summarise the walkthrough; never paste it raw):
 
@@ -83,11 +83,11 @@ If the head branch is deleted after merge, switch links to the merge commit SHA 
 
 **3. Keep as-is**: report the branch and worktree path; do not clean up.
 
-**4. Discard**: require the user to type `discard`, then delete the branch (`-D`) and remove the worktree.
+**4. Discard**: require the user to type `discard`, then Step 5 with `git worktree remove --force` and `git branch -D`.
 
 ### Step 5: Clean up the worktree
 
-Options 1, 2 and 4: `git worktree remove <path>` (find it with `git worktree list`). Option 3 keeps it.
+Options 1, 2 and 4, from the main worktree (removing the worktree you are standing in strands the shell): `git worktree remove <path>` (find it with `git worktree list`), then delete the branch - `-d` for Option 1, `-D` for Option 4; Option 2 keeps it for the PR. Remove the worktree first: git refuses to delete a branch a worktree still has checked out. Option 3 keeps both.
 
 ### Step 6: Close out the backlog tracker
 

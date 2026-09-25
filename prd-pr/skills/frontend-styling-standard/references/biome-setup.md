@@ -30,7 +30,7 @@ Remove ESLint and its plugins (`eslint`, `@eslint/js`, `typescript-eslint`,
 
 ```jsonc
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": false },
   "files": {
     "ignoreUnknown": true,
