@@ -1,6 +1,6 @@
 ---
 name: codebase-context-builder
-description: Generates docs/project_context/ by analysing a codebase from scratch - stack, structure, conventions, domain entities, build environment - and seeds prod_spec/ for the context-updater. Context generation only; no story analysis or task breakdown. Invoked by the orchestrator when project context is missing, or directly to bootstrap a repo ("build project context", "analyse this codebase").
+description: Internal - generates docs/project_context/ for a repo that has none ("build project context"). Invoked by the orchestrator.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 

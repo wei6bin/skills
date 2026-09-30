@@ -1,6 +1,6 @@
 ---
 name: vertical-slicing
-description: Use when designing the implementation plan for a feature, before writing the task list. Breaks a feature into thin vertical slices bounded by frozen API contracts and decomposed for maximum parallelism - not for standalone demoability. Defines the slice card and the machine-readable dependency graph the orchestrator schedules from.
+description: Internal - slice cards, frozen contracts and dependency graph for the plan docs. Invoked by code-architect.
 allowed-tools: Read, Write
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: Read, Write
 A **slice** (`SLICE-NN`) is a thin vertical work-unit: it traverses only the layers it needs, is bounded by a **frozen API contract** wherever it crosses BE<->FE, and is one PR you would happily merge. The contract, not a per-slice demo, is the feedback loop: the backend implements and conformance-tests it, the frontend mocks it, and the story is integrated and demoed **once, at the end**. Slices need not be demoable in isolation; requiring that invents demo-driven dependencies and forces per-slice integration.
 
 | Not a slice | A slice |
-|---|---|
+| --- | --- |
 | "Set up the schema" (horizontal layer) | "Award points for lesson completion (`POST /lessons/{id}/complete`)" |
 | "Build the service layer" | "Reject patient registration when NRIC is malformed (`422` + field error)" |
 | "All the endpoints, then all the screens" | "Show patient's last visit date on the response card" |

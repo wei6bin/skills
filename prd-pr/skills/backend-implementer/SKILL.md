@@ -1,6 +1,6 @@
 ---
 name: backend-implementer
-description: Drives the TDD red-green-refactor loop for the backend half of one vertical slice - one AC behaviour at a time, files discovered as tests demand them, one commit per cycle, a conformance test against the slice's frozen contract. Invoked by the impl-backend agent after it has loaded context.
+description: Internal - TDD loop for one slice's backend half. Invoked by impl-backend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 

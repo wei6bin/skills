@@ -1,6 +1,6 @@
 ---
 name: git-worktrees
-description: Use when starting feature work that needs isolation from the current workspace or before executing an implementation plan - creates an isolated git worktree on a new branch, verifies the directory is git-ignored, runs project setup and confirms a clean test baseline.
+description: Internal - creates an isolated git worktree on a new branch with a clean test baseline. Invoked by the orchestrator.
 allowed-tools: Read, Bash, AskUserQuestion
 ---
 

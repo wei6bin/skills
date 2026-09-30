@@ -1,6 +1,6 @@
 ---
 name: context-updater
-description: Updates docs/project_context/prod_spec/ after implementation - captures product decisions, domain rules, config choices and feature behaviour in prose, and maintains prod_spec/graph.md, the knowledge graph a later agent reads first to answer "what do we already have, and where do I start?". Source code changes are excluded. Run in the main session after any implementation session.
+description: Internal - updates docs/project_context/prod_spec/ and its graph.md after implementation. Run in the main session, never as a subagent.
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash, AskUserQuestion
 ---
 

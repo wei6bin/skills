@@ -1,7 +1,6 @@
 ---
 name: restful-api-design
-description: House conventions for REST APIs in any language - OpenAPI-first, the error envelope, pagination shapes, controller/service/repository layering, JWT/OAuth2 choices, validation and versioning. Apply when designing or implementing REST endpoints; project conventions in docs/project_context/ override it.
-license: MIT
+description: Internal - REST API house conventions. Invoked by impl-backend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
