@@ -1,10 +1,6 @@
 ---
 name: react-best-practices
-description: >-
-  Expert React frontend development using React 19, TypeScript, modern hooks,
-  state management (Zustand/RTK), React Testing Library, and Vite.
-  Apply when implementing React components, hooks, forms, or optimizing frontend performance.
-license: MIT
+description: Internal - React 19 + TypeScript house conventions. Invoked by impl-frontend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
@@ -33,13 +29,14 @@ You are an expert React frontend engineer. Apply these patterns consistently.
 ## State Management
 
 | Scope | Tool |
-|---|---|
+| --- | --- |
 | Local UI state | `useState` / `useReducer` |
 | Server state / caching | TanStack Query (`useQuery`, `useMutation`) |
 | Global client state | **Zustand** (simple) or **Redux Toolkit** (complex) |
 | Form state | React Hook Form + Zod validation |
 
 **Zustand pattern:**
+
 ```ts
 const useStore = create<State>()((set) => ({
   count: 0,
@@ -128,7 +125,7 @@ src/
 ## Key Libraries
 
 | Category | Preferred |
-|---|---|
+| --- | --- |
 | Build | Vite + TypeScript |
 | Routing | React Router v6 / TanStack Router |
 | Data fetching | TanStack Query v5 |

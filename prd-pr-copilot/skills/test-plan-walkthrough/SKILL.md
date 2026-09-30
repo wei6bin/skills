@@ -1,6 +1,6 @@
 ---
 name: test-plan-walkthrough
-description: Playbook for the Phase 9 walkthrough — drives 05-test-plan.md's end-to-end manual demos through agent-browser, writes 06-walkthrough.md and screenshots/ into the user-story folder, and persists a Playwright e2e spec per slice into the project's existing e2e suite. Invoked by the test-plan-walker subagent.
+description: Internal - Phase 9 Playwright walkthrough playbook. Invoked by test-plan-walker.
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 ---
 

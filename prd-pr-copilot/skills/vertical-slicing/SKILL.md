@@ -1,6 +1,6 @@
 ---
 name: vertical-slicing
-description: Use when designing the implementation plan for a feature, before writing the task list. Breaks a feature into thin, vertical slices bounded by frozen API contracts and decomposed for maximum parallelism — not for standalone demoability. The feedback loop is the frozen contract plus per-slice conformance tests; the story is integrated and demoed once, at the end.
+description: Internal - slice cards, frozen contracts and dependency graph for the plan docs. Invoked by code-architect.
 allowed-tools: Read, Write
 ---
 
