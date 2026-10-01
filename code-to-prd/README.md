@@ -1,6 +1,7 @@
 # Code → PRD
 
-Reverse-engineer any codebase into a complete Product Requirements Document (PRD).
+Reverse-engineer any codebase into a complete Product Requirements Document
+(PRD).
 
 ## Quick Start
 
@@ -15,13 +16,13 @@ python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
 
 ## Supported Frameworks
 
-| Stack | Frameworks |
-|-------|-----------|
-| Frontend | React, Vue, Angular, Svelte, Next.js, Nuxt, SvelteKit, Remix |
-| Backend | NestJS, Express, Django, DRF, FastAPI, Flask |
-| .NET / ASP.NET | Web API/MVC, WCF, Web Forms (`.aspx`) |
-| Native mobile | Android (Java/Kotlin), iOS (Swift/Objective-C) |
-| Fullstack | Next.js (pages + API), Nuxt (pages + server), Django (views + templates), ASP.NET (Web API + Web Forms) |
+| Stack          | Frameworks                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| Frontend       | React, Vue, Angular, Svelte, Next.js, Nuxt, SvelteKit, Remix                                            |
+| Backend        | NestJS, Express, Django, DRF, FastAPI, Flask                                                            |
+| .NET / ASP.NET | Web API/MVC, WCF, Web Forms (`.aspx`)                                                                   |
+| Native mobile  | Android (Java/Kotlin), iOS (Swift/Objective-C)                                                          |
+| Fullstack      | Next.js (pages + API), Nuxt (pages + server), Django (views + templates), ASP.NET (Web API + Web Forms) |
 
 ## What It Generates
 
@@ -39,17 +40,19 @@ prd/
 
 ## Scripts
 
-| Script | Purpose |
-|--------|---------|
+| Script                 | Purpose                                             |
+| ---------------------- | --------------------------------------------------- |
 | `codebase_analyzer.py` | Scan codebase → extract routes, APIs, models, enums |
-| `prd_scaffolder.py` | Generate PRD directory skeleton from analysis JSON |
+| `prd_scaffolder.py`    | Generate PRD directory skeleton from analysis JSON  |
 
 Both are stdlib-only — no pip install needed. Run `--help` for full usage.
 
 ## References
 
-- `references/framework-patterns.md` — Route, state, API, form, and model patterns per framework
-- `references/prd-quality-checklist.md` — Validation checklist for completeness and accuracy
+- `references/framework-patterns.md` — Route, state, API, form, and model
+  patterns per framework
+- `references/prd-quality-checklist.md` — Validation checklist for completeness
+  and accuracy
 
 ## License
 

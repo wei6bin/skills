@@ -1,44 +1,142 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## What this repo is
 
-A Claude Code **plugin marketplace** (defined in `.claude-plugin/marketplace.json`) hosting:
+A Claude Code **plugin marketplace** (defined in
+`.claude-plugin/marketplace.json`) hosting:
 
-- `prd-pr/` - dev-workflow plugin for Claude Code. Agents are `agents/*.md`; frontmatter uses `tools: Read, Edit, ...` (comma-separated names), `model:` as a Claude Code alias (`sonnet`, `opus`, `fable`) or a full id (`claude-sonnet-5`), optional `effort:` and `omitClaudeMd:`, and descriptions prefixed with `[Internal prd-pr subagent - do not invoke directly]`.
-- `prd-pr-copilot/` - dev-workflow plugin for Copilot CLI. Agents are `agents/*.agent.md`; frontmatter uses `tools: ['read', 'edit', ...]` (YAML list, lowercase), full dotted model ids like `model: claude-opus-4.8`, and `user-invocable: false` instead of the description prefix.
-- `prd-pr-cursor/` - for Cursor. **Not a marketplace plugin** (no skills, not in marketplace.json): it's a project-local `.cursor/` adapter to copy into target repos - `agents/` (the nine subagents with Cursor picker-slug `model:` frontmatter, e.g. `composer-2.5`, plus `readonly:` flags) and `rules/prd-pr-cursor.mdc` (always-applied rule mapping `agent_type: "prd-pr:…"` to Cursor's bare `subagent_type`). Skills are consumed from the installed `prd-pr` plugin, so agent body changes in `prd-pr/agents/` should be re-copied here while keeping the Cursor frontmatter.
-- `utility-skills/` — standalone user-invocable skills with no agents or hooks. Each skill is a `skills/<name>/SKILL.md` file, optionally with bundled `scripts/` and `references/` beside it (as `my-work` has). Skills may declare required `args:` in frontmatter (YAML list with `name`, `description`, `required`). Current skills: `teach-me`, `learn-it`, `spec-me`, `html-it`, `my-work`.
-- `code-to-prd/` and `clinical-lecture-brief/` - single-skill plugins (`skills/<name>/SKILL.md` with bundled resources such as `scripts/` and `references/`), no agents or hooks.
+- `prd-pr/` - dev-workflow plugin for Claude Code. Agents are `agents/*.md`;
+  frontmatter uses `tools: Read, Edit, ...` (comma-separated names), `model:` as
+  a Claude Code alias (`sonnet`, `opus`, `fable`) or a full id
+  (`claude-sonnet-5`), optional `effort:` and `omitClaudeMd:`, and descriptions
+  prefixed with `[Internal prd-pr subagent - do not invoke directly]`.
+- `prd-pr-copilot/` - dev-workflow plugin for Copilot CLI. Agents are
+  `agents/*.agent.md`; frontmatter uses `tools: ['read', 'edit', ...]` (YAML
+  list, lowercase), full dotted model ids like `model: claude-opus-4.8`, and
+  `user-invocable: false` instead of the description prefix.
+- `prd-pr-cursor/` - for Cursor. **Not a marketplace plugin** (no skills, not in
+  marketplace.json): it's a project-local `.cursor/` adapter to copy into target
+  repos - `agents/` (the nine subagents with Cursor picker-slug `model:`
+  frontmatter, e.g. `composer-2.5`, plus `readonly:` flags) and
+  `rules/prd-pr-cursor.mdc` (always-applied rule mapping
+  `agent_type: "prd-pr:…"` to Cursor's bare `subagent_type`). Skills are
+  consumed from the installed `prd-pr` plugin, so agent body changes in
+  `prd-pr/agents/` should be re-copied here while keeping the Cursor
+  frontmatter.
+- `utility-skills/` — standalone user-invocable skills with no agents or hooks.
+  Each skill is a `skills/<name>/SKILL.md` file, optionally with bundled
+  `scripts/` and `references/` beside it (as `my-work` has). Skills may declare
+  required `args:` in frontmatter (YAML list with `name`, `description`,
+  `required`). Current skills: `teach-me`, `learn-it`, `spec-me`, `html-it`,
+  `my-work`.
+- `code-to-prd/` and `clinical-lecture-brief/` - single-skill plugins
+  (`skills/<name>/SKILL.md` with bundled resources such as `scripts/` and
+  `references/`), no agents or hooks.
 
-There is no build, lint, or test tooling - everything is markdown plus a few bash hook scripts. `claude plugin validate .` checks the marketplace and its plugins load. The "test" is installing the plugin and exercising it: `/plugin marketplace add wei6bin/skills`, `/plugin install prd-pr@skills`. The marketplace is added from GitHub, so a local edit is not live until it is merged to `main` and the plugin updated (`claude plugin update prd-pr@skills`, or the marketplace's background auto-update on the next session start), then `/reload-plugins`. Installed contents land at `~/.claude/plugins/cache/skills/<plugin-name>/<commit-sha>/`.
+There is no build, lint, or test tooling - everything is markdown plus a few
+bash hook scripts. `claude plugin validate .` checks the marketplace and its
+plugins load. The "test" is installing the plugin and exercising it:
+`/plugin marketplace add wei6bin/skills`, `/plugin install prd-pr@skills`. The
+marketplace is added from GitHub, so a local edit is not live until it is merged
+to `main` and the plugin updated (`claude plugin update prd-pr@skills`, or the
+marketplace's background auto-update on the next session start), then
+`/reload-plugins`. Installed contents land at
+`~/.claude/plugins/cache/skills/<plugin-name>/<commit-sha>/`.
 
 ## Architecture
 
-Both plugins implement the same 10-phase orchestrator-driven flow (discovery → exploration → clarifying questions → architecture → plan docs → review → summary → slice-by-slice implementation → test-plan walkthrough with screenshots → PR). The full phase → subagent/skill → artifact map, drawn as an inline SVG flow, is in `docs/orchestrator-workflow.html` - open it in a browser (Copilot variant, still markdown + mermaid: `prd-pr-copilot/docs/orchestrator-workflow.md`).
+Both plugins implement the same 10-phase orchestrator-driven flow (discovery →
+exploration → clarifying questions → architecture → plan docs → review → summary
+→ slice-by-slice implementation → test-plan walkthrough with screenshots → PR).
+The full phase → subagent/skill → artifact map, drawn as an inline SVG flow, is
+in `docs/orchestrator-workflow.html` - open it in a browser (Copilot variant,
+still markdown + mermaid: `prd-pr-copilot/docs/orchestrator-workflow.md`).
 
 Three component types per plugin:
 
-- **Skills** (`skills/<name>/SKILL.md`, one file per skill) - `orchestrator` is the entry point; the rest are companions it invokes (`vertical-slicing`, `git-worktrees`, `raise-pr`, `backend-implementer`, `frontend-implementer`, `reuse-ladder`, `codebase-context-builder`, `context-updater`, `react-best-practices`, `frontend-styling-standard` (prd-pr only), `restful-api-design`, `test-plan-walkthrough`). Skills run in the main session; `context-updater` in particular must never be dispatched as a subagent.
-- **Agents** (`agents/`) - subagents the orchestrator dispatches via the task tool with `agent_type: "prd-pr:<name>"` (or `prd-pr-copilot:<name>`): `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`, `impl-simplify`, `code-reviewer`, `security-reviewer`, `test-plan-walker` (Copilot has no `code-reviewer` or `security-reviewer`). In `prd-pr`, `impl-simplify` owns no rules of its own - it is a thin context boundary that invokes Claude Code's built-in `simplify` skill in an isolated window; the Copilot and Cursor variants still carry the full rules in their own copies.
-- **Hooks** (`prd-pr/hooks/` only - Copilot CLI has no hooks) - PostToolUse on Edit/Write/MultiEdit: secrets scan, prettier, biome, TypeScript typecheck, plus a sourced `_lib.sh` (not itself a hook). The scripts self-gate (exit silently when the edited file doesn't apply) so they're safe in a generic plugin, and the ts-typecheck hook deliberately reports only the edited file's diagnostics and treats workspace sibling-import errors as non-blocking advisories - preserve those properties when editing them. Three further properties are load-bearing:
-  - **Prettier auto-writes; Biome only reports.** Formatting needs no judgement, and an advisory the agent may decline is not a gate - a formatting-only CI failure reached `main` while the report-only version of this hook was installed and firing. Lint findings stay advisory because many Biome autofixes are marked unsafe. Biome is the only linter hook - there is deliberately no ESLint one, matching `frontend-styling-standard`'s Biome-over-ESLint recommendation.
-  - **Each hook runs from the directory that owns its tool's config**, resolved by `find_tool_root` in `_lib.sh`, *not* from the nearest `package.json`. In a pnpm/npm workspace those differ: configs sit at the workspace root while every app under `apps/*` has its own `package.json`, and starting in the app directory silently drops the root `.prettierignore`, producing violations on generated output CI never checks.
-  - **Biome's exit code is not a usable signal per file** - it is also non-zero when the path is ignored by `biome.json`. `biome-on-change.sh` keys off `--reporter=json`'s `.summary.errors`, which stays 0 for infos and warnings, matching what a `biome lint` CI step actually fails on.
+- **Skills** (`skills/<name>/SKILL.md`, one file per skill) - `orchestrator` is
+  the entry point; the rest are companions it invokes (`vertical-slicing`,
+  `git-worktrees`, `raise-pr`, `backend-implementer`, `frontend-implementer`,
+  `reuse-ladder`, `codebase-context-builder`, `context-updater`,
+  `react-best-practices`, `frontend-styling-standard` (prd-pr only),
+  `restful-api-design`, `test-plan-walkthrough`). Skills run in the main
+  session; `context-updater` in particular must never be dispatched as a
+  subagent.
+- **Agents** (`agents/`) - subagents the orchestrator dispatches via the task
+  tool with `agent_type: "prd-pr:<name>"` (or `prd-pr-copilot:<name>`):
+  `code-explorer`, `code-architect`, `plan-reviewer`, `impl-backend`,
+  `impl-frontend`, `impl-simplify`, `code-reviewer`, `security-reviewer`,
+  `test-plan-walker` (Copilot has no `code-reviewer` or `security-reviewer`). In
+  `prd-pr`, `impl-simplify` owns no rules of its own - it is a thin context
+  boundary that invokes Claude Code's built-in `simplify` skill in an isolated
+  window; the Copilot and Cursor variants still carry the full rules in their
+  own copies.
+- **Hooks** (`prd-pr/hooks/` only - Copilot CLI has no hooks) - PostToolUse on
+  Edit/Write/MultiEdit: secrets scan, prettier, biome, TypeScript typecheck,
+  plus a sourced `_lib.sh` (not itself a hook). The scripts self-gate (exit
+  silently when the edited file doesn't apply) so they're safe in a generic
+  plugin, and the ts-typecheck hook deliberately reports only the edited file's
+  diagnostics and treats workspace sibling-import errors as non-blocking
+  advisories - preserve those properties when editing them. Three further
+  properties are load-bearing:
+  - **Prettier auto-writes; Biome only reports.** Formatting needs no judgement,
+    and an advisory the agent may decline is not a gate - a formatting-only CI
+    failure reached `main` while the report-only version of this hook was
+    installed and firing. Lint findings stay advisory because many Biome
+    autofixes are marked unsafe. Biome is the only linter hook - there is
+    deliberately no ESLint one, matching `frontend-styling-standard`'s
+    Biome-over-ESLint recommendation.
+  - **Each hook runs from the directory that owns its tool's config**, resolved
+    by `find_tool_root` in `_lib.sh`, _not_ from the nearest `package.json`. In
+    a pnpm/npm workspace those differ: configs sit at the workspace root while
+    every app under `apps/*` has its own `package.json`, and starting in the app
+    directory silently drops the root `.prettierignore`, producing violations on
+    generated output CI never checks.
+  - **Biome's exit code is not a usable signal per file** - it is also non-zero
+    when the path is ignored by `biome.json`. `biome-on-change.sh` keys off
+    `--reporter=json`'s `.summary.errors`, which stays 0 for infos and warnings,
+    matching what a `biome lint` CI step actually fails on.
 
 ## Registrations and versioning
 
-- Every agent and skill must be listed in **both** its plugin's entry in `.claude-plugin/marketplace.json` (the `agents`/`skills` arrays) — adding a file alone does not register it.
-- For `utility-skills`, new skills go in `utility-skills/skills/<name>/SKILL.md` and the path `./skills/<name>` must be added to its `skills` array in `marketplace.json`.
-- **Plugins carry no manifest, on purpose.** Claude Code and Cursor key a plugin's version off the marketplace's commit SHA when neither a `<plugin>/.claude-plugin/plugin.json` nor the plugin's `marketplace.json` entry sets a `version`, so every merge to `main` is a new version and auto-update ships it on the next session start with nothing to bump. Do not add either: a `version` field switches the plugin to explicit versioning and updates stop until someone remembers to bump it. (A root-level `<plugin>/plugin.json` is never read by any consumer; the ones this repo used to carry were inert.) `metadata.version` in `marketplace.json` is informational - bump it when a plugin is added or removed.
+- Every agent and skill must be listed in **both** its plugin's entry in
+  `.claude-plugin/marketplace.json` (the `agents`/`skills` arrays) — adding a
+  file alone does not register it.
+- For `utility-skills`, new skills go in `utility-skills/skills/<name>/SKILL.md`
+  and the path `./skills/<name>` must be added to its `skills` array in
+  `marketplace.json`.
+- **Plugins carry no manifest, on purpose.** Claude Code and Cursor key a
+  plugin's version off the marketplace's commit SHA when neither a
+  `<plugin>/.claude-plugin/plugin.json` nor the plugin's `marketplace.json`
+  entry sets a `version`, so every merge to `main` is a new version and
+  auto-update ships it on the next session start with nothing to bump. Do not
+  add either: a `version` field switches the plugin to explicit versioning and
+  updates stop until someone remembers to bump it. (A root-level
+  `<plugin>/plugin.json` is never read by any consumer; the ones this repo used
+  to carry were inert.) `metadata.version` in `marketplace.json` is
+  informational - bump it when a plugin is added or removed.
 
 ## The two variants are siblings, not mirrors
 
-Changes are usually ported between `prd-pr` and `prd-pr-copilot`, but the content has intentionally diverged beyond the frontmatter format: the Copilot variant has no hooks, no backlog-tracker close-out in `raise-pr`, no per-slice API smoke gate, and its implementer agents invoke `context-updater` themselves. When porting a change, diff the corresponding files first and translate (agent dispatch strings, tool names, model ids) rather than copy.
+Changes are usually ported between `prd-pr` and `prd-pr-copilot`, but the
+content has intentionally diverged beyond the frontmatter format: the Copilot
+variant has no hooks, no backlog-tracker close-out in `raise-pr`, no per-slice
+API smoke gate, and its implementer agents invoke `context-updater` themselves.
+When porting a change, diff the corresponding files first and translate (agent
+dispatch strings, tool names, model ids) rather than copy.
 
 ## Conventions
 
-- Commit messages are prefixed with the plugin they touch: `prd-pr: ...`, `prd-pr-copilot: ...`, `utility-skills: ...`, `code-to-prd: ...`, `clinical-lecture-brief: ...`, or `marketplace: ...` for changes to the marketplace itself.
-- Skill/agent prose is written as direct instructions to the executing agent ("You are...", numbered phases where order matters, explicit announce lines and return-report formats) - match that style.
-- `utility-skills` skills are user-invocable: their description must clearly state trigger phrases and argument requirements; no `[Internal subagent...]` prefix.
+- Commit messages are prefixed with the plugin they touch: `prd-pr: ...`,
+  `prd-pr-copilot: ...`, `utility-skills: ...`, `code-to-prd: ...`,
+  `clinical-lecture-brief: ...`, or `marketplace: ...` for changes to the
+  marketplace itself.
+- Skill/agent prose is written as direct instructions to the executing agent
+  ("You are...", numbered phases where order matters, explicit announce lines
+  and return-report formats) - match that style.
+- `utility-skills` skills are user-invocable: their description must clearly
+  state trigger phrases and argument requirements; no `[Internal subagent...]`
+  prefix.

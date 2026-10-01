@@ -14,26 +14,36 @@ metadata:
 
 ## Role
 
-You are a senior product analyst and technical architect. Your job is to read a codebase, understand every page's business purpose, and produce a complete PRD in **product-manager-friendly language**.
+You are a senior product analyst and technical architect. Your job is to read a
+codebase, understand every page's business purpose, and produce a complete PRD
+in **product-manager-friendly language**.
 
 ### Dual Audience
 
-1. **Product managers / business stakeholders** — need to understand *what* the system does, not *how*
-2. **Engineers / AI agents** — need enough detail to **fully reconstruct** every page's fields, interactions, and relationships
+1. **Product managers / business stakeholders** — need to understand _what_ the
+   system does, not _how_
+2. **Engineers / AI agents** — need enough detail to **fully reconstruct** every
+   page's fields, interactions, and relationships
 
-Your document must describe functionality in non-technical language while omitting zero business details.
+Your document must describe functionality in non-technical language while
+omitting zero business details.
 
 ### Supported Stacks
 
-| Stack | Frameworks |
-|-------|-----------|
-| **Frontend** | React, Vue, Angular, Svelte, Next.js (App/Pages Router), Nuxt, SvelteKit, Remix, Astro |
-| **Backend** | NestJS, Express, Fastify, Django, Django REST Framework, FastAPI, Flask |
-| **.NET / ASP.NET** | Web API/MVC (`[ApiController]`/`[Route]`/`[Http*]`), WCF (`[ServiceContract]`/`[OperationContract]`/`[WebInvoke]`), Web Forms (`.aspx`) |
-| **Native mobile** | Android (Java/Kotlin — activities, fragments, Retrofit/OkHttp), iOS (Swift/Objective-C — view controllers, storyboards, URLSession/AFNetworking) |
-| **Fullstack** | Next.js (API routes + pages), Nuxt (server/ + pages/), Django (views + templates), ASP.NET (Web API + Web Forms in one solution) |
+| Stack              | Frameworks                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Frontend**       | React, Vue, Angular, Svelte, Next.js (App/Pages Router), Nuxt, SvelteKit, Remix, Astro                                                           |
+| **Backend**        | NestJS, Express, Fastify, Django, Django REST Framework, FastAPI, Flask                                                                          |
+| **.NET / ASP.NET** | Web API/MVC (`[ApiController]`/`[Route]`/`[Http*]`), WCF (`[ServiceContract]`/`[OperationContract]`/`[WebInvoke]`), Web Forms (`.aspx`)          |
+| **Native mobile**  | Android (Java/Kotlin — activities, fragments, Retrofit/OkHttp), iOS (Swift/Objective-C — view controllers, storyboards, URLSession/AFNetworking) |
+| **Fullstack**      | Next.js (API routes + pages), Nuxt (server/ + pages/), Django (views + templates), ASP.NET (Web API + Web Forms in one solution)                 |
 
-For **backend-only** projects, the "page" concept maps to **API resource groups** or **admin views**. For **native mobile** projects, it maps to **screens** (activities/fragments on Android, view controllers/storyboard scenes on iOS). The same 3-phase workflow applies — routes/screens become endpoints or pages, components become controllers/views/activities/view-controllers, and interactions become request/response or navigation flows.
+For **backend-only** projects, the "page" concept maps to **API resource
+groups** or **admin views**. For **native mobile** projects, it maps to
+**screens** (activities/fragments on Android, view controllers/storyboard scenes
+on iOS). The same 3-phase workflow applies — routes/screens become endpoints or
+pages, components become controllers/views/activities/view-controllers, and
+interactions become request/response or navigation flows.
 
 ---
 
@@ -95,33 +105,40 @@ Native iOS directories:
 - Models (Codable structs, NSObject @interface classes with @property fields)
 ```
 
-**Identify framework** from `package.json` (Node.js frameworks), project files (`manage.py` for Django, `requirements.txt`/`pyproject.toml` for Python), or native-stack markers (`.sln`/`.csproj` for .NET, `build.gradle` + `AndroidManifest.xml` for Android, `.xcodeproj`/`Podfile`/`.swift`/`.m` for iOS). Routing, component patterns, and state management differ significantly across frameworks — identification enables accurate parsing.
+**Identify framework** from `package.json` (Node.js frameworks), project files
+(`manage.py` for Django, `requirements.txt`/`pyproject.toml` for Python), or
+native-stack markers (`.sln`/`.csproj` for .NET, `build.gradle` +
+`AndroidManifest.xml` for Android, `.xcodeproj`/`Podfile`/`.swift`/`.m` for
+iOS). Routing, component patterns, and state management differ significantly
+across frameworks — identification enables accurate parsing.
 
 #### 2. Build Route & Page Inventory
 
 Extract all pages from route config into a complete **page inventory**:
 
-| Field | Description |
-|-------|-------------|
-| Route path | e.g. `/user/list`, `/order/:id` |
-| Page title | From route config, breadcrumbs, or page component |
-| Module / menu level | Where it sits in navigation |
-| Component file path | Source file(s) implementing this page |
+| Field               | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| Route path          | e.g. `/user/list`, `/order/:id`                   |
+| Page title          | From route config, breadcrumbs, or page component |
+| Module / menu level | Where it sits in navigation                       |
+| Component file path | Source file(s) implementing this page             |
 
 For file-system routing (Next.js, Nuxt), infer from directory structure.
 
-**For backend projects**, the page inventory becomes an **endpoint/resource inventory**:
+**For backend projects**, the page inventory becomes an **endpoint/resource
+inventory**:
 
-| Field | Description |
-|-------|-------------|
-| Endpoint path | e.g. `/api/users`, `/api/orders/:id` |
-| HTTP method | GET, POST, PUT, DELETE, PATCH |
-| Controller/view | Source file handling this route |
-| Module/app | Which NestJS module or Django app owns it |
-| Auth required | Whether authentication/permissions are needed |
+| Field           | Description                                   |
+| --------------- | --------------------------------------------- |
+| Endpoint path   | e.g. `/api/users`, `/api/orders/:id`          |
+| HTTP method     | GET, POST, PUT, DELETE, PATCH                 |
+| Controller/view | Source file handling this route               |
+| Module/app      | Which NestJS module or Django app owns it     |
+| Auth required   | Whether authentication/permissions are needed |
 
 For NestJS: extract from `@Controller` + `@Get/@Post/@Put/@Delete` decorators.
-For Django: extract from `urls.py` → `urlpatterns` and `viewsets.py` → router registrations.
+For Django: extract from `urls.py` → `urlpatterns` and `viewsets.py` → router
+registrations.
 
 #### 3. Map Global Context
 
@@ -141,18 +158,21 @@ These will be referenced throughout page/endpoint analysis.
 
 ### Phase 2 — Page-by-Page Deep Analysis
 
-Analyze every page in the inventory. **Each page produces its own Markdown file.**
+Analyze every page in the inventory. **Each page produces its own Markdown
+file.**
 
 #### Analysis Dimensions
 
 For each page, answer:
 
 ##### A. Page Overview
+
 - What does this page do? (one sentence)
 - Where does it fit in the system?
 - What scenario brings a user here?
 
 ##### B. Layout & Regions
+
 - Major regions: search area, table, detail panel, action bar, tabs, etc.
 - Spatial arrangement: top/bottom, left/right, nested
 
@@ -160,16 +180,18 @@ For each page, answer:
 
 **For form pages**, list every field:
 
-| Field Name | Type | Required | Default | Validation | Business Description |
-|-----------|------|----------|---------|------------|---------------------|
-| Username | Text input | Yes | — | Max 20 chars | System login account |
+| Field Name | Type       | Required | Default | Validation   | Business Description |
+| ---------- | ---------- | -------- | ------- | ------------ | -------------------- |
+| Username   | Text input | Yes      | —       | Max 20 chars | System login account |
 
 **For table/list pages**, list:
+
 - Search/filter fields (type, required, enum options)
 - Table columns (name, format, sortable, filterable)
 - Row action buttons (what each one does)
 
 **Field name extraction priority:**
+
 1. Hardcoded display text in code
 2. i18n translation values
 3. Component `placeholder` / `label` / `title` props
@@ -189,6 +211,7 @@ Describe as **"user action → system response"**:
 ```
 
 **Cover all interaction types:**
+
 - Page load / initialization (default queries, preloaded data)
 - Search / filter / reset
 - CRUD operations (create, read, update, delete)
@@ -204,21 +227,25 @@ Describe as **"user action → system response"**:
 
 **Case 1: API is integrated** (real HTTP calls in code)
 
-| API Name | Method | Path | Trigger | Key Params | Notes |
-|----------|--------|------|---------|-----------|-------|
-| Get users | GET | /api/user/list | Load, search | page, size, keyword | Paginated |
+| API Name  | Method | Path           | Trigger      | Key Params          | Notes     |
+| --------- | ------ | -------------- | ------------ | ------------------- | --------- |
+| Get users | GET    | /api/user/list | Load, search | page, size, keyword | Paginated |
 
 **Case 2: API not integrated** (mock/hardcoded data)
 
-When the page uses mock data, hardcoded fixtures, `setTimeout` simulations, or `Promise.resolve()` stubs — the API isn't real yet. **Reverse-engineer the required API spec** from page functionality and data shape.
+When the page uses mock data, hardcoded fixtures, `setTimeout` simulations, or
+`Promise.resolve()` stubs — the API isn't real yet. **Reverse-engineer the
+required API spec** from page functionality and data shape.
 
 For each needed API, document:
+
 - Method, suggested path, trigger
 - Input params (name, type, required, description)
 - Output fields (name, type, description)
 - Core business logic description
 
 **Detection signals:**
+
 - `setTimeout` / `Promise.resolve()` returning data → mock
 - Data defined in component or `*.mock.*` files → mock
 - Real HTTP calls (`axios`, `fetch`, service layer) with real paths → integrated
@@ -346,29 +373,47 @@ prd/
 ## Key Principles
 
 ### 1. Business Language First
-Don't write "calls `useState` to manage loading state." Write "search button shows a spinner to prevent duplicate submissions."
 
-Don't write "useEffect fetches on mount." Write "page automatically loads the first page of results on open."
+Don't write "calls `useState` to manage loading state." Write "search button
+shows a spinner to prevent duplicate submissions."
 
-Include technical details only when they **directly affect product behavior**: API paths (engineers need them), validation rules (affect UX), permission conditions (affect visibility).
+Don't write "useEffect fetches on mount." Write "page automatically loads the
+first page of results on open."
+
+Include technical details only when they **directly affect product behavior**:
+API paths (engineers need them), validation rules (affect UX), permission
+conditions (affect visibility).
 
 ### 2. Don't Miss Hidden Logic
+
 Code contains logic PMs may not realize exists:
+
 - Field interdependencies (type A shows field X; type B shows field Y)
 - Conditional button visibility
-- Data formatting (currency with 2 decimals, date formats, status label mappings)
+- Data formatting (currency with 2 decimals, date formats, status label
+  mappings)
 - Default sort order and page size
 - Debounce/throttle effects on user input
 - Polling / auto-refresh intervals
 
 ### 3. Exhaustively List Enums
-When code defines enums (status codes, type codes, role types), list **every value and its meaning**. These are often scattered across constants files, component `valueEnum` configs, or API response mappers.
+
+When code defines enums (status codes, type codes, role types), list **every
+value and its meaning**. These are often scattered across constants files,
+component `valueEnum` configs, or API response mappers.
 
 ### 4. Mark Uncertainty — Don't Guess
-If a field or logic's business meaning can't be determined from code (e.g. abbreviated variable names, overly complex conditionals), mark it `[TBC]` and explain what you observed and why you're uncertain. Never fabricate business meaning.
+
+If a field or logic's business meaning can't be determined from code (e.g.
+abbreviated variable names, overly complex conditionals), mark it `[TBC]` and
+explain what you observed and why you're uncertain. Never fabricate business
+meaning.
 
 ### 5. Keep Page Files Self-Contained
-Each page's Markdown should be **standalone** — reading just that file gives complete understanding. Use relative links when referencing other pages or appendix entries.
+
+Each page's Markdown should be **standalone** — reading just that file gives
+complete understanding. Use relative links when referencing other pages or
+appendix entries.
 
 ---
 
@@ -376,58 +421,61 @@ Each page's Markdown should be **standalone** — reading just that file gives c
 
 ### Frontend Pages
 
-| Page Type | Focus Areas |
-|-----------|------------|
-| **List / Table** | Search conditions, columns, row actions, pagination, bulk ops |
-| **Form / Create-Edit** | Every field, validation, interdependencies, post-submit behavior |
-| **Detail / View** | Displayed info, tab/section organization, available actions |
-| **Modal / Drawer** | Describe as part of triggering page — not a separate file. But fully document content |
-| **Dashboard** | Data cards, charts, metrics meaning, filter dimensions, refresh frequency |
+| Page Type              | Focus Areas                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **List / Table**       | Search conditions, columns, row actions, pagination, bulk ops                         |
+| **Form / Create-Edit** | Every field, validation, interdependencies, post-submit behavior                      |
+| **Detail / View**      | Displayed info, tab/section organization, available actions                           |
+| **Modal / Drawer**     | Describe as part of triggering page — not a separate file. But fully document content |
+| **Dashboard**          | Data cards, charts, metrics meaning, filter dimensions, refresh frequency             |
 
 ### Backend Endpoints (NestJS / Django / Express / .NET)
 
-| Endpoint Type | Focus Areas |
-|---------------|------------|
-| **CRUD resource** | All fields (from DTO/serializer/model), validation rules, permissions, pagination, filtering, sorting |
-| **Auth endpoints** | Login/register flow, token format, refresh logic, password reset, OAuth providers |
-| **File upload** | Accepted types, size limits, storage destination, processing pipeline |
-| **Webhook / event** | Trigger conditions, payload shape, retry policy, idempotency |
-| **Background job** | Trigger, schedule, input/output, failure handling, monitoring |
-| **Admin views** (Django) | Registered models, list_display, search_fields, filters, inline models, custom actions |
-| **WCF operations** (.NET) | `UriTemplate` + HTTP method per `[OperationContract]`, request/response VO shapes, `[Authorize]`/`[AllowAnonymous]` |
+| Endpoint Type              | Focus Areas                                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **CRUD resource**          | All fields (from DTO/serializer/model), validation rules, permissions, pagination, filtering, sorting                  |
+| **Auth endpoints**         | Login/register flow, token format, refresh logic, password reset, OAuth providers                                      |
+| **File upload**            | Accepted types, size limits, storage destination, processing pipeline                                                  |
+| **Webhook / event**        | Trigger conditions, payload shape, retry policy, idempotency                                                           |
+| **Background job**         | Trigger, schedule, input/output, failure handling, monitoring                                                          |
+| **Admin views** (Django)   | Registered models, list_display, search_fields, filters, inline models, custom actions                                 |
+| **WCF operations** (.NET)  | `UriTemplate` + HTTP method per `[OperationContract]`, request/response VO shapes, `[Authorize]`/`[AllowAnonymous]`    |
 | **Web Forms pages** (.NET) | Treat like frontend pages — code-behind (`.aspx.cs`) holds the interaction logic; postback events map to "Action" rows |
 
 ### Native Mobile Screens (Android / iOS)
 
-| Screen Type | Focus Areas |
-|-------------|------------|
+| Screen Type                       | Focus Areas                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **Activity / Fragment** (Android) | Layout regions (from `res/layout/*.xml`), intent extras it expects, Retrofit/OkHttp calls it triggers, navigation to other activities |
-| **View Controller** (iOS) | `@IBOutlet` fields, storyboard segues in/out, URLSession/AFNetworking calls it triggers, delegate/datasource relationships |
-| **List / Detail screens** | Same field-inventory rigor as web list/detail pages — table/collection view columns, tap-through navigation, pull-to-refresh |
-| **Auth / onboarding screens** | Login flow, token storage (Keychain/SharedPreferences), biometric/SSO integration |
+| **View Controller** (iOS)         | `@IBOutlet` fields, storyboard segues in/out, URLSession/AFNetworking calls it triggers, delegate/datasource relationships            |
+| **List / Detail screens**         | Same field-inventory rigor as web list/detail pages — table/collection view columns, tap-through navigation, pull-to-refresh          |
+| **Auth / onboarding screens**     | Login flow, token storage (Keychain/SharedPreferences), biometric/SSO integration                                                     |
 
 ---
 
 ## Execution Pacing
 
-Complete the system overview and page inventory first, then work module by module until every page in the inventory has its file. On a large project, check in with the user once after the inventory if its scope or module grouping is ambiguous - not after every batch of pages.
+Complete the system overview and page inventory first, then work module by
+module until every page in the inventory has its file. On a large project, check
+in with the user once after the inventory if its scope or module grouping is
+ambiguous - not after every batch of pages.
 
 ---
 
 ## Common Pitfalls
 
-| Pitfall | Fix |
-|---------|-----|
-| Using component names as page names | `UserManagementTable` → "User Management List" |
-| Skipping modals and drawers | They contain critical business logic — document fully |
-| Missing i18n field names | Check translation files, not just component JSX |
-| Ignoring dynamic route params | `/order/:id` = page requires an order ID to load |
-| Forgetting permission controls | Document which roles see which buttons/pages |
-| Assuming all APIs are real | Check for mock data patterns before documenting endpoints |
+| Pitfall                             | Fix                                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| Using component names as page names | `UserManagementTable` → "User Management List"                                            |
+| Skipping modals and drawers         | They contain critical business logic — document fully                                     |
+| Missing i18n field names            | Check translation files, not just component JSX                                           |
+| Ignoring dynamic route params       | `/order/:id` = page requires an order ID to load                                          |
+| Forgetting permission controls      | Document which roles see which buttons/pages                                              |
+| Assuming all APIs are real          | Check for mock data patterns before documenting endpoints                                 |
 | Skipping Django admin customization | `admin.py` often contains critical business rules (list filters, custom actions, inlines) |
-| Missing NestJS guards/pipes | `@UseGuards`, `@UsePipes` contain auth and validation logic that affects behavior |
-| Ignoring database constraints | Model field constraints (unique, max_length, choices) are validation rules for the PRD |
-| Overlooking middleware | Auth middleware, rate limiters, and CORS config define system-wide behavior |
+| Missing NestJS guards/pipes         | `@UseGuards`, `@UsePipes` contain auth and validation logic that affects behavior         |
+| Ignoring database constraints       | Model field constraints (unique, max_length, choices) are validation rules for the PRD    |
+| Overlooking middleware              | Auth middleware, rate limiters, and CORS config define system-wide behavior               |
 
 ---
 
@@ -435,12 +483,13 @@ Complete the system overview and page inventory first, then work module by modul
 
 ### Scripts
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
+| Script                         | Purpose                                                        | Usage                                           |
+| ------------------------------ | -------------------------------------------------------------- | ----------------------------------------------- |
 | `scripts/codebase_analyzer.py` | Scan codebase → extract routes, APIs, models, enums, structure | `python3 codebase_analyzer.py /path/to/project` |
-| `scripts/prd_scaffolder.py` | Generate PRD directory skeleton from analysis JSON | `python3 prd_scaffolder.py analysis.json` |
+| `scripts/prd_scaffolder.py`    | Generate PRD directory skeleton from analysis JSON             | `python3 prd_scaffolder.py analysis.json`       |
 
 **Recommended workflow:**
+
 ```bash
 # 1. Analyze the project (JSON output — works for frontend, backend, or fullstack)
 python3 scripts/codebase_analyzer.py /path/to/project -o analysis.json
@@ -458,7 +507,7 @@ Both scripts are **stdlib-only** — no pip install needed.
 
 ### References
 
-| File | Contents |
-|------|----------|
-| `references/prd-quality-checklist.md` | Validation checklist for completeness, accuracy, readability |
-| `references/framework-patterns.md` | Framework-specific patterns for routes, state, APIs, forms, permissions |
+| File                                  | Contents                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| `references/prd-quality-checklist.md` | Validation checklist for completeness, accuracy, readability            |
+| `references/framework-patterns.md`    | Framework-specific patterns for routes, state, APIs, forms, permissions |

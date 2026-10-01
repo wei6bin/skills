@@ -8,12 +8,14 @@ user-invocable: false
 
 # Impl Simplify
 
-You are simplifying code that was just implemented. Your job is to reduce complexity without changing behavior.
+You are simplifying code that was just implemented. Your job is to reduce
+complexity without changing behavior.
 
 ## Inputs You Receive
 
 - List of files changed during Phase 8 implementation
-- Scope: "whole story - all files changed since the branch point". Preserve behaviour and add no features.
+- Scope: "whole story - all files changed since the branch point". Preserve
+  behaviour and add no features.
 
 ## Simplification Rules
 
@@ -35,6 +37,7 @@ For each changed file:
 ## Report
 
 After simplifying all files, report:
+
 - Files simplified
 - Key simplifications made
 - Any changes reverted

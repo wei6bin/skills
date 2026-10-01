@@ -1,22 +1,22 @@
 # Styling standard — document template
 
-A fill-in template for the standard doc. Keep it short and skimmable; push
-depth into separate references. Adapt names to the project (`--x-*` tokens,
-`.x-*` classes). Give every rule a stable id so reviews/commits can cite it.
+A fill-in template for the standard doc. Keep it short and skimmable; push depth
+into separate references. Adapt names to the project (`--x-*` tokens, `.x-*`
+classes). Give every rule a stable id so reviews/commits can cite it.
 
 ---
 
 ## 0. TL;DR — the rules at a glance
 
-| # | Rule | Enforcement |
-|---|---|---|
-| **STY-R1** | **No inline `style={{…}}`** for static styling. Use a layout component, a token/utility class, or Tailwind. Inline style only for genuinely dynamic values, with a `biome-ignore` + reason. | Biome plugin (`error`) |
-| **STY-R2** | **Prefer the component library over raw HTML** for anything it provides (Button, Table, Form, Card, Flex, Space, Modal…). Raw elements only for real design-system primitives it doesn't ship. | Review |
-| **STY-R3** | **No hardcoded values.** Every colour/space/radius/shadow/font comes from a design token. No raw hex or px in components. | Review |
-| **STY-R4** | **Layout & spacing = utilities, not inline flex.** The `{display:flex,flexDirection:column,gap}` triple is banned. | Biome (via R1) + review |
-| **STY-R5** | **One class vocabulary.** New/edited code uses `.x-*` (or Tailwind). Legacy classes/vars are deprecated — touch a legacy site, migrate it. | Review |
-| **STY-R6** | **Single source of tokens.** Values defined once, fed to theme + CSS vars + Tailwind. Never hand-copy a hex between the theme and the CSS. | Drift-guard test |
-| **STY-R7** | **`!important` frozen.** Don't add new `.<lib>-*` `!important`; restyle via the theme. | Biome `noImportantStyles` + review |
+| #          | Rule                                                                                                                                                                                           | Enforcement                        |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **STY-R1** | **No inline `style={{…}}`** for static styling. Use a layout component, a token/utility class, or Tailwind. Inline style only for genuinely dynamic values, with a `biome-ignore` + reason.    | Biome plugin (`error`)             |
+| **STY-R2** | **Prefer the component library over raw HTML** for anything it provides (Button, Table, Form, Card, Flex, Space, Modal…). Raw elements only for real design-system primitives it doesn't ship. | Review                             |
+| **STY-R3** | **No hardcoded values.** Every colour/space/radius/shadow/font comes from a design token. No raw hex or px in components.                                                                      | Review                             |
+| **STY-R4** | **Layout & spacing = utilities, not inline flex.** The `{display:flex,flexDirection:column,gap}` triple is banned.                                                                             | Biome (via R1) + review            |
+| **STY-R5** | **One class vocabulary.** New/edited code uses `.x-*` (or Tailwind). Legacy classes/vars are deprecated — touch a legacy site, migrate it.                                                     | Review                             |
+| **STY-R6** | **Single source of tokens.** Values defined once, fed to theme + CSS vars + Tailwind. Never hand-copy a hex between the theme and the CSS.                                                     | Drift-guard test                   |
+| **STY-R7** | **`!important` frozen.** Don't add new `.<lib>-*` `!important`; restyle via the theme.                                                                                                         | Biome `noImportantStyles` + review |
 
 **One sentence:** component + token + global class first; Tailwind utility for
 layout; inline style never (unless computed).
@@ -64,8 +64,8 @@ colour, shadow, type).
 ## 7. Tailwind adoption
 
 Config, how it consumes `--x-*`, preflight-off, the spacing-scale decision, and
-the layering rule: Tailwind can only *add* to `.x-*`, never *override* -
-use a modifier class for overrides.
+the layering rule: Tailwind can only _add_ to `.x-*`, never _override_ - use a
+modifier class for overrides.
 
 ## 8. Enforcement
 
@@ -76,14 +76,14 @@ assertions, the one designated `!important` override file) and why.
 
 Track the phases so anyone can see status:
 
-| Phase | Scope | Exit criteria |
-|---|---|---|
-| P0 | Standard doc + linter/CI at `warn` | Merged; violations visible |
-| P1 | Single-source tokens + drift guard | No duplicated hex |
-| P2 | Install Tailwind wired to tokens | Build green |
-| P3 | Migrate inline styles → utilities | Inline-style count → 0 |
-| P4 | Retire legacy vocabulary | Alias block deletable |
-| P5 | Flip rules `warn`→`error`; clear lint tail | CI red on any new violation |
+| Phase | Scope                                      | Exit criteria               |
+| ----- | ------------------------------------------ | --------------------------- |
+| P0    | Standard doc + linter/CI at `warn`         | Merged; violations visible  |
+| P1    | Single-source tokens + drift guard         | No duplicated hex           |
+| P2    | Install Tailwind wired to tokens           | Build green                 |
+| P3    | Migrate inline styles → utilities          | Inline-style count → 0      |
+| P4    | Retire legacy vocabulary                   | Alias block deletable       |
+| P5    | Flip rules `warn`→`error`; clear lint tail | CI red on any new violation |
 
 ## 9. Checklist for any frontend PR
 

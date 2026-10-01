@@ -10,30 +10,37 @@ You are an expert React frontend engineer. Apply these patterns consistently.
 
 ## React 19 + TypeScript Foundations
 
-- Use **TypeScript strictly** (`strict: true`). Infer types where obvious; annotate props, events, and hooks explicitly.
+- Use **TypeScript strictly** (`strict: true`). Infer types where obvious;
+  annotate props, events, and hooks explicitly.
 - Prefer **functional components with hooks** — never class components.
-- Use `React.FC` sparingly; prefer explicit return types: `function Comp(): React.JSX.Element`.
-- Target **React 19** features when available: `use()` hook, `useFormStatus`, `useOptimistic`, `useActionState`, `<Activity>`.
+- Use `React.FC` sparingly; prefer explicit return types:
+  `function Comp(): React.JSX.Element`.
+- Target **React 19** features when available: `use()` hook, `useFormStatus`,
+  `useOptimistic`, `useActionState`, `<Activity>`.
 
 ## Component Design
 
-- **Co-locate** related files: `Button/Button.tsx`, `Button/Button.test.tsx`, `Button/index.ts`.
+- **Co-locate** related files: `Button/Button.tsx`, `Button/Button.test.tsx`,
+  `Button/index.ts`.
 - Use **named exports** for components; barrel `index.ts` for public surface.
-- Extract reusable logic into **custom hooks** (`useXxx`) that return stable references.
+- Extract reusable logic into **custom hooks** (`useXxx`) that return stable
+  references.
 
 ## Hooks Rules
 
-- Prefer `useMemo` / `useCallback` only when profiling confirms a perf win; avoid premature memoization.
-- If the project enables React Compiler, it memoizes automatically - do not add manual `useMemo` / `useCallback`.
+- Prefer `useMemo` / `useCallback` only when profiling confirms a perf win;
+  avoid premature memoization.
+- If the project enables React Compiler, it memoizes automatically - do not add
+  manual `useMemo` / `useCallback`.
 
 ## State Management
 
-| Scope | Tool |
-| --- | --- |
-| Local UI state | `useState` / `useReducer` |
-| Server state / caching | TanStack Query (`useQuery`, `useMutation`) |
-| Global client state | **Zustand** (simple) or **Redux Toolkit** (complex) |
-| Form state | React Hook Form + Zod validation |
+| Scope                  | Tool                                                |
+| ---------------------- | --------------------------------------------------- |
+| Local UI state         | `useState` / `useReducer`                           |
+| Server state / caching | TanStack Query (`useQuery`, `useMutation`)          |
+| Global client state    | **Zustand** (simple) or **Redux Toolkit** (complex) |
+| Form state             | React Hook Form + Zod validation                    |
 
 **Zustand pattern:**
 
@@ -44,19 +51,24 @@ const useStore = create<State>()((set) => ({
 }));
 ```
 
-**Redux Toolkit pattern:** use `createSlice`, `createAsyncThunk`, RTK Query for API calls.
+**Redux Toolkit pattern:** use `createSlice`, `createAsyncThunk`, RTK Query for
+API calls.
 
 ## Forms
 
 - Use **React Hook Form** with **Zod** schema validation.
 - Server forms: use React 19 Actions API (`<form action={serverAction}>`).
-- Always show field-level validation errors; disable submit during pending state with `useFormStatus`.
+- Always show field-level validation errors; disable submit during pending state
+  with `useFormStatus`.
 
 ## Data Fetching
 
-- Prefer **TanStack Query** for all server state — handles caching, refetch, loading/error states.
-- For React Server Components: fetch directly in component; pass data as props to client components.
-- Co-locate query keys as constants; use query factories for parameterized queries.
+- Prefer **TanStack Query** for all server state — handles caching, refetch,
+  loading/error states.
+- For React Server Components: fetch directly in component; pass data as props
+  to client components.
+- Co-locate query keys as constants; use query factories for parameterized
+  queries.
 
 ## Performance
 
@@ -69,7 +81,8 @@ const useStore = create<State>()((set) => ({
 
 - Prefer **Tailwind CSS** utility classes for most styling.
 - Use **CSS Modules** for complex, scoped styles that need dynamic values.
-- Design system: **Shadcn/ui** (Radix + Tailwind), **MUI**, or **Fluent UI** depending on project.
+- Design system: **Shadcn/ui** (Radix + Tailwind), **MUI**, or **Fluent UI**
+  depending on project.
 - Never use inline styles except for truly dynamic values.
 
 ## Testing
@@ -90,7 +103,8 @@ test('increments counter on click', async () => {
 
 - Test **behavior, not implementation** — query by role, label, text.
 - Mock network calls with **MSW** (Mock Service Worker).
-- E2E tests: **Playwright** (see `playwright-explore-website` + `playwright-generate-test` skills).
+- E2E tests: **Playwright** (see `playwright-explore-website` +
+  `playwright-generate-test` skills).
 - Coverage target: 80%+ for business-critical components.
 
 ## Accessibility (a11y)
@@ -124,20 +138,23 @@ src/
 
 ## Key Libraries
 
-| Category | Preferred |
-| --- | --- |
-| Build | Vite + TypeScript |
-| Routing | React Router v6 / TanStack Router |
-| Data fetching | TanStack Query v5 |
-| State | Zustand or Redux Toolkit |
-| Forms | React Hook Form + Zod |
-| UI | Shadcn/ui, MUI, or Fluent UI |
-| Testing | Vitest + RTL + MSW + Playwright |
-| Styling | Tailwind CSS |
-| Linting | ESLint + Prettier |
+| Category      | Preferred                         |
+| ------------- | --------------------------------- |
+| Build         | Vite + TypeScript                 |
+| Routing       | React Router v6 / TanStack Router |
+| Data fetching | TanStack Query v5                 |
+| State         | Zustand or Redux Toolkit          |
+| Forms         | React Hook Form + Zod             |
+| UI            | Shadcn/ui, MUI, or Fluent UI      |
+| Testing       | Vitest + RTL + MSW + Playwright   |
+| Styling       | Tailwind CSS                      |
+| Linting       | ESLint + Prettier                 |
 
 ## Companion Skills
 
-- **`frontend-implementer`** — Implements full frontend tasks from a plan document following TDD loop
-- **`playwright-explore-website`** (awesome-copilot) — Explore and document UI flows for testing
-- **`playwright-generate-test`** (awesome-copilot) — Generate Playwright E2E tests from scenarios
+- **`frontend-implementer`** — Implements full frontend tasks from a plan
+  document following TDD loop
+- **`playwright-explore-website`** (awesome-copilot) — Explore and document UI
+  flows for testing
+- **`playwright-generate-test`** (awesome-copilot) — Generate Playwright E2E
+  tests from scenarios

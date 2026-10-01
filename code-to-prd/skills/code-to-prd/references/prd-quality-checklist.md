@@ -55,11 +55,11 @@ Use this checklist to validate generated PRDs before delivery.
 
 ## Common Issues to Watch
 
-| Issue | How to Detect | Fix |
-|-------|--------------|-----|
-| Missing modal content | Search for `Modal`, `Dialog`, `Drawer` components | Add as subsection in parent page |
-| Undocumented field linking | Search for conditional renders based on field values | Add to interaction logic |
-| Hidden permissions | Search for `v-if`, `v-show`, role checks, auth guards | Add visibility conditions |
-| Stale mock data | Compare mock shapes with API types/interfaces | Flag as `[Mock - verify with backend]` |
-| Missing error states | Search for error boundaries, catch blocks, toast errors | Add failure paths to interactions |
-| Unlinked pages | Cross-reference route params with navigation calls | Complete page relationships |
+| Issue                      | How to Detect                                           | Fix                                    |
+| -------------------------- | ------------------------------------------------------- | -------------------------------------- |
+| Missing modal content      | Search for `Modal`, `Dialog`, `Drawer` components       | Add as subsection in parent page       |
+| Undocumented field linking | Search for conditional renders based on field values    | Add to interaction logic               |
+| Hidden permissions         | Search for `v-if`, `v-show`, role checks, auth guards   | Add visibility conditions              |
+| Stale mock data            | Compare mock shapes with API types/interfaces           | Flag as `[Mock - verify with backend]` |
+| Missing error states       | Search for error boundaries, catch blocks, toast errors | Add failure paths to interactions      |
+| Unlinked pages             | Cross-reference route params with navigation calls      | Complete page relationships            |

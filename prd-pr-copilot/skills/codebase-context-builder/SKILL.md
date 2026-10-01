@@ -6,16 +6,18 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 
 # Codebase Context Builder
 
-**Scope**: Context file generation only — no user story analysis, no task breakdown.
-Called automatically by the `orchestrator` skill when `docs/project_context/` is absent or empty.
-Can be invoked directly to onboard a new repo.
+**Scope**: Context file generation only — no user story analysis, no task
+breakdown. Called automatically by the `orchestrator` skill when
+`docs/project_context/` is absent or empty. Can be invoked directly to onboard a
+new repo.
 
 ---
 
 ## When to Invoke
 
 - The `orchestrator` skill finds context missing → chains here
-- User says: "build project context", "analyse this codebase", "set up project context"
+- User says: "build project context", "analyse this codebase", "set up project
+  context"
 - Fresh repo with no `CLAUDE.md` or empty one from `/init`
 
 ---
@@ -35,6 +37,7 @@ CLAUDE.md, AGENTS.md, README.md
 ```
 
 Extract:
+
 - Primary language(s) and frameworks
 - Build/test/run scripts
 - Key dependencies (UI lib, ORM, test framework, state management)
@@ -52,7 +55,9 @@ find . -maxdepth 3 -type d \
 ```
 
 Identify:
-- Feature modules / bounded contexts (folders under `src/features/`, `src/modules/`, etc.)
+
+- Feature modules / bounded contexts (folders under `src/features/`,
+  `src/modules/`, etc.)
 - Shared / common code
 - API / endpoint layer
 - Service / business logic layer
@@ -63,9 +68,12 @@ Identify:
 
 ## Phase 3 — Pattern Sampling
 
-Sample 2–3 representative files per layer found in Phase 2 (UI components, API endpoints/handlers, services, data access, domain models/DTOs) - files typical of the codebase, not just the first search hit.
+Sample 2–3 representative files per layer found in Phase 2 (UI components, API
+endpoints/handlers, services, data access, domain models/DTOs) - files typical
+of the codebase, not just the first search hit.
 
 Extract from samples:
+
 - Naming conventions
 - Import/using patterns
 - Error handling style
@@ -76,7 +84,8 @@ Extract from samples:
 
 ## Phase 4 — Domain Entity Detection
 
-Find and read the 3–5 core domain model files - the entities the rest of the code most often references.
+Find and read the 3–5 core domain model files - the entities the rest of the
+code most often references.
 
 Extract: entity names, key fields, relationships, lifecycle states.
 
@@ -87,26 +96,31 @@ Extract: entity names, key fields, relationships, lifecycle states.
 Create `docs/project_context/` if it doesn't exist.
 
 **Always generate:**
+
 - `00_index.md` — filled with actual file references
 - `01_architectural_overview.md` — actual layers, patterns, tech found
 - `02_domain_model.md` — entities discovered, workflows inferred from code
 
 **Generate based on detected stack:**
 
-| Stack detected | File to generate |
-|---------------|-----------------|
-| React + TypeScript | `16_frontend_react_typescript.md` |
-| ASP.NET Core / C# | `15_dotnet_aspnet_patterns.md` |
-| Python (FastAPI/Django/Flask) | `17_python_patterns.md` |
-| Java / WCF / WPF / SOAP | `18_java_legacy_patterns.md` |
-| SQL + ORM (EF Core / SQLAlchemy) | `19_database_schema.md` |
-| REST endpoints found | `05_api_contracts.md` |
-| CI/CD pipeline file found | `20_deployment_pipeline.md` |
+| Stack detected                   | File to generate                  |
+| -------------------------------- | --------------------------------- |
+| React + TypeScript               | `16_frontend_react_typescript.md` |
+| ASP.NET Core / C#                | `15_dotnet_aspnet_patterns.md`    |
+| Python (FastAPI/Django/Flask)    | `17_python_patterns.md`           |
+| Java / WCF / WPF / SOAP          | `18_java_legacy_patterns.md`      |
+| SQL + ORM (EF Core / SQLAlchemy) | `19_database_schema.md`           |
+| REST endpoints found             | `05_api_contracts.md`             |
+| CI/CD pipeline file found        | `20_deployment_pipeline.md`       |
 
-If `docs/project_context/` already holds template files, use them as the base structure; otherwise create the files in the table above.
-Fill in discovered values; leave template placeholders where information is not discoverable from code.
+If `docs/project_context/` already holds template files, use them as the base
+structure; otherwise create the files in the table above. Fill in discovered
+values; leave template placeholders where information is not discoverable from
+code.
 
-**Always create `docs/project_context/prod_spec/`** — seed it with empty-but-structured files so the `context-updater` skill has a place to write product knowledge post-implementation:
+**Always create `docs/project_context/prod_spec/`** — seed it with
+empty-but-structured files so the `context-updater` skill has a place to write
+product knowledge post-implementation:
 
 ```
 docs/project_context/prod_spec/
@@ -117,9 +131,11 @@ docs/project_context/prod_spec/
 └── decisions.md          ← "# Design Decisions\n\n<!-- Populated by context-updater -->"
 ```
 
-**Update `CLAUDE.md`** — add `## Project Context Files` section with task-to-file lookup table if not already present.
+**Update `CLAUDE.md`** — add `## Project Context Files` section with
+task-to-file lookup table if not already present.
 
-**Update or create `AGENTS.md`** — add agent workflow guide referencing the context files.
+**Update or create `AGENTS.md`** — add agent workflow guide referencing the
+context files.
 
 ---
 
