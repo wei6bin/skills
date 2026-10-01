@@ -1,8 +1,6 @@
 ---
 name: frontend-styling-standard
-description: >-
-  Establish and enforce a styling standard for a React + Ant Design (and/or Tailwind) frontend: audit current styling, define the layered model (component library + design tokens + global classes + Tailwind utilities, inline styles banned), single-source the tokens, adopt Biome, migrate off inline styles and any legacy CSS vocabulary, and enforce via CI-blocking lint. Use when the user wants to clean up or standardise frontend styling, reduce inline style={{}}, adopt design tokens or a design system, wire up Tailwind, switch to Biome, retire a legacy class vocabulary, or review a frontend for styling debt - even without naming the tools.
-license: MIT
+description: Internal - frontend styling standard (Ant Design, tokens, Biome). Invoked by impl-frontend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 

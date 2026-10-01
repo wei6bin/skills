@@ -1,6 +1,6 @@
 ---
 name: frontend-implementer
-description: Implements the frontend half of one vertical slice via TDD red-green-refactor against the slice's AC. Discovers files as tests demand them — does not follow a pre-listed file-task table. Reads project conventions from docs/project_context/, commits per AC behaviour. Builds against the slice's frozen API contract with a typed mock (running concurrently with the backend half); does not integrate per slice — every slice's mock is reconciled against the real backends in a single whole-story integration pass at the end.
+description: Internal - TDD loop for one slice's frontend half, and whole-story mock-to-real integration. Invoked by impl-frontend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: raise-pr
-description: Use when implementation and the test-plan walkthrough are complete and the work needs integrating - verifies the full CI gate (build, typecheck, test, lint, format), checks the walkthrough artifacts, offers merge / PR / keep / discard, builds the PR body with embedded screenshots, cleans up the worktree and closes out the project's backlog tracker.
+description: Internal - final CI gate, PR body and worktree cleanup once implementation and walkthrough are done. Invoked by the orchestrator.
 allowed-tools: Read, Bash, AskUserQuestion
 ---
 

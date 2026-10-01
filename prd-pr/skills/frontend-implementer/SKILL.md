@@ -1,6 +1,6 @@
 ---
 name: frontend-implementer
-description: Drives the TDD red-green-refactor loop for the frontend half of one vertical slice against a typed mock of its frozen contract - one user-visible AC behaviour at a time, files discovered as tests demand them, one commit per cycle - or its sweep mode for a mechanical-rewrite slice, and, in "whole-story integration" scope, swaps every slice's mock for the real backends once. Invoked by the impl-frontend agent after it has loaded context.
+description: Internal - TDD loop for one slice's frontend half, and whole-story mock-to-real integration. Invoked by impl-frontend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 

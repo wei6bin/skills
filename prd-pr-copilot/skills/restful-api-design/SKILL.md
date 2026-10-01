@@ -1,11 +1,6 @@
 ---
 name: restful-api-design
-description: >-
-  Framework-agnostic RESTful API design and implementation guide covering
-  OpenAPI-first design, layered architecture (controller/service/repository),
-  authentication (JWT/OAuth2), error handling, pagination, and API testing.
-  Apply when designing or implementing REST APIs in any language/framework.
-license: MIT
+description: Internal - REST API house conventions. Invoked by impl-backend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
@@ -43,7 +38,7 @@ POST   /resources/{id}/actions/approve  # RPC-style action as sub-resource
 ## HTTP Methods and Status Codes
 
 | Scenario | Method | Success Code |
-|---|---|---|
+| --- | --- | --- |
 | Create resource | POST | 201 Created |
 | Read resource | GET | 200 OK |
 | Full update | PUT | 200 OK |
@@ -54,7 +49,7 @@ POST   /resources/{id}/actions/approve  # RPC-style action as sub-resource
 **Error codes:**
 
 | Code | When |
-|---|---|
+| --- | --- |
 | 400 | Validation failed — include field-level errors |
 | 401 | Not authenticated |
 | 403 | Authenticated but not authorized |
@@ -92,7 +87,7 @@ Controller  →  Service  →  Repository  →  Database
 ```
 
 | Layer | Responsibility |
-|---|---|
+| --- | --- |
 | **Controller** | Parse/validate HTTP request, call service, format HTTP response |
 | **Service** | Business logic, orchestration, domain rules |
 | **Repository** | Data access only — no business logic |
@@ -137,17 +132,20 @@ Prefer **cursor-based** for large/real-time datasets, **offset** for simple admi
 ## Authentication & Authorization
 
 **JWT (stateless):**
+
 - Access token: short-lived (15 min), stored in memory (not localStorage).
 - Refresh token: long-lived (7 days), `HttpOnly` secure cookie.
 - Validate signature, expiry, and `aud`/`iss` claims on every request.
 - Invalidate refresh tokens server-side on logout (token denylist or rotation).
 
 **OAuth2 / OIDC:**
+
 - Use Authorization Code + PKCE flow for user-facing APIs.
 - Use Client Credentials for service-to-service calls.
 - Never implement your own OAuth2 — use a provider (Keycloak, Auth0, Azure AD).
 
 **Authorization:**
+
 - Apply RBAC or ABAC at the service layer, not controller.
 - Use policy objects / guard middleware for consistent checks.
 - Return `403` (not `404`) only when the resource existence is not sensitive.
@@ -169,6 +167,7 @@ Prefer **cursor-based** for large/real-time datasets, **offset** for simple admi
 ## Security Headers
 
 Always set:
+
 ```
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
@@ -178,6 +177,7 @@ X-Request-Id: <uuid>
 ```
 
 Never expose:
+
 - Stack traces in error responses.
 - Internal IPs, hostnames, or framework version headers.
 - Database error messages.
@@ -192,13 +192,14 @@ Never expose:
 ## Testing Strategy
 
 | Layer | Tool | What to test |
-|---|---|---|
+| --- | --- | --- |
 | Unit | Jest/pytest/JUnit | Service logic, repository, DTOs |
 | Integration | Supertest/httpx/RestAssured | Full HTTP request/response cycle |
 | Contract | Pact / OpenAPI validation | Spec compliance |
 | Load | k6 / Artillery | Throughput, latency percentiles |
 
 **Integration test pattern:**
+
 ```ts
 it('POST /api/v1/users returns 201 with created user', async () => {
   const res = await request(app)

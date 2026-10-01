@@ -1,7 +1,6 @@
 ---
 name: react-best-practices
-description: House conventions for React 19 + TypeScript frontends - library choices (TanStack Query, Zustand/RTK, React Hook Form + Zod, Vitest + RTL + MSW, Biome), the skipToken gating pattern, the layered styling model and its CSS-cascade gotcha. Apply when implementing React components, hooks, forms or data fetching.
-license: MIT
+description: Internal - React 19 + TypeScript house conventions. Invoked by impl-frontend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 

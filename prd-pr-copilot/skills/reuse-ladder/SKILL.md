@@ -1,6 +1,6 @@
 ---
 name: reuse-ladder
-description: The lean-implementation discipline shared by the prd-pr implementers — climb a reuse ladder (existing code → stdlib/platform → native framework feature → installed dependency → one line) before writing custom code, and apply the lean mode (lite/full) derived from a slice's story-point size. Invoked by the backend-implementer and frontend-implementer skills (and the impl-backend / impl-frontend agents) so the guidance lives in exactly one place.
+description: Internal - lean-implementation reuse ladder. Invoked by impl-backend and impl-frontend.
 allowed-tools: Read, Grep, Glob
 ---
 

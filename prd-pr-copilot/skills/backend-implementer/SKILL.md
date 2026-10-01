@@ -1,6 +1,6 @@
 ---
 name: backend-implementer
-description: Implements the backend half of one vertical slice via TDD red-green-refactor against the slice's AC. Discovers files as tests demand them — does not follow a pre-listed file-task table. Reads project conventions from docs/project_context/, commits per AC behaviour.
+description: Internal - TDD loop for one slice's backend half. Invoked by impl-backend.
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
 ---
 
