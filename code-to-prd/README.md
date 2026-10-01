@@ -26,7 +26,7 @@ python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
 
 ## What It Generates
 
-```
+```text
 prd/
 ├── README.md                  # System overview
 ├── pages/

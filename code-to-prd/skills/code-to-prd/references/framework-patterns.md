@@ -186,7 +186,7 @@ Detected via `*.xcodeproj`/`project.pbxproj`/`Podfile`, or the presence of
 
 ### Mock Detection
 
-```
+```text
 # Likely mock
 setTimeout(() => resolve(data), 500)
 Promise.resolve(mockData)
@@ -202,7 +202,7 @@ useSWR('/api/resource')
 
 ### Permission Patterns
 
-```
+```text
 # React
 {hasPermission('admin') && <Button>Delete</Button>}
 <ProtectedRoute roles={['admin', 'manager']}>
@@ -218,7 +218,7 @@ canActivate: [AuthGuard]
 
 ### Form Validation
 
-```
+```text
 # React Hook Form
 { required: 'Name is required', maxLength: { value: 50, message: 'Too long' } }
 
@@ -248,7 +248,7 @@ email: EmailStr
 
 ### Database Model Patterns
 
-```
+```text
 # Django
 class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
