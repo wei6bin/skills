@@ -1,0 +1,14 @@
+{
+  "name": "jidoka-cursor",
+  "description": "Cursor render of jidoka, the 10-phase plan-then-build dev workflow: the line skill and its companions, nine subagents with Cursor model slugs, an always-on dispatch rule, and after-edit hooks (secrets scan, Prettier, Biome, TypeScript), all generated from one source tree.",
+  "author": {
+    "name": "wei6bin"
+  },
+  "repository": "https://github.com/wei6bin/skills",
+  "license": "MIT",
+  "keywords": ["dev-workflow", "user-story", "vertical-slice", "subagents", "tdd"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "rules": "./rules/",
+  "hooks": "./hooks/hooks.json"
+}

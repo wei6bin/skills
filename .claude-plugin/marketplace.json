@@ -4,67 +4,72 @@
     "name": "wei6bin"
   },
   "metadata": {
-    "description": "Marketplace hosting two variants of the prd-pr dev-workflow plugin: prd-pr (Claude Code) and prd-pr-copilot (Copilot CLI). Both run the same 10-phase orchestrator-driven flow — plan-then-build with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough with screenshots embedded into the PR body. Also hosts standalone skill plugins: utility-skills, code-to-prd, and clinical-lecture-brief.",
-    "version": "2.16.0"
+    "description": "Marketplace hosting the jidoka dev-workflow plugin for Claude Code and its Copilot CLI render, jidoka-copilot, both generated from one source tree (the Cursor render, jidoka-cursor, is listed in .cursor-plugin/marketplace.json). They run the same 10-phase orchestrator-driven flow - plan-then-build with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough with screenshots embedded into the PR body. Also hosts standalone skill plugins: utility-skills, code-to-prd, and clinical-lecture-brief.",
+    "version": "3.0.0"
   },
   "plugins": [
     {
-      "name": "prd-pr",
-      "description": "Claude Code dev-workflow plugin. The orchestrator skill drives the 10-phase plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, code-reviewer, security-reviewer, test-plan-walker) as needed. Loop position persists in a per-slice 07-progress.md ledger so the workflow is resumable.",
-      "source": "./prd-pr",
+      "name": "jidoka",
+      "description": "Claude Code dev-workflow plugin. The `line` skill drives the 10-phase plan-then-build flow in the main session, dispatching helper subagents (code-explorer, code-architect, plan-reviewer, impl-backend, impl-frontend, impl-simplify, code-reviewer, security-reviewer, test-plan-walker) as needed. Loop position persists in a per-slice 07-progress.md ledger so the workflow is resumable.",
+      "source": "./jidoka",
       "agents": [
         "./agents/code-architect.md",
         "./agents/code-explorer.md",
-        "./agents/plan-reviewer.md",
+        "./agents/code-reviewer.md",
         "./agents/impl-backend.md",
         "./agents/impl-frontend.md",
         "./agents/impl-simplify.md",
-        "./agents/code-reviewer.md",
+        "./agents/plan-reviewer.md",
         "./agents/security-reviewer.md",
         "./agents/test-plan-walker.md"
       ],
       "skills": [
-        "./skills/orchestrator",
-        "./skills/vertical-slicing",
-        "./skills/git-worktrees",
-        "./skills/raise-pr",
         "./skills/backend-implementer",
-        "./skills/frontend-implementer",
-        "./skills/reuse-ladder",
         "./skills/codebase-context-builder",
         "./skills/context-updater",
-        "./skills/react-best-practices",
+        "./skills/frontend-implementer",
         "./skills/frontend-styling-standard",
+        "./skills/git-worktrees",
+        "./skills/line",
+        "./skills/raise-pr",
+        "./skills/react-best-practices",
         "./skills/restful-api-design",
-        "./skills/test-plan-walkthrough"
+        "./skills/reuse-ladder",
+        "./skills/sweep-implementer",
+        "./skills/test-plan-walkthrough",
+        "./skills/vertical-slicing"
       ]
     },
     {
-      "name": "prd-pr-copilot",
-      "description": "Copilot CLI variant — orchestrator skill drives the 10-phase plan-then-build flow with vertical-slice architecture, slice-by-slice implementation, and an end-to-end test-plan walkthrough that embeds screenshots into the PR body. Agents use Copilot's .agent.md format.",
-      "source": "./prd-pr-copilot",
+      "name": "jidoka-copilot",
+      "description": "Copilot CLI render of jidoka, generated from the same source: the `line` skill drives the 10-phase plan-then-build flow, dispatching the same nine subagents in Copilot's .agent.md format with Copilot tool aliases and model ids, and the after-edit hooks ship as a postToolUse set.",
+      "source": "./jidoka-copilot",
       "agents": [
         "./agents/code-architect.agent.md",
         "./agents/code-explorer.agent.md",
-        "./agents/plan-reviewer.agent.md",
+        "./agents/code-reviewer.agent.md",
         "./agents/impl-backend.agent.md",
         "./agents/impl-frontend.agent.md",
         "./agents/impl-simplify.agent.md",
+        "./agents/plan-reviewer.agent.md",
+        "./agents/security-reviewer.agent.md",
         "./agents/test-plan-walker.agent.md"
       ],
       "skills": [
-        "./skills/orchestrator",
-        "./skills/vertical-slicing",
-        "./skills/git-worktrees",
-        "./skills/raise-pr",
         "./skills/backend-implementer",
-        "./skills/frontend-implementer",
-        "./skills/reuse-ladder",
         "./skills/codebase-context-builder",
         "./skills/context-updater",
+        "./skills/frontend-implementer",
+        "./skills/frontend-styling-standard",
+        "./skills/git-worktrees",
+        "./skills/line",
+        "./skills/raise-pr",
         "./skills/react-best-practices",
         "./skills/restful-api-design",
-        "./skills/test-plan-walkthrough"
+        "./skills/reuse-ladder",
+        "./skills/sweep-implementer",
+        "./skills/test-plan-walkthrough",
+        "./skills/vertical-slicing"
       ]
     },
     {
@@ -72,21 +77,31 @@
       "description": "Collection of standalone utility skills — teach-me and more.",
       "source": "./utility-skills",
       "agents": [],
-      "skills": ["./skills/teach-me", "./skills/learn-it", "./skills/spec-me", "./skills/html-it", "./skills/my-work"]
+      "skills": [
+        "./skills/teach-me",
+        "./skills/learn-it",
+        "./skills/spec-me",
+        "./skills/html-it",
+        "./skills/my-work"
+      ]
     },
     {
       "name": "code-to-prd",
       "description": "Reverse-engineer any codebase into a complete Product Requirements Document (PRD). Analyzes routes, components, models, APIs, and interactions for frontend (React, Vue, Angular, Next.js), backend (NestJS, Django, Express, FastAPI), .NET/ASP.NET (Web API, WCF, Web Forms), native mobile (Android, iOS), and fullstack applications.",
       "source": "./code-to-prd",
       "agents": [],
-      "skills": ["./skills/code-to-prd"]
+      "skills": [
+        "./skills/code-to-prd"
+      ]
     },
     {
       "name": "clinical-lecture-brief",
       "description": "Turn a clinical or medical YouTube lecture into a published, audience-calibrated teaching artifact. Fetches the transcript, repairs speech-recognition garbling, verifies the medicine against current teaching, and builds a designed HTML study reference.",
       "source": "./clinical-lecture-brief",
       "agents": [],
-      "skills": ["./skills/clinical-lecture-brief"]
+      "skills": [
+        "./skills/clinical-lecture-brief"
+      ]
     }
   ]
 }

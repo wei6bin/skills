@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>prd-pr Orchestrator Workflow</title>
+<title>jidoka Orchestrator Workflow</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -234,9 +234,9 @@
 
 <header class="masthead">
   <div>
-    <p class="eyebrow">prd-pr plugin · docs/orchestrator-workflow.html</p>
+    <p class="eyebrow">jidoka plugin · docs/orchestrator-workflow.html</p>
     <h1>Orchestrator workflow</h1>
-    <p class="lede">The <code>orchestrator</code> skill drives a feature from a user story to a merged PR through 10 phases. Each phase dispatches helper subagents or invokes companion skills as needed. The diagram below maps phase → components → artifacts.</p>
+    <p class="lede">The <code>line</code> skill drives a feature from a user story to a merged PR through 10 phases. Each phase dispatches helper subagents or invokes companion skills as needed. The diagram below maps phase → components → artifacts.</p>
   </div>
   <div class="legend">
     <span class="legend-title">Node colours</span>
@@ -516,11 +516,11 @@
         <tr>
           <td><span class="type type-sub"><i></i>Subagent <small>blue</small></span></td>
           <td><div class="chips"><code class="c c-sub">code-explorer</code> <code class="c c-sub">code-architect</code> <code class="c c-sub">plan-reviewer</code> <code class="c c-sub">impl-backend</code> <code class="c c-sub">impl-frontend</code> <code class="c c-sub">impl-simplify</code> <code class="c c-sub">code-reviewer</code> <code class="c c-sub">security-reviewer</code> <code class="c c-sub">test-plan-walker</code></div></td>
-          <td><code>prd-pr/agents/*.md</code></td>
+          <td><code>src/agents/*.md</code><span class="sub">rendered to <code>jidoka/agents/*.md</code>, <code>jidoka-copilot/agents/*.agent.md</code> and <code>jidoka-cursor/agents/*.md</code> by <code>make build</code></span></td>
         </tr>
         <tr>
           <td><span class="type type-skill"><i></i>Skill <small>orange</small></span></td>
-          <td><div class="chips"><code class="c c-skill">orchestrator</code> <code class="c c-skill">codebase-context-builder</code> <code class="c c-skill">vertical-slicing</code> <code class="c c-skill">git-worktrees</code> <code class="c c-skill">raise-pr</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">frontend-styling-standard</code> <code class="c c-skill">context-updater</code> <code class="c c-skill">test-plan-walkthrough</code></div></td>
+          <td><div class="chips"><code class="c c-skill">line</code> <code class="c c-skill">codebase-context-builder</code> <code class="c c-skill">vertical-slicing</code> <code class="c c-skill">git-worktrees</code> <code class="c c-skill">raise-pr</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">sweep-implementer</code> <code class="c c-skill">frontend-styling-standard</code> <code class="c c-skill">context-updater</code> <code class="c c-skill">test-plan-walkthrough</code></div></td>
           <td><code>*/skills/&lt;name&gt;/SKILL.md</code><span class="sub"><code>simplify</code> is Claude Code's built-in skill</span></td>
         </tr>
         <tr>
@@ -569,7 +569,7 @@
           <td class="n">4</td>
           <td class="phase">Architecture Design &amp; Documents</td>
           <td>1× <code class="c c-sub">code-architect</code> (designs <strong>and writes</strong> the 6 docs directly - no orchestrator transcription, closing the old ~20-min gap)</td>
-          <td><code class="c c-skill">git-worktrees</code> (isolate, <strong>first</strong>), <code class="c c-skill">vertical-slicing</code> (slice shape + frozen per-slice contracts + the machine-readable dependency DAG)</td>
+          <td><code class="c c-skill">git-worktrees</code> (isolate, <strong>first</strong>), <code class="c c-skill">vertical-slicing</code> (slice shape + frozen per-slice contracts + the machine-readable dependency DAG), <code class="c c-skill">restful-api-design</code> (API-surface rules for any new or changed endpoint, applied while freezing the contract)</td>
           <td>6 plan files in <code>docs/new-feature/{id}/</code>; slice list + frozen contracts + a <code>## Dependency graph</code> block in <code class="c c-art">04-task-plan.md</code> (authoritative edge table + waves + critical path)</td>
         </tr>
         <tr>
@@ -598,10 +598,10 @@
           <td class="phase">Slice-by-slice Impl</td>
           <td>
             <p><strong>Step 1</strong> (implement only, <strong>no per-slice integration</strong>): the ready-frontier and critical path are computed from <code class="c c-art">04-task-plan.md</code>'s <code>## Dependency graph</code> block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, <code class="c c-sub">impl-backend</code> and <code class="c c-sub">impl-frontend</code> in parallel against the frozen contract - BE implements <em>and conformance-tests</em> it, FE stays on a mock.</p>
-            <p><strong>Step 2</strong> (once, whole story): one <code class="c c-sub">impl-frontend</code> <strong>whole-story integration</strong> → <code class="c c-sub">impl-simplify</code> (isolated context, wraps the built-in <code>simplify</code> skill; runs first so reviewers read the diff that ships) → <code class="c c-sub">code-reviewer</code> and <code class="c c-sub">security-reviewer</code> in parallel → smoke → regression (one run that is also the coverage gate) → <code class="c c-skill">context-updater</code> (review loops back on <code>FIXES_NEEDED</code>).</p>
+            <p><strong>Step 2</strong> (once, whole story): one <code class="c c-sub">impl-frontend</code> <strong>whole-story integration</strong> → <code class="c c-sub">impl-simplify</code> (isolated context, wraps the built-in <code>simplify</code> skill, then applies the house conventions the implementers skip; runs first so reviewers read the diff that ships) → <code class="c c-sub">code-reviewer</code> and <code class="c c-sub">security-reviewer</code> in parallel → smoke → regression (one run that is also the coverage gate) → <code class="c c-skill">context-updater</code> (review loops back on <code>FIXES_NEEDED</code>).</p>
             <p><code>Kind: sweep</code> slices gate on the build only and run concurrently; the refactor tier (set in Phase 1) drops explorers, plan review, the security reviewer and the walker.</p>
           </td>
-          <td><div class="chips"><code class="c c-skill">vertical-slicing</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">frontend-styling-standard</code> <span class="none">(styling-standard work only)</span> <code class="c c-skill">restful-api-design</code> <code>simplify</code> <span class="none">(built-in, via <code class="c c-sub">impl-simplify</code>)</span> <code class="c c-skill">context-updater</code></div></td>
+          <td><div class="chips"><code class="c c-skill">vertical-slicing</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">sweep-implementer</code> <span class="none">(<code>kind: sweep</code> slices)</span> <code class="c c-skill">frontend-styling-standard</code> <span class="none">(styling-standard work only)</span> <code>simplify</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <span class="none">(all three via <code class="c c-sub">impl-simplify</code>; <code>simplify</code> is built-in)</span> <code class="c c-skill">context-updater</code></div></td>
           <td>Code + tests + single checkpoint commit + <code class="c c-art">07-progress.md</code> ledger</td>
         </tr>
         <tr>

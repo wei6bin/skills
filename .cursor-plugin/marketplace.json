@@ -1,0 +1,16 @@
+{
+  "name": "skills",
+  "owner": {
+    "name": "wei6bin"
+  },
+  "metadata": {
+    "description": "Cursor marketplace for the jidoka dev-workflow plugin, rendered for Cursor from the same source tree as the Claude Code and Copilot CLI plugins."
+  },
+  "plugins": [
+    {
+      "name": "jidoka-cursor",
+      "source": "jidoka-cursor",
+      "description": "Cursor render of jidoka: the line skill drives the 10-phase plan-then-build flow, dispatching nine subagents by bare subagent_type, with after-edit hooks for secrets, Prettier, Biome and TypeScript."
+    }
+  ]
+}

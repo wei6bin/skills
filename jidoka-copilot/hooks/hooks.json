@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "matcher": "edit|create",
+        "bash": "bash \"$HOME/.copilot/installed-plugins/skills/jidoka-copilot/hooks/secrets-scan-on-change.sh\"",
+        "timeoutSec": 15
+      },
+      {
+        "type": "command",
+        "matcher": "edit|create",
+        "bash": "bash \"$HOME/.copilot/installed-plugins/skills/jidoka-copilot/hooks/prettier-on-change.sh\"",
+        "timeoutSec": 30
+      },
+      {
+        "type": "command",
+        "matcher": "edit|create",
+        "bash": "bash \"$HOME/.copilot/installed-plugins/skills/jidoka-copilot/hooks/biome-on-change.sh\"",
+        "timeoutSec": 30
+      },
+      {
+        "type": "command",
+        "matcher": "edit|create",
+        "bash": "bash \"$HOME/.copilot/installed-plugins/skills/jidoka-copilot/hooks/ts-typecheck-on-change.sh\"",
+        "timeoutSec": 60
+      }
+    ]
+  }
+}
