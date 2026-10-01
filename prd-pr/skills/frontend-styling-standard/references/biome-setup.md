@@ -51,6 +51,7 @@ Remove ESLint and its plugins (`eslint`, `@eslint/js`, `typescript-eslint`,
 ```
 
 Notes learned the hard way:
+
 - `useIgnoreFile: false` when the repo's `.gitignore` isn't in the folder Biome
   runs from (e.g. a `frontend/` subdir); scope via `files.includes` instead.
 - Folder ignores are `"!**/dist"` — **not** `"!**/dist/**"` (Biome warns
@@ -60,7 +61,7 @@ Notes learned the hard way:
 - `biome.json` is strict JSON — **no `comment` keys** anywhere; it errors.
 - Biome's `recommended` set is stricter than a minimal ESLint config. It will
   surface real findings ESLint didn't (a11y, `noNonNullAssertion`, unsafe
-  optional chaining). To keep the linter *swap* non-breaking, downgrade the
+  optional chaining). To keep the linter _swap_ non-breaking, downgrade the
   newly-erroring rules to `warn` in `biome.json`, land the swap, then fix them
   and re-escalate to `error` in a follow-up. Don't let the swap break CI on
   pre-existing issues the team never opted into.
@@ -90,8 +91,8 @@ Biome has no built-in no-inline-styles rule; author one as a GritQL plugin.
   `"plugins": []`.
 - Suppress a genuinely dynamic case in code with
   `// biome-ignore lint/plugin: <reason>` on the line above.
-- Verify the flip worked: `biome lint .` exits 0 on clean code, and a probe
-  file with a new `style={{color:"red"}}` exits 1.
+- Verify the flip worked: `biome lint .` exits 0 on clean code, and a probe file
+  with a new `style={{color:"red"}}` exits 1.
 
 ## CI workflow
 

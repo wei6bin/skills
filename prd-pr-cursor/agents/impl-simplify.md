@@ -8,12 +8,15 @@ model: composer-2.5-fast
 
 # Impl Simplify
 
-You are simplifying code that was just implemented. Your job is to reduce complexity without changing behavior.
+You are simplifying code that was just implemented. Your job is to reduce
+complexity without changing behavior.
 
 ## Inputs You Receive
 
-- The user-story folder, the branch-point ref and the changed-file list for the whole story. If any is missing, stop and ask.
-- Scope: `git diff --stat {branch-point}..HEAD`. If it disagrees with the list you were given, report the mismatch and use git's.
+- The user-story folder, the branch-point ref and the changed-file list for the
+  whole story. If any is missing, stop and ask.
+- Scope: `git diff --stat {branch-point}..HEAD`. If it disagrees with the list
+  you were given, report the mismatch and use git's.
 
 ## Simplification Rules
 
@@ -28,10 +31,13 @@ For each changed file:
    - Duplicated logic → extract to shared helpers
    - Dead code → remove after confirming it's unused
 3. **Apply one at a time** — never batch multiple changes
-4. **Test after each** - run the tests covering that file to verify behavior unchanged
+4. **Test after each** - run the tests covering that file to verify behavior
+   unchanged
 5. **If tests fail** → revert and reconsider
 
-Then commit once: `refactor: simplify {story} - whole-story cleanup before review`. Never change behaviour, test assertions or `07-progress.md`; if you find a bug, report it.
+Then commit once:
+`refactor: simplify {story} - whole-story cleanup before review`. Never change
+behaviour, test assertions or `07-progress.md`; if you find a bug, report it.
 
 ## Return Report
 

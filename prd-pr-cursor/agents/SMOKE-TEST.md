@@ -1,30 +1,30 @@
 # prd-pr Cursor — model smoke test
 
-Verify that **project** subagents (`.cursor/agents/`) run on the intended models, not the
-parent chat model and not the plugin’s Claude Code `sonnet`/`opus`/`haiku` shorthands.
+Verify that **project** subagents (`.cursor/agents/`) run on the intended
+models, not the parent chat model and not the plugin’s Claude Code
+`sonnet`/`opus`/`haiku` shorthands.
 
 ## Expected mapping (this repo)
 
+| `subagent_type`     | Frontmatter `model:` | UI name (approx.)              |
+| ------------------- | -------------------- | ------------------------------ |
+| `code-explorer`     | `composer-2.5`       | Composer 2.5                   |
+| `code-architect`    | `claude-opus-4-8`    | Claude 4.8 Opus                |
+| `plan-reviewer`     | `gpt-5.5`            | GPT-5.5                        |
+| `impl-backend`      | `composer-2.5`       | Composer 2.5                   |
+| `impl-frontend`     | `composer-2.5`       | Composer 2.5                   |
+| `impl-simplify`     | `composer-2.5-fast`  | Composer 2.5 Fast (cheap pass) |
+| `code-reviewer`     | `gpt-5.5`            | GPT-5.5                        |
+| `security-reviewer` | `claude-opus-4-8`    | Claude 4.8 Opus                |
+| `test-plan-walker`  | `composer-2.5`       | Composer 2.5                   |
 
-| `subagent_type`    | Frontmatter `model:` | UI name (approx.)              |
-| ------------------ | -------------------- | ------------------------------ |
-| `code-explorer`    | `composer-2.5`       | Composer 2.5                   |
-| `code-architect`   | `claude-opus-4-8`    | Claude 4.8 Opus                |
-| `plan-reviewer`    | `gpt-5.5`            | GPT-5.5                        |
-| `impl-backend`     | `composer-2.5`       | Composer 2.5                   |
-| `impl-frontend`    | `composer-2.5`       | Composer 2.5                   |
-| `impl-simplify`    | `composer-2.5-fast`  | Composer 2.5 Fast (cheap pass) |
-| `code-reviewer`    | `gpt-5.5`            | GPT-5.5                        |
-| `security-reviewer`| `claude-opus-4-8`    | Claude 4.8 Opus                |
-| `test-plan-walker` | `composer-2.5`       | Composer 2.5                   |
+**Prerequisite:** In **Cursor Settings → Models**, enable every model above.
+Opus 4.8 and GPT-5.5 may require **Max Mode** on your plan. If a model is
+blocked, Cursor substitutes another model silently — the smoke test will look
+“green” but wrong.
 
-
-**Prerequisite:** In **Cursor Settings → Models**, enable every model above. Opus 4.8 and
-GPT-5.5 may require **Max Mode** on your plan. If a model is blocked, Cursor substitutes
-another model silently — the smoke test will look “green” but wrong.
-
-Confirm slugs match your picker (copy ID from Settings). If a slug fails, try the variant
-shown in the UI (e.g. `gpt-5.5-fast`, `claude-opus-4-7-fast`).
+Confirm slugs match your picker (copy ID from Settings). If a slug fails, try
+the variant shown in the UI (e.g. `gpt-5.5-fast`, `claude-opus-4-7-fast`).
 
 ---
 
@@ -48,16 +48,18 @@ ls .cursor/agents/code-explorer.md
 
 1. Open **n-lite** in Cursor.
 2. Start a **new** Agent chat.
-3. Pick a **parent** model that is **different** from subagents (e.g. **Composer 2.5 Fast**
-  or anything except Opus-only), so a subagent that silently falls back to the parent model is distinguishable.
-4. Ensure **prd-pr** plugin is enabled; do **not** use `agent_type: "prd-pr:…"` in prompts.
+3. Pick a **parent** model that is **different** from subagents (e.g. **Composer
+   2.5 Fast** or anything except Opus-only), so a subagent that silently falls
+   back to the parent model is distinguishable.
+4. Ensure **prd-pr** plugin is enabled; do **not** use `agent_type: "prd-pr:…"`
+   in prompts.
 
 ---
 
 ## Step 2 — Paste smoke prompt (parent)
 
-Paste this into the parent agent (one message). It spawns four subagents in parallel with
-**readonly** scope — no repo writes.
+Paste this into the parent agent (one message). It spawns four subagents in
+parallel with **readonly** scope — no repo writes.
 
 ```markdown
 Run a prd-pr **model routing smoke test**. Do not change any files.
@@ -83,16 +85,15 @@ Do **not** pass `model:` on Task — we are testing frontmatter routing.
 
 For **each** subagent run in the Cursor UI (subagent panel / trace):
 
-
-| Check                              | Pass                                                                       |
-| ---------------------------------- | -------------------------------------------------------------------------- |
-| Agent name matches `subagent_type` | e.g. `code-explorer`, not `explore`                                        |
+| Check                              | Pass                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| Agent name matches `subagent_type` | e.g. `code-explorer`, not `explore`                            |
 | Model badge / label                | Matches **Expected mapping** (Composer 2.5, Opus 4.8, GPT-5.5) |
-| Output contains `SMOKE … ok`       | Subagent actually ran                                                      |
-| Parent did not implement inline    | Parent only dispatched Task                                                |
+| Output contains `SMOKE … ok`       | Subagent actually ran                                          |
+| Parent did not implement inline    | Parent only dispatched Task                                    |
 
-
-If the UI does not show model names, use **Step 4** (transcript) or **Step 5** (override).
+If the UI does not show model names, use **Step 4** (transcript) or **Step 5**
+(override).
 
 ---
 
@@ -105,8 +106,8 @@ After the smoke chat, inspect the latest parent transcript under:
 - Parent `Task` tool inputs should have `"model": null` or no `model` key.
 - Subagent folders under `subagents/` should exist for each spawn.
 
-Transcripts often **do not** record the resolved runtime model — treat UI + override test as
-authoritative.
+Transcripts often **do not** record the resolved runtime model — treat UI +
+override test as authoritative.
 
 ---
 
@@ -115,15 +116,15 @@ authoritative.
 Pick **one** subagent (e.g. `plan-reviewer`). Run two Tasks:
 
 1. Omit `model` → should use `gpt-5.5` from frontmatter.
-2. Pass `model: "composer-2.5-fast"` on Task → should run faster/cheaper if override works.
+2. Pass `model: "composer-2.5-fast"` on Task → should run faster/cheaper if
+   override works.
 
-Compare UI model badge between runs. If both look identical, Task override may be ignored on
-your plan — rely on frontmatter only.
+Compare UI model badge between runs. If both look identical, Task override may
+be ignored on your plan — rely on frontmatter only.
 
 ---
 
 ## Step 6 — Negative checks
-
 
 | Anti-pattern                                  | Expected                                          |
 | --------------------------------------------- | ------------------------------------------------- |
@@ -131,22 +132,22 @@ your plan — rely on frontmatter only.
 | `Task(..., model: "opus")`                    | Invalid slug (failed in usr-031 session)          |
 | Plugin-only agents, no `.cursor/agents/`      | Wrong `model:` (plugin sonnet/opus/haiku ignored) |
 
-
 ---
 
 ## Step 7 — Full prd-pr path (optional)
 
 After model smoke passes:
 
-1. Parent: invoke plugin `**orchestrator`** skill on a tiny story (or dry-run Phase 2 only).
-2. Confirm Phase 2 uses `subagent_type: code-explorer` (×2–3), Phase 4 `code-architect`,
-  Phase 6 `plan-reviewer` (×2).
-3. Do **not** run Phase 8 until model routing is confirmed — implementation is expensive.
+1. Parent: invoke plugin `**orchestrator`** skill on a tiny story (or dry-run
+   Phase 2 only).
+2. Confirm Phase 2 uses `subagent_type: code-explorer` (×2–3), Phase 4
+   `code-architect`, Phase 6 `plan-reviewer` (×2).
+3. Do **not** run Phase 8 until model routing is confirmed — implementation is
+   expensive.
 
 ---
 
 ## Troubleshooting
-
 
 | Symptom                            | Likely cause                                                                  |
 | ---------------------------------- | ----------------------------------------------------------------------------- |
@@ -155,6 +156,5 @@ After model smoke passes:
 | `Task model: opus` rejected        | Use `claude-opus-4-7`, not `opus`                                             |
 | Subagent uses `explore`            | Wrong `subagent_type`; follow `prd-pr-cursor.mdc`                             |
 | Two `orchestrator` skills          | Plugin + duplicate project skill — we removed `.cursor/skills/` to avoid this |
-
 
 Update frontmatter in `.cursor/agents/*.md`, then re-run Step 0 and Step 2.

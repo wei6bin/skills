@@ -14,7 +14,8 @@ Apply these patterns when building or reviewing REST APIs.
 - Use `openapi.yaml` at the repo root or `docs/openapi.yaml`.
 - Define all request/response schemas as `$ref` components — never inline.
 - Generate server stubs and client SDKs from the spec (no spec drift).
-- Validate requests against the spec at runtime (e.g., `express-openapi-validator`, FastAPI's built-in, Springdoc).
+- Validate requests against the spec at runtime (e.g.,
+  `express-openapi-validator`, FastAPI's built-in, Springdoc).
 
 ## URL Design
 
@@ -37,27 +38,27 @@ POST   /resources/{id}/actions/approve  # RPC-style action as sub-resource
 
 ## HTTP Methods and Status Codes
 
-| Scenario | Method | Success Code |
-| --- | --- | --- |
-| Create resource | POST | 201 Created |
-| Read resource | GET | 200 OK |
-| Full update | PUT | 200 OK |
-| Partial update | PATCH | 200 OK |
-| Delete resource | DELETE | 204 No Content |
-| Async action queued | POST | 202 Accepted |
+| Scenario            | Method | Success Code   |
+| ------------------- | ------ | -------------- |
+| Create resource     | POST   | 201 Created    |
+| Read resource       | GET    | 200 OK         |
+| Full update         | PUT    | 200 OK         |
+| Partial update      | PATCH  | 200 OK         |
+| Delete resource     | DELETE | 204 No Content |
+| Async action queued | POST   | 202 Accepted   |
 
 **Error codes:**
 
-| Code | When |
-| --- | --- |
-| 400 | Validation failed — include field-level errors |
-| 401 | Not authenticated |
-| 403 | Authenticated but not authorized |
-| 404 | Resource not found |
-| 409 | Conflict (duplicate, version mismatch) |
-| 422 | Unprocessable entity (business rule violation) |
-| 429 | Rate limit exceeded |
-| 500 | Internal server error (never expose stack traces) |
+| Code | When                                              |
+| ---- | ------------------------------------------------- |
+| 400  | Validation failed — include field-level errors    |
+| 401  | Not authenticated                                 |
+| 403  | Authenticated but not authorized                  |
+| 404  | Resource not found                                |
+| 409  | Conflict (duplicate, version mismatch)            |
+| 422  | Unprocessable entity (business rule violation)    |
+| 429  | Rate limit exceeded                               |
+| 500  | Internal server error (never expose stack traces) |
 
 ## Consistent Error Response
 
@@ -86,12 +87,12 @@ Always return errors in this envelope:
 Controller  →  Service  →  Repository  →  Database
 ```
 
-| Layer | Responsibility |
-| --- | --- |
+| Layer          | Responsibility                                                  |
+| -------------- | --------------------------------------------------------------- |
 | **Controller** | Parse/validate HTTP request, call service, format HTTP response |
-| **Service** | Business logic, orchestration, domain rules |
-| **Repository** | Data access only — no business logic |
-| **DTOs** | Request/response models (separate from domain entities) |
+| **Service**    | Business logic, orchestration, domain rules                     |
+| **Repository** | Data access only — no business logic                            |
+| **DTOs**       | Request/response models (separate from domain entities)         |
 
 - Controllers are thin — no business logic.
 - Services are testable without HTTP context.
@@ -99,7 +100,8 @@ Controller  →  Service  →  Repository  →  Database
 
 ## Pagination
 
-Prefer **cursor-based** for large/real-time datasets, **offset** for simple admin UIs:
+Prefer **cursor-based** for large/real-time datasets, **offset** for simple
+admin UIs:
 
 ```json
 // Cursor-based
@@ -162,7 +164,8 @@ Prefer **cursor-based** for large/real-time datasets, **offset** for simple admi
 - Apply rate limiting per client (IP or API key): e.g., 100 req/min default.
 - Return `429` with `Retry-After` header.
 - Implement request timeouts; circuit breakers for downstream calls.
-- Idempotency keys (`Idempotency-Key` header) for POST operations that must not duplicate.
+- Idempotency keys (`Idempotency-Key` header) for POST operations that must not
+  duplicate.
 
 ## Security Headers
 
@@ -191,12 +194,12 @@ Never expose:
 
 ## Testing Strategy
 
-| Layer | Tool | What to test |
-| --- | --- | --- |
-| Unit | Jest/pytest/JUnit | Service logic, repository, DTOs |
+| Layer       | Tool                        | What to test                     |
+| ----------- | --------------------------- | -------------------------------- |
+| Unit        | Jest/pytest/JUnit           | Service logic, repository, DTOs  |
 | Integration | Supertest/httpx/RestAssured | Full HTTP request/response cycle |
-| Contract | Pact / OpenAPI validation | Spec compliance |
-| Load | k6 / Artillery | Throughput, latency percentiles |
+| Contract    | Pact / OpenAPI validation   | Spec compliance                  |
+| Load        | k6 / Artillery              | Throughput, latency percentiles  |
 
 **Integration test pattern:**
 
@@ -206,7 +209,7 @@ it('POST /api/v1/users returns 201 with created user', async () => {
     .post('/api/v1/users')
     .set('Authorization', `Bearer ${adminToken}`)
     .send({ email: 'test@example.com', name: 'Test User' });
-  
+
   expect(res.status).toBe(201);
   expect(res.body.data).toMatchObject({ email: 'test@example.com' });
   expect(res.body.data.id).toBeDefined();
@@ -215,12 +218,16 @@ it('POST /api/v1/users returns 201 with created user', async () => {
 
 ## Observability
 
-- Structured JSON logging with `traceId`, `userId`, method, path, statusCode, latency.
+- Structured JSON logging with `traceId`, `userId`, method, path, statusCode,
+  latency.
 - Health endpoint: `GET /health` → `{ status: "ok", version: "1.2.3" }`.
 - Readiness: `GET /ready` — checks DB, cache, dependencies.
-- Expose metrics in Prometheus format: request count, latency histogram, error rate.
+- Expose metrics in Prometheus format: request count, latency histogram, error
+  rate.
 
 ## Companion Skills
 
-- **`backend-implementer`** — Implements backend tasks from a plan document following TDD loop
-- **`openapi-to-application-code`** (awesome-copilot) — Generate a complete production-ready application from an OpenAPI spec
+- **`backend-implementer`** — Implements backend tasks from a plan document
+  following TDD loop
+- **`openapi-to-application-code`** (awesome-copilot) — Generate a complete
+  production-ready application from an OpenAPI spec

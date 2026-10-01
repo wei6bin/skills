@@ -8,7 +8,8 @@ allowed-tools: Read, Bash, AskUserQuestion
 
 ## Overview
 
-Guide completion of development work by presenting clear options and handling chosen workflow.
+Guide completion of development work by presenting clear options and handling
+chosen workflow.
 
 **Core principle:** Verify tests → Present options → Execute choice → Clean up.
 
@@ -31,10 +32,13 @@ npm test / cargo test / pytest / go test ./... / dotnet test
 
 ### Step 1.5: Test Plan Walkthrough (artifacts check)
 
-The orchestrator's **Phase 9** dispatches the `test-plan-walker` subagent (which runs the `test-plan-walkthrough` skill as its playbook) and produces:
+The orchestrator's **Phase 9** dispatches the `test-plan-walker` subagent (which
+runs the `test-plan-walkthrough` skill as its playbook) and produces:
 
-- `docs/new-feature/{folder}/06-walkthrough.md` — per-step ✅/❌ status, observed-vs-expected, "Issues found"
-- `docs/new-feature/{folder}/screenshots/slice-NN-step-NN-*.png` — one screenshot per demo step
+- `docs/new-feature/{folder}/06-walkthrough.md` — per-step ✅/❌ status,
+  observed-vs-expected, "Issues found"
+- `docs/new-feature/{folder}/screenshots/slice-NN-step-NN-*.png` — one
+  screenshot per demo step
 
 **Verify both exist before continuing:**
 
@@ -42,11 +46,23 @@ The orchestrator's **Phase 9** dispatches the `test-plan-walker` subagent (which
 ls docs/new-feature/*/06-walkthrough.md docs/new-feature/*/screenshots/ 2>/dev/null
 ```
 
-- **If present** — read `06-walkthrough.md`. If any slice has a ❌ row or the "Issues found" table lists Blocker items, **stop**. Report the failing rows and tell the user to loop back to Phase 8 (`raise-pr` does not fix bugs).
-- **If missing** — dispatch the `test-plan-walker` subagent (`agent_type: "prd-pr-copilot:test-plan-walker"`) per the orchestrator's Phase 9 contract. Wait for its Return Report. Do not invoke the `test-plan-walkthrough` skill inline — it must run in a clean subagent context.
-- **If the slice list under `04-task-plan.md` has slices that aren't covered in `06-walkthrough.md`** — re-dispatch `test-plan-walker` scoped to the missing slices. Every slice must appear.
+- **If present** — read `06-walkthrough.md`. If any slice has a ❌ row or the
+  "Issues found" table lists Blocker items, **stop**. Report the failing rows
+  and tell the user to loop back to Phase 8 (`raise-pr` does not fix bugs).
+- **If missing** — dispatch the `test-plan-walker` subagent
+  (`agent_type: "prd-pr-copilot:test-plan-walker"`) per the orchestrator's Phase
+  9 contract. Wait for its Return Report. Do not invoke the
+  `test-plan-walkthrough` skill inline — it must run in a clean subagent
+  context.
+- **If the slice list under `04-task-plan.md` has slices that aren't covered in
+  `06-walkthrough.md`** — re-dispatch `test-plan-walker` scoped to the missing
+  slices. Every slice must appear.
 
-For any slice marked `Type: HITL` in `04-task-plan.md` that needs the user to physically verify something the skill cannot (e.g. printing a real receipt, scanning a QR code), ask: *"Run the HITL-only verification for SLICE-NN now? [Y/skip]"*. If skipped, note "HITL-only verification skipped by user" in the PR body.
+For any slice marked `Type: HITL` in `04-task-plan.md` that needs the user to
+physically verify something the skill cannot (e.g. printing a real receipt,
+scanning a QR code), ask: _"Run the HITL-only verification for SLICE-NN now?
+[Y/skip]"_. If skipped, note "HITL-only verification skipped by user" in the PR
+body.
 
 ### Step 2: Determine Base Branch
 
@@ -88,10 +104,12 @@ Then: Cleanup worktree and branch (Step 5)
 **Detect the remote host** (`git remote get-url origin`):
 
 - `github.com/...` → GitHub PR via `gh pr create`
-- `dev.azure.com/...` or `*.visualstudio.com/...` → Azure DevOps PR via `az repos pr create`
+- `dev.azure.com/...` or `*.visualstudio.com/...` → Azure DevOps PR via
+  `az repos pr create`
 - anything else → stop and ask the user how to raise the PR
 
-**Build the PR body from the walkthrough.** Compose this template — do not paste raw `06-walkthrough.md`; summarise it:
+**Build the PR body from the walkthrough.** Compose this template — do not paste
+raw `06-walkthrough.md`; summarise it:
 
 ```markdown
 ## Summary
@@ -127,21 +145,27 @@ Full per-step report and screenshots: [`docs/new-feature/{folder}/06-walkthrough
 {paste verbatim from 05-test-plan.md — Rollback Plan}
 ```
 
-**Embedding screenshots** — PR descriptions are **not** rendered against the head branch on either GitHub or Azure DevOps. Relative image paths will 404 (the file doesn't exist on `main` yet at PR-open time). Always use absolute URLs that pin to the head branch.
+**Embedding screenshots** — PR descriptions are **not** rendered against the
+head branch on either GitHub or Azure DevOps. Relative image paths will 404 (the
+file doesn't exist on `main` yet at PR-open time). Always use absolute URLs that
+pin to the head branch.
 
-For **GitHub**, use the `raw` URL pinned to the head branch (or a specific commit SHA for immutability):
+For **GitHub**, use the `raw` URL pinned to the head branch (or a specific
+commit SHA for immutability):
 
 ```markdown
 ![SLICE-01 Rx saved](https://github.com/{owner}/{repo}/raw/{branch}/docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png)
 ```
 
-Also use absolute URLs for **markdown file links** (e.g. the walkthrough link) — same reason:
+Also use absolute URLs for **markdown file links** (e.g. the walkthrough link) —
+same reason:
 
 ```markdown
 [06-walkthrough.md](https://github.com/{owner}/{repo}/blob/{branch}/docs/new-feature/{folder}/06-walkthrough.md)
 ```
 
-Pull `{owner}/{repo}` from `git remote get-url origin`. `{branch}` is the feature branch name.
+Pull `{owner}/{repo}` from `git remote get-url origin`. `{branch}` is the
+feature branch name.
 
 For **Azure DevOps**, use the raw item URL pointing at the head branch:
 
@@ -149,9 +173,13 @@ For **Azure DevOps**, use the raw item URL pointing at the head branch:
 ![SLICE-01 Rx saved](https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo}/items?path=/docs/new-feature/{folder}/screenshots/slice-01-03-rx-saved.png&versionDescriptor.version={branch}&versionDescriptor.versionType=branch&api-version=7.1)
 ```
 
-Generate one such URL per embedded image. Pull `{org}/{project}/{repo}` from `git remote get-url origin`.
+Generate one such URL per embedded image. Pull `{org}/{project}/{repo}` from
+`git remote get-url origin`.
 
-**Note:** Once the PR merges, both forms still work — `raw/{branch}` resolves against whatever `{branch}` currently points to. If the head branch is deleted post-merge, switch the link to `raw/{merge-commit-sha}` or `raw/main` for long-term stability.
+**Note:** Once the PR merges, both forms still work — `raw/{branch}` resolves
+against whatever `{branch}` currently points to. If the head branch is deleted
+post-merge, switch the link to `raw/{merge-commit-sha}` or `raw/main` for
+long-term stability.
 
 **Create the PR:**
 
@@ -170,7 +198,8 @@ az repos pr create \
   --output table
 ```
 
-Title format: `{USR-NNN}: {short verb-phrase}` (e.g. `USR-018: Prescribe medications during consultation`). Keep under 70 chars.
+Title format: `{USR-NNN}: {short verb-phrase}` (e.g.
+`USR-018: Prescribe medications during consultation`). Keep under 70 chars.
 
 After creation, return the PR URL to the user.
 
@@ -178,8 +207,8 @@ Then: Cleanup worktree (Step 5)
 
 #### Option 3: Keep As-Is
 
-Report: "Keeping branch <name>. Worktree preserved at <path>."
-**Do not cleanup worktree.**
+Report: "Keeping branch <name>. Worktree preserved at <path>." **Do not cleanup
+worktree.**
 
 #### Option 4: Discard
 
@@ -206,15 +235,16 @@ For Option 3: keep worktree.
 
 ## Quick Reference
 
-| Option | Merge | Push | Keep Worktree | Cleanup Branch |
-|--------|-------|------|---------------|----------------|
-| 1. Merge locally | ✓ | — | — | ✓ |
-| 2. Create PR | — | ✓ | — | — |
-| 3. Keep as-is | — | — | ✓ | — |
-| 4. Discard | — | — | — | ✓ (force) |
+| Option           | Merge | Push | Keep Worktree | Cleanup Branch |
+| ---------------- | ----- | ---- | ------------- | -------------- |
+| 1. Merge locally | ✓     | —    | —             | ✓              |
+| 2. Create PR     | —     | ✓    | —             | —              |
+| 3. Keep as-is    | —     | —    | ✓             | —              |
+| 4. Discard       | —     | —    | —             | ✓ (force)      |
 
 ## Integration
 
-Pairs with `git-worktrees` — cleans up the worktree that skill created.
-Pairs with `test-plan-walkthrough` — consumes the screenshots + `06-walkthrough.md` it produces.
-Called at the end of the `orchestrator` Phase 10 after the walkthrough is complete.
+Pairs with `git-worktrees` — cleans up the worktree that skill created. Pairs
+with `test-plan-walkthrough` — consumes the screenshots + `06-walkthrough.md` it
+produces. Called at the end of the `orchestrator` Phase 10 after the walkthrough
+is complete.

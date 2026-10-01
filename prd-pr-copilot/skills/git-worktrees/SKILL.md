@@ -8,11 +8,14 @@ allowed-tools: Read, Bash, AskUserQuestion
 
 ## Overview
 
-Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
+Git worktrees create isolated workspaces sharing the same repository, allowing
+work on multiple branches simultaneously without switching.
 
-**Core principle:** Systematic directory selection + safety verification = reliable isolation.
+**Core principle:** Systematic directory selection + safety verification =
+reliable isolation.
 
-**Announce at start:** "I'm using the git-worktrees skill to set up an isolated workspace."
+**Announce at start:** "I'm using the git-worktrees skill to set up an isolated
+workspace."
 
 ## Directory Selection Process
 
@@ -66,7 +69,8 @@ git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/d
 2. Commit the change
 3. Proceed with worktree creation
 
-**Why critical:** Prevents accidentally committing worktree contents to repository.
+**Why critical:** Prevents accidentally committing worktree contents to
+repository.
 
 ### For Global Directory (~/.config/prd-pr/worktrees)
 
@@ -100,7 +104,10 @@ cd "$path"
 
 ### 3. Run Project Setup
 
-Install dependencies with the project's own package manager, detected from its manifest and lockfile (`package.json` with `pnpm-lock.yaml` / `yarn.lock` / `package-lock.json`, `Cargo.toml`, `pyproject.toml` / `requirements.txt`, `go.mod`, `*.sln` / `*.csproj`). Skip this step if there is no manifest.
+Install dependencies with the project's own package manager, detected from its
+manifest and lockfile (`package.json` with `pnpm-lock.yaml` / `yarn.lock` /
+`package-lock.json`, `Cargo.toml`, `pyproject.toml` / `requirements.txt`,
+`go.mod`, `*.sln` / `*.csproj`). Skip this step if there is no manifest.
 
 ### 4. Verify Clean Baseline
 
@@ -111,7 +118,8 @@ Run tests to ensure worktree starts clean:
 npm test / cargo test / pytest / go test ./... / dotnet test
 ```
 
-**If tests fail:** Report failures, ask whether to proceed or investigate - a dirty baseline makes new bugs indistinguishable from pre-existing ones.
+**If tests fail:** Report failures, ask whether to proceed or investigate - a
+dirty baseline makes new bugs indistinguishable from pre-existing ones.
 
 **If tests pass:** Report ready.
 
@@ -125,12 +133,12 @@ Ready to implement <feature-name>
 
 ## Quick Reference
 
-| Situation | Action |
-|-----------|--------|
-| `.worktrees/` exists | Use it (verify ignored) |
-| `worktrees/` exists | Use it (verify ignored) |
-| Both exist | Use `.worktrees/` |
-| Neither exists | Check CLAUDE.md → Ask user |
-| Directory not ignored | Add to .gitignore + commit |
-| Tests fail during baseline | Report failures + ask |
-| No package.json/Cargo.toml | Skip dependency install |
+| Situation                  | Action                     |
+| -------------------------- | -------------------------- |
+| `.worktrees/` exists       | Use it (verify ignored)    |
+| `worktrees/` exists        | Use it (verify ignored)    |
+| Both exist                 | Use `.worktrees/`          |
+| Neither exists             | Check CLAUDE.md → Ask user |
+| Directory not ignored      | Add to .gitignore + commit |
+| Tests fail during baseline | Report failures + ask      |
+| No package.json/Cargo.toml | Skip dependency install    |
