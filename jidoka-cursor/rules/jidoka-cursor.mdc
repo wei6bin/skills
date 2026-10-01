@@ -1,0 +1,62 @@
+---
+description: jidoka on Cursor - Task subagent types, models and worktree discipline for the jidoka-cursor plugin.
+alwaysApply: true
+---
+
+# jidoka on Cursor
+
+This plugin (`jidoka-cursor`) is the Cursor render of jidoka: its skills and agents already
+use Cursor's `subagent_type` and model slugs. Use this rule whenever running the `line` skill
+or implementing from `docs/new-feature/*/04-task-plan.md`.
+
+## Dispatch (Task tool)
+
+Use **`subagent_type`** with the bare agent name - never `agent_type`, never a `jidoka:` prefix.
+
+| Phase | `subagent_type` | Notes |
+|-------|-----------------|--------|
+| 2 - exploration | `code-explorer` | 2-3 parallel tasks, different angles |
+| 4 - architecture | `code-architect` | One task with Phase 2-3 context |
+| 6 - plan review | `plan-reviewer` | Two parallel tasks (AC/security vs tasks/tests) |
+| 8 - backend half | `impl-backend` | Scope e.g. `"SLICE-01 backend half"`; dispatched **concurrently with the frontend half** against the slice's frozen `Contract:`. Append the lean mode from the slice's story-point size - `lean: lite` (1-2 pts) / `lean: full` (3+, default). Large slices (8+/spike) stay `full` - the implementer flags over-scope, never drops an AC |
+| 8 - frontend half | `impl-frontend` | Dispatched **concurrently** with the backend half (single batch), scope `"SLICE-01 frontend half - build against the frozen contract with a typed mock; do not wait for the backend; stay on the mock, no per-slice integration"`; append the same `lean:` token. One `"whole-story integration"` re-dispatch **at the end** (after every slice lands) swaps every slice's mock for the real backends and reconciles drift across the story |
+| 8 - simplify | `impl-simplify` | Once, over the whole-story diff (folder, branch-point ref, changed-file list), before review |
+| 8 - review | `code-reviewer`, `security-reviewer` | One parallel batch over the whole-story diff after simplify; refactor tier dispatches `code-reviewer` only |
+| 9 - walkthrough | `test-plan-walker` | Clean context; do not inline Phase 9 in parent |
+
+**Do not** substitute generic `explore` or `generalPurpose` for the rows above unless the
+user explicitly asks for a one-off search outside jidoka.
+
+## Models
+
+Each agent's `model:` frontmatter names a picker slug (`composer-2.5`, `gpt-5.5`,
+`claude-opus-4-8`; the plugin README has the tier table). Cursor currently ignores `model:` on
+subagents that come from a marketplace plugin and runs them on the parent model (forum reports
+157485 and 168771). To pin models, copy the plugin's `agents/*.md` into the project's
+`.cursor/agents/`; project agents are honoured and take precedence over the plugin's copies.
+Re-copy after plugin updates and never edit them by hand.
+
+**Task `model` parameter:** **Omit** on spawn - frontmatter applies. Override only when needed
+(use the same picker slug as frontmatter). Do **not** use `fast` or `opus` shorthands on
+implementers/architect. Smoke test: the plugin's `SMOKE-TEST.md`.
+
+Put the heavy reasoning on the **parent** orchestrator model; use subagents for scoped work.
+
+## Phase 8 (implementation)
+
+Run Phase 8 as the `line` skill describes it: each slice's BE and FE halves in one parallel batch against the frozen `Contract:`, no per-slice integration, then one whole-story round (integration, simplify, review, smoke, regression, checkpoint). This rule only pins those dispatches to the `subagent_type` table above.
+
+Run the `context-updater` skill in the **parent**, not as a Task subagent. **Do not** implement slice backend/frontend inline in the parent when this rule applies,
+except to fix a failed subagent Return Report.
+
+## Skills and agents
+
+Both ship in this plugin. Do not copy skills into `.cursor/skills/`: a project skill with the
+same `name:` collides with the plugin's. Invoke skills by name. Skills and agents are rendered
+from the skills repo's `src/` by `make build`; update the plugin rather than editing files in
+the plugin cache.
+
+## Worktree
+
+Phase 5+ writes go in an isolated worktree on the feature branch (`git-worktrees` skill).
+Do not plan or implement feature code on `main` without user approval.

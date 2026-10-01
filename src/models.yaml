@@ -1,0 +1,45 @@
+# Model routing for the jidoka agents. Edit this file, not the agent files.
+#
+# tiers: one entry per capability tier, with the concrete choice per harness.
+#   claude  - a Claude Code alias (fable, opus, sonnet, haiku). Aliases keep
+#             the routing symbolic: a user remaps a whole tier on their machine
+#             with ANTHROPIC_DEFAULT_<TIER>_MODEL in settings.json env, with no
+#             plugin edit.
+#   copilot - a priority list; Copilot CLI uses the first model the plan can
+#             access (rendered as `models:` plus `model:` for older readers).
+#   cursor  - a model picker slug.
+# roles: what each agent does. An agent's frontmatter names its role; the
+#   renderer resolves role -> tier -> model per harness. `effort` is Claude
+#   Code's per-agent effort level (low, medium, high, xhigh, max).
+# An agent may still pin a harness with its own `model:` map; that wins over
+# the role. Keep such overrides rare and say why in the agent file.
+
+tiers:
+  frontier:
+    claude: fable
+    copilot: [claude-opus-4.8, claude-sonnet-5]
+    cursor: claude-opus-4-8
+  strong:
+    claude: opus
+    copilot: [claude-opus-4.8, claude-sonnet-5]
+    cursor: gpt-5.5
+  standard:
+    claude: sonnet
+    copilot: [claude-sonnet-5]
+    cursor: composer-2.5
+  economy:
+    claude: haiku
+    copilot: [claude-haiku-4.5]
+    cursor: composer-2.5-fast
+
+roles:
+  reasoning:
+    tier: frontier
+    effort: high
+  verification:
+    tier: strong
+    effort: high
+  implementation:
+    tier: standard
+  exploration:
+    tier: standard

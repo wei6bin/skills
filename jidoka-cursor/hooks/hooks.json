@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/secrets-scan-on-change.sh\"",
+        "timeout": 15
+      },
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/prettier-on-change.sh\"",
+        "timeout": 30
+      },
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/biome-on-change.sh\"",
+        "timeout": 30
+      },
+      {
+        "command": "bash \"${CURSOR_PLUGIN_ROOT}/hooks/ts-typecheck-on-change.sh\"",
+        "timeout": 60
+      }
+    ]
+  }
+}

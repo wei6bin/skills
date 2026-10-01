@@ -1,0 +1,11 @@
+// markdownlint-cli2 config for this repo; `make lint` runs it, and so does CI.
+{
+  "config": {
+    // Prose wraps at 80 (CLAUDE.md "Conventions"). Code blocks, tables and
+    // headings cannot wrap without breaking them, so they are exempt.
+    "MD013": { "line_length": 80, "code_blocks": false, "tables": false, "headings": false },
+    // Skills and agents are titled by their frontmatter `name:`; their bodies are
+    // prompts and often open with prose rather than an H1.
+    "MD041": { "front_matter_title": "^\\s*name\\s*:" }
+  }
+}

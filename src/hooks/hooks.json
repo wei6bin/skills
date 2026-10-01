@@ -1,0 +1,8 @@
+{
+  "afterFileEdit": [
+    { "script": "secrets-scan-on-change.sh", "timeout": 15 },
+    { "script": "prettier-on-change.sh", "timeout": 30 },
+    { "script": "biome-on-change.sh", "timeout": 30 },
+    { "script": "ts-typecheck-on-change.sh", "timeout": 60 }
+  ]
+}

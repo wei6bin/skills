@@ -57,7 +57,7 @@ Build global context before diving into pages.
 
 Scan the root directory and understand organization:
 
-```
+```text
 Frontend directories:
 - Pages/routes (pages/, views/, routes/, app/, src/pages/)
 - Components (components/, modules/)
@@ -201,7 +201,7 @@ For each page, answer:
 
 Describe as **"user action → system response"**:
 
-```
+```text
 [Action]     User clicks "Create"
 [Response]   Modal opens with form fields: ...
 [Validation] Name required, phone format check
@@ -265,7 +265,7 @@ For each needed API, document:
 
 Create `prd/` in project root (or user-specified directory):
 
-```
+```text
 prd/
 ├── README.md                     # System overview
 ├── pages/

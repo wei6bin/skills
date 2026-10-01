@@ -62,6 +62,9 @@ the board.
 
 ## Thread anatomy
 
+<!-- Obsidian indents nested list items with tabs; the template keeps them. -->
+<!-- markdownlint-disable MD010 -->
+
 ```markdown
 ---
 type: thread
@@ -87,6 +90,8 @@ created: 2026-08-04
 ## Links
 - [../html/something.html](../html/something.html)
 ```
+
+<!-- markdownlint-enable MD010 -->
 
 The nesting is the whole point: **feedback lives under the question it
 answers**, not in a separate log the reader has to correlate by date. When
