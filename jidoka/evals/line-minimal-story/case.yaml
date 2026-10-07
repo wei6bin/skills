@@ -1,0 +1,279 @@
+# End-to-end verifier for the jidoka plugin: runs /jidoka:line on the smallest
+# story that still crosses every phase (a one-layer backend feature on a
+# zero-dependency Node API) and grades the end state of the repo plus the
+# order of the dispatches that produced it. One run costs a full workflow, so
+# run it deliberately: `make eval-claude` (flags and cost in the Makefile).
+#
+# What it covers: the slash command expanding the user-only `line` skill,
+# Phase 2 context build and exploration, Phase 4 worktree and architect, Phase
+# 6 plan review, Phase 8 implement / simplify / code + security review /
+# context capture, Phase 9 walker, Phase 10 raise-pr merging locally and
+# closing out the backlog. Not covered: the frontend half, whole-story
+# integration and a Playwright walkthrough (no UI in the fixture), PR creation
+# on a real host, and the refactor tier.
+schema_version: "1.1"
+name: line-minimal-story
+description: /jidoka:line takes a two-AC backend story from prompt to a local merge
+tags: [e2e, slow]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  DELETE /notes/:id merged into main with tests, the eight plan and ledger
+  documents under docs/new-feature/usr-001-delete-note/, the worktree removed
+  and USR-001 marked done in BACKLOG.md with the merge commit.
+
+execution:
+  model: opus
+  max_turns: 200
+  timeout_seconds: 3600
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # AskUserQuestion is not offered in a headless run, so `line` falls back to
+  # asking in chat and would end the turn at Phase 1. This stands in for the
+  # developer: it pre-answers the decisions the story cannot carry and tells
+  # the session to take its own recommendation everywhere else.
+  append_system_prompt: |
+    This session is an unattended evaluation run of the jidoka workflow. No
+    human will read or answer anything until the run ends, and there is no
+    AskUserQuestion tool. Wherever the workflow tells you to ask, confirm or
+    wait for the user, write the question and your recommended answer in one
+    line, take the recommended answer, and continue in the same turn. Do not
+    end your turn until Phase 10 is complete or you are blocked by something
+    you cannot fix.
+
+    Decisions the developer has already made:
+    - Plan folder docs/new-feature/usr-001-delete-note/, branch
+      usr-001-delete-note.
+    - The proposed slice list is confirmed as you present it.
+    - Exit action once QA and the walkthrough are green: merge to main
+      locally. The repository has no remote, so skip every pull and push.
+  prompt: |
+    /jidoka:line USR-001 Delete a note
+
+    As an API client I want to delete a note so that notes I no longer need
+    stop appearing in the list.
+
+    Acceptance criteria:
+    1. DELETE /notes/:id for an existing note returns 204 with an empty body;
+       afterwards the note is absent from GET /notes and GET /notes/:id returns
+       404.
+    2. DELETE /notes/:id for an id that does not exist returns 404 with the
+       standard error envelope and code note_not_found.
+
+    Stakeholders: API clients. Constraints: no new dependencies; keep the
+    existing error envelope. Dependencies: none.
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  # --- The entry point fired ------------------------------------------------
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+
+  # --- Every phase dispatched its agent or skill -----------------------------
+  - name: context-builder-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "codebase-context-builder"
+  - name: explorer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:code-explorer"
+  - name: worktree-skill-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "git-worktrees"
+  - name: architect-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:code-architect"
+  - name: plan-reviewer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:plan-reviewer"
+  - name: backend-implementer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:impl-backend"
+  # A backend-only story has no frontend half and nothing to integrate.
+  - name: no-frontend-dispatch
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:impl-frontend"
+    min: 0
+    max: 0
+  - name: simplify-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:impl-simplify"
+  - name: code-reviewer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:code-reviewer"
+  - name: security-reviewer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:security-reviewer"
+  - name: context-updater-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "context-updater"
+  - name: walker-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:test-plan-walker"
+  - name: raise-pr-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "raise-pr"
+
+  # --- ...in the order the line prescribes -----------------------------------
+  - name: explore-before-architect
+    type: tool_order
+    before: { tool: Agent, input_match: "jidoka:code-explorer" }
+    after: { tool: Agent, input_match: "jidoka:code-architect" }
+  - name: worktree-before-architect
+    type: tool_order
+    before: { tool: Skill, input_match: "git-worktrees" }
+    after: { tool: Agent, input_match: "jidoka:code-architect" }
+  - name: plan-review-before-build
+    type: tool_order
+    before: { tool: Agent, input_match: "jidoka:plan-reviewer" }
+    after: { tool: Agent, input_match: "jidoka:impl-backend" }
+  - name: simplify-before-review
+    type: tool_order
+    before: { tool: Agent, input_match: "jidoka:impl-simplify" }
+    after: { tool: Agent, input_match: "jidoka:code-reviewer" }
+  - name: review-before-walkthrough
+    type: tool_order
+    before: { tool: Agent, input_match: "jidoka:code-reviewer" }
+    after: { tool: Agent, input_match: "jidoka:test-plan-walker" }
+  - name: walkthrough-before-exit
+    type: tool_order
+    before: { tool: Agent, input_match: "jidoka:test-plan-walker" }
+    after: { tool: Skill, input_match: "raise-pr" }
+
+  # --- End state on main: these paths exist only after the local merge -------
+  - name: overview-doc
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/00-overview.md }
+    pattern: "\\S"
+  - name: business-plan-doc
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/01-business-plan.md }
+    pattern: "note_not_found"
+  - name: technical-plan-doc
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/02-technical-plan.md }
+    pattern: "DELETE"
+  - name: implementation-plan-doc
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/03-implementation-plan.md }
+    pattern: "\\S"
+  - name: task-plan-has-dependency-graph
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/04-task-plan.md }
+    pattern: "^## Dependency graph"
+    flags: m
+  - name: test-plan-doc
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/05-test-plan.md }
+    pattern: "\\S"
+  - name: walkthrough-all-green
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/06-walkthrough.md }
+    pattern: "ALL_GREEN"
+  - name: ledger-tier-one-layer
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/07-progress.md }
+    pattern: "^Tier: one-layer\\s*$"
+    flags: m
+  - name: ledger-base-and-exit
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/07-progress.md }
+    pattern: "^Base: main\\s*$[\\s\\S]*^Exit: merge\\s*$"
+    flags: m
+  - name: ledger-nothing-pending-or-failed
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-note/07-progress.md }
+    pattern: "[⬜❌]"
+    match: not_contains
+  - name: plan-folder-indexed
+    type: regex
+    target: { source: file, path: docs/new-feature/README.md }
+    pattern: "usr-001-delete-note"
+  - name: project-context-built
+    type: regex
+    target: { source: file, path: docs/project_context/00_index.md }
+    pattern: "\\S"
+  - name: product-knowledge-captured
+    type: regex
+    target: { source: file, path: docs/project_context/prod_spec/features.md }
+    pattern: "delete"
+    flags: i
+  - name: endpoint-on-main
+    type: regex
+    target: { source: file, path: src/app.js }
+    pattern: "DELETE"
+  - name: tests-on-main
+    type: regex
+    target: { source: file, path: test/notes.test.js }
+    pattern: "DELETE"
+  - name: backlog-closed-with-commit
+    type: regex
+    target: { source: file, path: BACKLOG.md }
+    # One line naming USR-001 that carries a done state and a commit SHA.
+    pattern: "^(?=[^\\n]*USR-001)(?=[^\\n]*\\b(done|merged|closed)\\b)(?=[^\\n]*\\b[0-9a-f]{7,40}\\b)"
+    flags: im
+  - name: worktree-cleaned-up
+    type: file_exists
+    path: ".worktrees/**"
+    exists: false
+
+  # --- Judged ------------------------------------------------------------------
+  - name: endpoint-meets-acs
+    type: llm
+    focus: { source: file, path: src/app.js }
+    criteria: |
+      This is the merged src/app.js of a node:http notes API after a story
+      added note deletion.
+      PASS only if all of these hold:
+      - A DELETE /notes/:id route exists and, for an existing note, removes it
+        from the store and responds 204 with no body.
+      - For an id that does not exist it responds 404 with the body
+        { "error": { "code": "note_not_found", "message": ... } }.
+      - GET /notes, POST /notes and GET /notes/:id still behave as before
+        (list, create with title validation, fetch one, 404 note_not_found).
+      FAIL if any of these is missing or wrong, or if a new dependency is
+      imported.
+  - name: tests-cover-acs
+    type: llm
+    focus: { source: file, path: test/notes.test.js }
+    criteria: |
+      This is the merged test file of a notes API after a story added
+      DELETE /notes/:id with two acceptance criteria:
+      AC1 - deleting an existing note returns 204 with an empty body, then the
+      note is absent from GET /notes and GET /notes/:id returns 404.
+      AC2 - deleting an unknown id returns 404 with error code note_not_found.
+      PASS if there are tests that assert AC1 (the 204 status and that the
+      note is gone afterwards) and AC2 (the 404 status and the note_not_found
+      code), and the five original tests are still present.
+      FAIL if either AC lacks an asserting test or an original test was
+      removed.
+  - name: run-finished-unattended
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of an unattended run of a ten-phase
+      development workflow on story USR-001 (delete a note).
+      PASS if it reports the story as finished: merged into main locally
+      (naming a commit or merge), tests passing, the walkthrough green, and
+      the backlog updated.
+      FAIL if it stops before the merge, ends on a question waiting for an
+      answer, or reports a failing test, review or walkthrough as unresolved.

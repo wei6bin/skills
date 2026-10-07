@@ -1,0 +1,12 @@
+{
+  "name": "notes-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "In-memory notes REST API on node:http, no dependencies",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}
