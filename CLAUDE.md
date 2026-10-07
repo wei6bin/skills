@@ -86,6 +86,8 @@ commit both.
 
 Rendered paths: `jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
 `jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays.
+`jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code only, so
+the suite has no Copilot or Cursor render.
 
 Harness facts the renderer relies on (verified against the harness docs on
 2026-10-01): Copilot CLI reads `.claude-plugin/marketplace.json`, accepts
@@ -145,6 +147,25 @@ code-reviewer, security-reviewer), and implementation and exploration are
   transcripts under `~/.claude/projects/` to report the model each actually
   ran on against the alias in its frontmatter. Costs a few short API calls, so
   it is not in CI. `ARGS=--override` also exercises the Task `model` parameter.
+- `make eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
+  case under `jidoka/evals/` in a sandboxed headless session, inside a
+  container built from `jidoka/evals/Dockerfile` (`make eval-image`; `HOST=1`
+  runs on the host instead). The one case, `line-minimal-story`, scaffolds a
+  zero-dependency Node API as a git repo, types `/jidoka:line` with a two-AC
+  backend story, and grades the dispatch order plus the end state (plan docs,
+  ledger, merged code and tests, backlog closed, worktree gone). One run is a
+  whole workflow, up to an hour and several dollars, so it is not in CI; run it
+  before merging a change to the `line` flow. The container needs a credential
+  in `~/.config/jidoka/eval.env` (`CLAUDE_CODE_OAUTH_TOKEN` from
+  `claude setup-token`, or `ANTHROPIC_API_KEY`). Harness facts it relies on:
+  the case's `plugins: ["../.."]` is what loads `jidoka/` without a manifest;
+  `AskUserQuestion` is not offered headless, so the case's
+  `append_system_prompt` stands in for the developer; a Bash-granting eval
+  refuses to start while the host's Docker credential store holds a symlink
+  (Docker Desktop's "User" CLI install mode links its tools there), which is
+  why the container is the default; and the eval's bubblewrap sandbox only
+  starts in a container run with `seccomp=unconfined` and
+  `systempaths=unconfined`.
 - Copilot and Cursor have no scripted test here. Copilot: install the plugin
   from a local path, run the session on an Opus-tier model, dispatch an agent
   and check the model in the session log. Cursor: copy the agents into

@@ -83,7 +83,10 @@ after a failed review or evidence check goes up to `opus`.
 Test it with `make test` (renderer and routing rules), `make check` (render
 drift), `make lint` (markdownlint over every Markdown file) and
 `make smoke-claude` (one real dispatch per role on Claude Code, reporting the
-model each ran on; costs a few API calls).
+model each ran on; costs a few API calls). `make eval-claude` is the end-to-end
+verifier: in a container, `claude plugin eval` runs `/jidoka:line` on a minimal
+story in a scaffolded repo and grades every phase's output (see
+`jidoka/evals/README.md`; a whole workflow per run, so not in CI).
 
 ---
 
