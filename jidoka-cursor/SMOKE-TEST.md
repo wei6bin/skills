@@ -48,7 +48,8 @@ ls .cursor/agents/code-explorer.md
 
 ## Step 1 — Parent chat setup
 
-1. Open **n-lite** in Cursor.
+1. Open the repository you are testing with in Cursor. The smoke prompt below
+   lists files under `backend/src`, so pick a repo that has one.
 2. Start a **new** Agent chat.
 3. Pick a **parent** model that is **different** from subagents (e.g. **Composer
    2.5 Fast** or anything except Opus-only), so a subagent that silently falls
@@ -67,7 +68,7 @@ parallel with **readonly** scope — no repo writes.
 Run a jidoka **model routing smoke test**. Do not change any files.
 
 For each row, spawn **one** Task with `subagent_type` and **omit** Task `model` (use
-`.cursor/agents` frontmatter only). Use `readonly: true`. Same repo: n-lite root.
+`.cursor/agents` frontmatter only). Use `readonly: true`. Same repo: the open workspace's root.
 
 | subagent_type   | Task description (use as `description`) | Prompt (abbrev) |
 |-----------------|----------------------------------------|-----------------|
@@ -103,7 +104,10 @@ If the UI does not show model names, use **Step 4** (transcript) or **Step 5**
 
 After the smoke chat, inspect the latest parent transcript under:
 
-`~/.cursor/projects/home-weibin-repo-ec-n-lite/agent-transcripts/<uuid>/`
+`~/.cursor/projects/<workspace-slug>/agent-transcripts/<uuid>/`
+
+The slug is the workspace's path, lowercased, with `/` as `-`: `/home/you/repo/app`
+becomes `home-you-repo-app`.
 
 - Parent `Task` tool inputs should have `"model": null` or no `model` key.
 - Subagent folders under `subagents/` should exist for each spawn.
