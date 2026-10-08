@@ -4,8 +4,10 @@ The Cursor render of the **jidoka** dev-workflow plugin: the `line` skill and
 its companions, nine subagents, an always-on rule and the after-edit hooks,
 generated from `src/` in this repo by `make build`. `README.md`,
 `SMOKE-TEST.md`, `.cursor-plugin/plugin.json` and `rules/jidoka-cursor.mdc` are
-hand-written; everything else here is rendered and carries a `GENERATED`
-header.
+hand-written; everything else here is rendered, so never edit it by hand: edit
+`src/` and run `make build`. The rendered files carry no inline marker saying
+so (it would cost context on every skill and agent load); the repo's
+`.gitattributes` marks them generated instead.
 
 ## Install
 
