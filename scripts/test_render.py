@@ -62,7 +62,12 @@ class Fixture:
         (root / "src" / "skills" / "line").mkdir(parents=True)
         (root / "src" / "hooks").mkdir(parents=True)
         (root / ".claude-plugin").mkdir()
+        (root / "jidoka-cursor" / ".cursor-plugin").mkdir(parents=True)
         (root / "src" / "models.yaml").write_text(models)
+        (root / "src" / "VERSION").write_text("1.2.3\n")
+        (root / "jidoka-cursor" / ".cursor-plugin" / "plugin.json").write_text(
+            json.dumps({"name": "jidoka-cursor"})
+        )
         for name, text in agents.items():
             (root / "src" / "agents" / f"{name}.md").write_text(text)
         (root / "src" / "skills" / "line" / "SKILL.md").write_text(
@@ -168,6 +173,12 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(by_name["jidoka"]["agents"][0], "./agents/arch.md")
         self.assertEqual(by_name["jidoka-copilot"]["agents"][0], "./agents/arch.agent.md")
         self.assertEqual(by_name["jidoka"]["skills"], ["./skills/line"])
+        self.assertEqual(by_name["jidoka"]["version"], "1.2.3")
+        self.assertEqual(by_name["jidoka-copilot"]["version"], "1.2.3")
+        cursor_manifest = json.loads(
+            (self.out / "jidoka-cursor/.cursor-plugin/plugin.json").read_text()
+        )
+        self.assertEqual(cursor_manifest, {"name": "jidoka-cursor", "version": "1.2.3"})
         claude = json.loads((self.out / "jidoka/hooks/hooks.json").read_text())
         self.assertEqual(
             claude["hooks"]["PostToolUse"][0]["hooks"][0]["command"],
@@ -177,6 +188,30 @@ class RoutingTests(unittest.TestCase):
         self.assertIn("${CURSOR_PLUGIN_ROOT}/hooks/h.sh", cursor["hooks"]["afterFileEdit"][0]["command"])
         copilot = json.loads((self.out / "jidoka-copilot/hooks/hooks.json").read_text())
         self.assertEqual(copilot["hooks"]["postToolUse"][0]["matcher"], "edit|create")
+
+
+class VersionTests(unittest.TestCase):
+    def setUp(self):
+        self.fx = Fixture({"arch": agent_md("arch", "reasoning")})
+
+    def tearDown(self):
+        self.fx.close()
+
+    def test_bump_increments_patch_only(self):
+        (self.fx.root / "src" / "VERSION").write_text("1.9.9\n")
+        self.assertEqual(render.bump_patch(), "1.9.10")
+        self.assertEqual((self.fx.root / "src" / "VERSION").read_text(), "1.9.10\n")
+
+    def test_non_semver_is_rejected(self):
+        for bad in ("1.0", "v1.0.0", "1.0.0-rc1", "01.0.0"):
+            (self.fx.root / "src" / "VERSION").write_text(bad)
+            with self.assertRaises(render.SourceError, msg=bad):
+                render.load_version()
+
+    def test_missing_version_is_rejected(self):
+        (self.fx.root / "src" / "VERSION").unlink()
+        with self.assertRaises(render.SourceError):
+            self.fx.render()
 
 
 class ErrorTests(unittest.TestCase):

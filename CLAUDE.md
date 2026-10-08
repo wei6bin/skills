@@ -81,10 +81,15 @@ what CI runs (`.github/workflows/render-check.yml`).
 - The `agents` and `skills` arrays of the `jidoka` and `jidoka-copilot` entries
   in `marketplace.json` are rendered too: adding a file under `src/agents/` or
   `src/skills/` registers it on the next build.
+- `src/VERSION` - the family's one semver. The build stamps it into the
+  `version` of both marketplace entries and of
+  `jidoka-cursor/.cursor-plugin/plugin.json` (see "Registrations and
+  versioning").
 
 Rendered paths are generated and never hand-edited:
 `jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
-`jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays. To
+`jidoka-cursor/{agents,skills,hooks}/`, the two marketplace arrays and the
+three `version` fields. To
 change one, edit its source under `src/`, run `make build` and commit both. The
 rendered Markdown carries no inline marker on purpose: every skill, skill
 reference and agent file loads into the model's context when it runs, so the
@@ -290,15 +295,21 @@ Three component types:
   `utility-skills`, new skills go in `utility-skills/skills/<name>/SKILL.md` and
   the path `./skills/<name>` must be added to its `skills` array by hand -
   adding a file alone does not register it.
-- **Plugins carry no version, on purpose.** Claude Code and Cursor key a
-  plugin's version off the marketplace's commit SHA when neither a
-  `<plugin>/.claude-plugin/plugin.json` nor the plugin's `marketplace.json`
-  entry sets a `version`, so every merge to `main` is a new version and
-  auto-update ships it on the next session start with nothing to bump. Do not
-  add a Claude manifest or a `version` field anywhere: a `version` switches the
-  plugin to explicit versioning and updates stop until someone remembers to
-  bump it. `jidoka-cursor/.cursor-plugin/plugin.json` exists because Cursor
-  needs a manifest, and sets no `version` for the same reason. Do not add a root
+- **The jidoka family carries a semver that CI bumps.** `src/VERSION` holds
+  it, and `make build` writes it into the `jidoka` and `jidoka-copilot`
+  entries of `marketplace.json` and into
+  `jidoka-cursor/.cursor-plugin/plugin.json`. A `version` switches Claude Code
+  and Cursor from keying the version off the commit SHA to explicit
+  versioning, where an install updates only when the number changes, so
+  `.github/workflows/version-bump.yml` runs `make bump` (patch + 1, then
+  render) and pushes the result on every merge to `main` that touches `src/`
+  or a rendered plugin. Nobody bumps the patch by hand. For a minor or major
+  release, edit `src/VERSION` in the PR and run `make build`; the workflow
+  sees the change and skips its own bump. The bump commit is pushed with
+  `GITHUB_TOKEN`, so `main` must let the Actions bot push. The other plugins
+  (`utility-skills`, `code-to-prd`, `clinical-lecture-brief`) still carry no
+  version and key off the SHA; do not add a Claude manifest or a `version` to
+  them by hand. Do not add a root
   `<plugin>/plugin.json` with an Agent Plugins `$schema` either: Copilot CLI
   and Cursor would switch to that loading mode (shared `skills/` plus
   `com.github.copilot/` and `com.anysphere.cursor/` namespaces), which this

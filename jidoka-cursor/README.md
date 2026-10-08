@@ -23,9 +23,10 @@ Cursor reads this repo's `.cursor-plugin/marketplace.json`:
    Enterprise).
 
 Installed copies land under
-`~/.cursor/plugins/cache/<marketplace>/jidoka-cursor/<commit>/`. The plugin
-sets no `version` on purpose: Cursor keys the version off the marketplace
-commit, so every merge is a new version with nothing to bump.
+`~/.cursor/plugins/cache/<marketplace>/jidoka-cursor/<version>/`. The
+`version` in `.cursor-plugin/plugin.json` is rendered from `src/VERSION`, and
+CI bumps its patch on every merge to `main`, so every merge is still a new
+version.
 
 Do not also install the Claude Code `jidoka` plugin in Cursor: its skills carry
 the same names and would collide with this plugin's.

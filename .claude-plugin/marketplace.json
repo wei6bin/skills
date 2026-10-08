@@ -42,7 +42,8 @@
         "./skills/sweep-implementer",
         "./skills/test-plan-walkthrough",
         "./skills/vertical-slicing"
-      ]
+      ],
+      "version": "1.0.0"
     },
     {
       "name": "jidoka-copilot",
@@ -78,7 +79,8 @@
         "./skills/sweep-implementer",
         "./skills/test-plan-walkthrough",
         "./skills/vertical-slicing"
-      ]
+      ],
+      "version": "1.0.0"
     },
     {
       "name": "utility-skills",

@@ -6,7 +6,8 @@
 # scripts/render.py; make test checks it. Not listed, because hand-written:
 # jidoka/evals/, jidoka-cursor/.cursor-plugin/, jidoka-cursor/rules/,
 # jidoka-cursor/README.md, jidoka-cursor/SMOKE-TEST.md, and
-# .claude-plugin/marketplace.json (only two of its arrays are rendered).
+# .claude-plugin/marketplace.json (only two of its arrays and its jidoka
+# versions are rendered).
 jidoka/agents/** linguist-generated=true
 jidoka/skills/** linguist-generated=true
 jidoka/hooks/** linguist-generated=true

@@ -6,9 +6,16 @@
   },
   "repository": "https://github.com/wei6bin/skills",
   "license": "MIT",
-  "keywords": ["dev-workflow", "user-story", "vertical-slice", "subagents", "tdd"],
+  "keywords": [
+    "dev-workflow",
+    "user-story",
+    "vertical-slice",
+    "subagents",
+    "tdd"
+  ],
   "skills": "./skills/",
   "agents": "./agents/",
   "rules": "./rules/",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "version": "1.0.0"
 }

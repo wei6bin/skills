@@ -13,6 +13,8 @@ Source layout
                                    (jidoka: -> jidoka-copilot:)
   src/hooks/hooks.json             canonical hook list (event -> scripts)
   src/hooks/*.sh                   hook scripts, copied verbatim
+  src/VERSION                      the family's semver, stamped into all three
+                                   plugins; CI bumps the patch on each merge
 
 Outputs, owned entirely by this script and never hand-edited
   jidoka/agents/*.md               Claude Code plugin agents
@@ -24,8 +26,9 @@ Outputs, owned entirely by this script and never hand-edited
   jidoka-cursor/agents/*.md        Cursor plugin agents
   jidoka-cursor/skills/**          Cursor plugin skills (dispatch rewritten)
   jidoka-cursor/hooks/**           Cursor hooks.json plus scripts
-  .claude-plugin/marketplace.json  only the agents and skills arrays of the
-                                   jidoka and jidoka-copilot entries
+  .claude-plugin/marketplace.json  only the agents, skills and version fields
+                                   of the jidoka and jidoka-copilot entries
+  jidoka-cursor/.cursor-plugin/plugin.json  only its version field
 
 No inline marker in rendered Markdown
   Rendered skills, skill reference files and agents carry no "generated"
@@ -91,6 +94,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 HARNESSES = ("claude", "copilot", "cursor")
 MODELS_FILE = "models.yaml"  # under src/
+VERSION_FILE = "VERSION"  # under src/
+SEMVER = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 
 PLUGIN = "jidoka"
@@ -139,6 +144,7 @@ MANAGED_DIRS = (
 )
 PLUGIN_DIRS = {"claude": PLUGIN, "copilot": COPILOT_PLUGIN, "cursor": CURSOR_PLUGIN}
 MARKETPLACE_FILE = ".claude-plugin/marketplace.json"
+CURSOR_MANIFEST = f"{CURSOR_PLUGIN}/.cursor-plugin/plugin.json"
 
 
 class SourceError(Exception):
@@ -321,6 +327,23 @@ def load_agents(routing=None):
     if not agents:
         raise SourceError("no agents found under src/agents")
     return agents
+
+
+def load_version():
+    path = SRC / VERSION_FILE
+    if not path.exists():
+        raise SourceError(f"{path}: missing; it holds the plugins' version")
+    version = path.read_text(encoding="utf-8").strip()
+    if not SEMVER.fullmatch(version):
+        raise SourceError(f"{path}: {version!r} is not MAJOR.MINOR.PATCH")
+    return version
+
+
+def bump_patch():
+    major, minor, patch = load_version().split(".")
+    version = f"{major}.{minor}.{int(patch) + 1}"
+    (SRC / VERSION_FILE).write_text(version + "\n", encoding="utf-8")
+    return version
 
 
 def load_skills():
@@ -541,7 +564,7 @@ def render_hooks(out):
             copy_script(script, dest_dir / script.name)
 
 
-def render_marketplace(out, agents, skills):
+def render_marketplace(out, agents, skills, version):
     data = json.loads((ROOT / MARKETPLACE_FILE).read_text(encoding="utf-8"))
     names = [a.name for a in agents]
     skill_ids = [s.name for s in skills]
@@ -555,11 +578,21 @@ def render_marketplace(out, agents, skills):
             entry["skills"] = [f"./skills/{s}" for s in skill_ids]
         else:
             continue
+        entry["version"] = version
         seen.add(entry["name"])
     missing = {PLUGIN, COPILOT_PLUGIN} - seen
     if missing:
         raise SourceError(f"{MARKETPLACE_FILE}: no entry for {sorted(missing)}")
     write_json(out / MARKETPLACE_FILE, data)
+
+
+def render_cursor_manifest(out, version):
+    path = ROOT / CURSOR_MANIFEST
+    if not path.exists():
+        raise SourceError(f"{CURSOR_MANIFEST}: missing")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["version"] = version
+    write_json(out / CURSOR_MANIFEST, data)
 
 
 def render_all(out):
@@ -569,12 +602,14 @@ def render_all(out):
     for harness in HARNESSES:
         render_skills(out, harness)
     render_hooks(out)
-    render_marketplace(out, agents, skills)
+    version = load_version()
+    render_marketplace(out, agents, skills, version)
+    render_cursor_manifest(out, version)
     return agents
 
 
 def managed_files(agents):
-    return [MARKETPLACE_FILE]
+    return [MARKETPLACE_FILE, CURSOR_MANIFEST]
 
 
 # --- commands ------------------------------------------------------------------
@@ -585,7 +620,7 @@ def build():
     for rel in MANAGED_DIRS:
         shutil.rmtree(ROOT / rel, ignore_errors=True)
     for rel in managed_files(agents):
-        if rel != MARKETPLACE_FILE:
+        if rel not in (MARKETPLACE_FILE, CURSOR_MANIFEST):
             (ROOT / rel).unlink(missing_ok=True)
     render_all(ROOT)
     print(f"rendered {len(agents)} agents x {len(HARNESSES)} harnesses into {ROOT}")
@@ -633,9 +668,18 @@ def main(argv=None):
         action="store_true",
         help="verify committed outputs match src/ without writing anything",
     )
+    parser.add_argument(
+        "--bump",
+        action="store_true",
+        help=f"increment the patch number in src/{VERSION_FILE}, then build",
+    )
     args = parser.parse_args(argv)
     try:
-        return check() if args.check else build()
+        if args.check:
+            return check()
+        if args.bump:
+            print(f"version {bump_patch()}")
+        return build()
     except SourceError as err:
         print(f"error: {err}", file=sys.stderr)
         return 2

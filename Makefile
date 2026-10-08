@@ -3,6 +3,8 @@
 # Targets:
 #   build     render jidoka/, jidoka-copilot/, jidoka-cursor/ and the agents and
 #             skills arrays in .claude-plugin/marketplace.json from src/
+#   bump      increment the patch number in src/VERSION, then build (CI runs
+#             it on every merge to main that touches the jidoka family)
 #   check     fail when the committed outputs differ from a fresh render (CI)
 #   test      unit tests for the renderer and model routing (CI)
 #   lint      markdownlint every Markdown file per .markdownlint-cli2.jsonc (CI)
@@ -42,7 +44,7 @@ EXTRA_CA ?= $(NODE_EXTRA_CA_CERTS)
 , := ,
 
 .DEFAULT_GOAL := help
-.PHONY: help build check test lint smoke-claude eval-claude eval-image validate
+.PHONY: help build bump check test lint smoke-claude eval-claude eval-image validate
 
 help: ## List targets and vars
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-13s %s\n", $$1, $$2}'
@@ -52,6 +54,9 @@ help: ## List targets and vars
 
 build: ## Render every harness variant from src/
 	$(PYTHON) scripts/render.py
+
+bump: ## Increment the patch version in src/VERSION, then render
+	$(PYTHON) scripts/render.py --bump
 
 check: ## Verify the committed outputs match src/ (what CI runs)
 	$(PYTHON) scripts/render.py --check
