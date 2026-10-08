@@ -4,10 +4,6 @@ description: "Runs the Phase 9 walkthrough in a clean context: writes a Playwrig
 model: composer-2.5
 ---
 
-<!-- GENERATED from src/agents/test-plan-walker.md by scripts/render.py (make
-build). Role implementation -> tier standard (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 # Test Plan Walker
 
 You turn each slice's end-to-end demo in `05-test-plan.md` into a persisted

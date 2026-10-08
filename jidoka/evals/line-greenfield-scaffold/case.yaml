@@ -1,0 +1,221 @@
+# End-to-end verifier for the new-project branch of /jidoka:line: in an empty
+# repository, a request to set up a project must run the project-setup skill,
+# which offers the stack catalog's options, freezes one skeleton contract and
+# dispatches the project-scaffolder agent; the agent has impl-backend and
+# impl-frontend build the halves (scope `project scaffold`), verifies and
+# smokes them together, builds docs/project_context/ and lands the skeleton on
+# main. One run scaffolds a whole .NET + React stack, so it needs
+# the .NET SDK and Node in the runner, network to the npm and NuGet registries,
+# and tens of minutes; run it deliberately:
+# `make eval-claude ARGS="--case line-greenfield-scaffold"`.
+#
+# What it covers: the greenfield test, the batched setup questions, the
+# skeleton contract reaching both halves, the bootstrap of both scaffold skills,
+# the through-the-proxy auth smoke, the context build, the local merge and the
+# worktree cleanup. Not covered: a story running on top of the skeleton (the
+# line-minimal-story case covers the story phases), a non-git folder, a repo
+# with a remote, and adding one layer to an existing repo.
+schema_version: "1.1"
+name: line-greenfield-scaffold
+description: /jidoka:line in an empty repo scaffolds a .NET + React walking skeleton onto main
+tags: [e2e, slow, scaffold]
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  A TeamNotes walking skeleton merged into main: backend/ with an ASP.NET
+  Core Minimal API (cookie-session auth, CSRF header, audit log) and its xUnit
+  tests, frontend/ with a Vite + React + Ant Design app (sign-in, guarded shell,
+  dev proxy) and its Vitest tests, docs/project_context/ and a README, every
+  gate green, no worktree left, and no story phases run.
+
+execution:
+  model: opus
+  max_turns: 200
+  timeout_seconds: 3600
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # AskUserQuestion is not offered headless; this stands in for the developer.
+  append_system_prompt: |
+    This session is an unattended evaluation run of the jidoka workflow. No
+    human will read or answer anything until the run ends, and there is no
+    AskUserQuestion tool. Wherever the workflow tells you to ask, confirm or
+    wait for the user, write the question and your recommended answer in one
+    line, take the recommended answer, and continue in the same turn. Do not
+    end your turn until the scaffold has landed or you are blocked by
+    something you cannot fix.
+
+    Decisions the developer has already made:
+    - Project name: TeamNotes (the workspace folder's name is random; do not
+      derive the name from it).
+    - Set up both layers: the .NET backend and the React frontend.
+    - Passwords: the development stub, decided later.
+    - Look: Neutral Enterprise.
+    - The repository has no remote: merge the skeleton into main locally, and
+      skip every pull and push.
+    - This request is only the project setup; no story follows it.
+
+    Sandbox facts about this evaluation workspace, not about the project: its
+    root holds placeholder dotfiles (.gitmodules, .gitconfig and others) that
+    cannot be read, so MSBuild's git query fails in the root checkout; build
+    and test there with -p:EnableSourceControlManagerQueries=false.
+  prompt: |
+    /jidoka:line Set up a new project for TeamNotes, a small app where a team
+    keeps notes on their day. There is no code yet.
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  # --- The entry point and the new-project branch fired ----------------------
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+  - name: project-setup-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "project-setup"
+  # Exactly once: a second dispatch means the first returned before landing
+  # (it backgrounded its implementers and ended its turn).
+  - name: scaffolder-dispatched-once
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:project-scaffolder"
+    min: 1
+    max: 1
+  - name: worktree-skill-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "git-worktrees"
+  - name: backend-scaffold-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "project scaffold - backend"
+  - name: frontend-scaffold-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "project scaffold - frontend"
+  - name: context-builder-invoked
+    type: tool_used
+    tool: Skill
+    input_match: "codebase-context-builder"
+
+  # --- ...in order, and nothing from the story phases ------------------------
+  - name: setup-before-scaffolder
+    type: tool_order
+    before: { tool: Skill, input_match: "project-setup" }
+    after: { tool: Agent, input_match: "jidoka:project-scaffolder" }
+  - name: worktree-before-implementers
+    type: tool_order
+    before: { tool: Skill, input_match: "git-worktrees" }
+    after: { tool: Agent, input_match: "project scaffold - frontend" }
+  - name: implementers-before-context
+    type: tool_order
+    before: { tool: Agent, input_match: "project scaffold - backend" }
+    after: { tool: Skill, input_match: "codebase-context-builder" }
+  - name: no-architect
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:code-architect"
+    min: 0
+    max: 0
+  - name: no-raise-pr
+    type: tool_used
+    tool: Skill
+    input_match: "raise-pr"
+    min: 0
+    max: 0
+
+  # --- End state on main: these paths exist only after the local merge -------
+  - name: solution-on-main
+    type: file_exists
+    path: "backend/*.slnx"
+  - name: api-program-on-main
+    type: file_exists
+    path: "backend/TeamNotesApi/Program.cs"
+  - name: session-ticket-store
+    type: file_exists
+    path: "backend/TeamNotesApi/**/CookieAuthTicketStore.cs"
+  - name: csrf-middleware
+    type: file_exists
+    path: "backend/TeamNotesApi/**/CsrfHeaderMiddleware.cs"
+  - name: initial-migration
+    type: file_exists
+    path: "backend/TeamNotesApi/Migrations/*InitialCreate*.cs"
+  - name: backend-tests
+    type: file_exists
+    path: "backend/TeamNotesApi.Tests/*.cs"
+  - name: dev-port-pinned
+    type: regex
+    target: { source: file, path: backend/TeamNotesApi/Properties/launchSettings.json }
+    pattern: "http://localhost:5080"
+  - name: frontend-stack
+    type: regex
+    target: { source: file, path: frontend/package.json }
+    pattern: "\"antd\"[\\s\\S]*\"react-router\"|\"react-router\"[\\s\\S]*\"antd\""
+  - name: frontend-gate-scripts
+    type: regex
+    target: { source: file, path: frontend/package.json }
+    # Every gate script the workflow runs, in any order.
+    pattern: "^(?=[\\s\\S]*\"typecheck\":)(?=[\\s\\S]*\"lint\":)(?=[\\s\\S]*\"format:check\":)(?=[\\s\\S]*\"test\":)"
+  - name: no-template-linter
+    type: regex
+    target: { source: file, path: frontend/package.json }
+    pattern: "oxlint|\"eslint\""
+    match: not_contains
+  - name: dev-proxy
+    type: regex
+    target: { source: file, path: frontend/vite.config.ts }
+    pattern: "[\"']/api[\"']"
+  - name: api-client-csrf
+    type: regex
+    target: { source: file, path: frontend/src/lib/api/client.ts }
+    pattern: "X-App-Client"
+  - name: frontend-tests
+    type: file_exists
+    path: "frontend/src/**/*.test.tsx"
+  - name: project-context-built
+    type: regex
+    target: { source: file, path: docs/project_context/00_index.md }
+    pattern: "\\S"
+  - name: readme-written
+    type: regex
+    target: { source: file, path: README.md }
+    pattern: "DevAuth"
+  - name: no-plan-folder
+    type: file_exists
+    path: "docs/new-feature/**"
+    exists: false
+  - name: worktree-cleaned-up
+    type: file_exists
+    path: ".worktrees/**"
+    exists: false
+
+  # --- Judged ------------------------------------------------------------------
+  - name: login-page-uses-antd-form
+    type: llm
+    focus: { source: file, path: frontend/src/features/auth/LoginPage.tsx }
+    criteria: |
+      This is the sign-in page of a freshly scaffolded React + Ant Design SPA
+      whose backend uses server-side cookie sessions.
+      PASS only if all of these hold:
+      - It uses antd's Form with Form.Item fields that each have a label, for
+        a username and a password (Input.Password).
+      - On submit it calls a login mutation and, on success, navigates away
+        from the sign-in page.
+      - Server errors are shown to the user (field errors under their fields,
+        other failures in an Alert or equivalent), not swallowed.
+      - It stores no token or credential in localStorage or sessionStorage.
+      FAIL if any of these is missing.
+  - name: run-finished-unattended
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of an unattended run asked only to set up a
+      new .NET + React project (no feature story).
+      PASS if it reports the skeleton as scaffolded and merged into main, with
+      the backend and frontend test suites passing and the end-to-end auth
+      smoke through the frontend's dev proxy passing, and it does not go on to
+      plan or build a feature.
+      FAIL if it stops before merging, ends on a question waiting for an
+      answer, reports a failing gate or smoke as unresolved, or starts a story.

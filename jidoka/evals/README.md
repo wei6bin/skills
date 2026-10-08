@@ -2,10 +2,11 @@
 
 The end-to-end verifier for the `line` workflow, run by `claude plugin eval`
 inside a container (`Dockerfile` here: Claude Code, bubblewrap, git, curl,
-Node 22). From the repo root:
+Node 22, the .NET SDK). From the repo root:
 
 ```bash
 make eval-claude                      # build the image if needed, run every case
+make eval-claude ARGS="--case line-greenfield-scaffold"   # one case
 make eval-claude ARGS="--keep-temp"   # keep the run directory and its trace
 make eval-claude HOST=1               # run on the host instead
 ```
@@ -57,6 +58,44 @@ The graders check three things:
 Not covered: the frontend half, whole-story integration and a Playwright
 walkthrough (the fixture has no UI), opening a PR on a real host, and the
 refactor tier.
+
+## line-greenfield-scaffold
+
+The new-project branch. `scaffold.sh` leaves an empty git repository on `main`
+with an identity and no commits, and the prompt asks `/jidoka:line` to set up
+a project with no story. The case's system prompt answers the setup questions
+(both layers, the development password stub, the Neutral look, merge locally).
+The run scaffolds a real .NET + React skeleton, so its Bash needs the npm and
+NuGet registries: the Makefile grants them (`EVAL_DOMAINS`), since a run's Bash
+has no network beyond the domains the operator grants and a case cannot grant
+any itself.
+
+The graders check that the `project-setup` skill ran before it dispatched the
+`project-scaffolder` agent, and that the agent's own steps happened in order
+(the worktree, both implementers with scope `project scaffold`, the context
+build);
+that no story phase ran (no architect, no `raise-pr`, no plan folder); the end
+state on `main` (solution, API with the session ticket store, CSRF middleware
+and an `InitialCreate` migration, the pinned dev port, the frontend's stack,
+gate scripts, dev proxy and CSRF-sending client, both test suites, the project
+context, a README naming the dev login, no worktree); and, judged, the sign-in
+page and a final message that reports the gates and the proxy smoke green.
+
+No grader runs a command, so the gates themselves are not re-run here; the
+orchestrator's own evidence check and smoke are what the last-message grader
+reads. To re-run them independently, pass `--keep-temp` and run
+`dotnet test` and `npm test` in the kept workspace.
+
+Not covered: a story on top of the skeleton, a folder that is not a git
+repository, a repository with a remote, and adding one layer to an existing
+repository.
+
+The run's workspace root holds placeholder dotfiles the agent cannot read
+(`.gitmodules`, `.gitconfig` and others). MSBuild's source-control query reads
+`.gitmodules`, so `dotnet build` fails in the root checkout though it passes in
+the worktree; the case's system prompt says to pass
+`-p:EnableSourceControlManagerQueries=false` there. Real repositories have no
+such files.
 
 ## Running it headless
 

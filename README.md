@@ -43,10 +43,12 @@ under `src/` and rendered by `make build`:
 
 Each agent source carries one shared body and a frontmatter block per harness
 (tool names, model ids, flags), so a change to an agent's instructions lands in
-all three harnesses from one edit. Rendered files start with a `GENERATED`
-comment: edit the source, run `make build`, commit both. `make check` (also run
-in CI) fails when the committed outputs are stale. The renderer needs Python 3
-with PyYAML; `scripts/render.py` documents the source format.
+all three harnesses from one edit. Rendered files are never hand-edited: edit
+the source, run `make build`, commit both. They carry no inline "generated"
+marker, because every skill and agent file loads into the model's context when
+it runs; `.gitattributes` marks them `linguist-generated` instead. `make check`
+(also run in CI) fails when the committed outputs are stale. The renderer needs
+Python 3 with PyYAML; `scripts/render.py` documents the source format.
 
 ## Model routing
 

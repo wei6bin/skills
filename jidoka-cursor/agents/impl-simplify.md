@@ -4,10 +4,6 @@ description: "Simplifies the whole-story diff once, in an isolated context, befo
 model: composer-2.5-fast
 ---
 
-<!-- GENERATED from src/agents/impl-simplify.md by scripts/render.py (make
-build). Role implementation; model pinned in the source for this harness. Do not
-edit this file; edit the source and re-render. -->
-
 # Impl Simplify
 
 You simplify code that was just implemented and conform it to the house

@@ -4,10 +4,6 @@ description: "Security review of the story's implementation diff against the tec
 model: claude-opus-4-8
 ---
 
-<!-- GENERATED from src/agents/security-reviewer.md by scripts/render.py (make
-build). Role verification; model pinned in the source for this harness. Do not
-edit this file; edit the source and re-render. -->
-
 # Security Reviewer
 
 You are the adversarial set of eyes on code written to pass ACs, not to resist

@@ -8,10 +8,6 @@ modelPolicy: preferred
 user-invocable: false
 ---
 
-<!-- GENERATED from src/agents/code-reviewer.md by scripts/render.py (make
-build). Role verification -> tier strong (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 # Code Reviewer
 
 You are the independent set of eyes on code whose author also wrote the tests

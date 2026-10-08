@@ -15,6 +15,7 @@ Use **`subagent_type`** with the bare agent name - never `agent_type`, never a `
 
 | Phase | `subagent_type` | Notes |
 |-------|-----------------|--------|
+| 1 - project setup | `project-scaffolder` | Only when the `project-setup` skill runs (no source code in the folder, or a request for a new project), after its one batched question: one task with the repo root, the Git answer, the skeleton contract and the chosen stack rows. The scaffolder itself dispatches `impl-backend` and `impl-frontend` (scope `"project scaffold - {backend\|frontend} - skill: {scaffold skill} - root: {dir}"`), or builds both halves itself if Cursor refuses a nested task |
 | 2 - exploration | `code-explorer` | 2-3 parallel tasks, different angles |
 | 4 - architecture | `code-architect` | One task with Phase 2-3 context |
 | 6 - plan review | `plan-reviewer` | Two parallel tasks (AC/security vs tasks/tests) |

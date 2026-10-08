@@ -50,9 +50,7 @@ marketplace's background auto-update on the next session start), then
 `src/` is the only place the jidoka family is edited. `make build` runs
 `scripts/render.py` (Python 3 with PyYAML) and rewrites every rendered path
 listed below; `make check` fails when the committed outputs are stale and is
-what CI runs (`.github/workflows/render-check.yml`). Rendered files carry a
-`GENERATED` header comment: never hand-edit them, edit the source, re-render and
-commit both.
+what CI runs (`.github/workflows/render-check.yml`).
 
 - `src/agents/<name>.md` - one agent: a shared body plus frontmatter with
   `name`, `description`, `tools` (Claude tool names) and a `role`, which
@@ -84,10 +82,19 @@ commit both.
   in `marketplace.json` are rendered too: adding a file under `src/agents/` or
   `src/skills/` registers it on the next build.
 
-Rendered paths: `jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
-`jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays.
-`jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code only, so
-the suite has no Copilot or Cursor render.
+Rendered paths are generated and never hand-edited:
+`jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
+`jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays. To
+change one, edit its source under `src/`, run `make build` and commit both. The
+rendered Markdown carries no inline marker on purpose: every skill, skill
+reference and agent file loads into the model's context when it runs, so the
+header comment it used to carry cost tokens on every load in every harness. This
+rule is the marker instead, backed by `.gitattributes`, which marks the same
+directories `linguist-generated` (GitHub collapses them in a diff) and which
+`make test` checks against the renderer. Hook scripts are executed, never loaded
+into context, so each keeps a one-line comment under its shebang naming its
+source. `jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code
+only, so the suite has no Copilot or Cursor render.
 
 Harness facts the renderer relies on (verified against the harness docs on
 2026-10-01): Copilot CLI reads `.claude-plugin/marketplace.json`, accepts
@@ -104,8 +111,8 @@ Models are not written into agent files. Each agent names a `role`, and
 `src/models.yaml` holds two tables: `roles` (role to tier, plus Claude's
 `effort`) and `tiers` (tier to model per harness). Today reasoning is
 `frontier` (code-architect), verification is `strong` (plan-reviewer,
-code-reviewer, security-reviewer), and implementation and exploration are
-`standard`. Three layers, in order of how often they change:
+code-reviewer, security-reviewer, project-scaffolder), and implementation and
+exploration are `standard`. Three layers, in order of how often they change:
 
 1. **Source** - edit `src/models.yaml` to move a role between tiers or change a
    tier's model, then `make build`. Pin a single agent with its `model:` map
@@ -132,8 +139,9 @@ code-reviewer, security-reviewer), and implementation and exploration are
 
 - `make test` - unit tests for the renderer (`scripts/test_render.py`): role
   resolution per harness, pins and `claude.effort` precedence, error cases,
-  the Copilot and Cursor rewrites, and determinism on the real tree. CI runs
-  it together with `make check` and `make lint`.
+  the Copilot and Cursor rewrites, no inline marker in rendered Markdown,
+  `.gitattributes` covering exactly the rendered paths, and determinism on the
+  real tree. CI runs it together with `make check` and `make lint`.
 - `make check` - the committed renders match `src/`. `claude plugin validate .`
   checks the marketplace loads.
 - `make lint` - markdownlint-cli2 (version pinned in the `Makefile`, needs Node)
@@ -150,22 +158,32 @@ code-reviewer, security-reviewer), and implementation and exploration are
 - `make eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
   case under `jidoka/evals/` in a sandboxed headless session, inside a
   container built from `jidoka/evals/Dockerfile` (`make eval-image`; `HOST=1`
-  runs on the host instead). The one case, `line-minimal-story`, scaffolds a
+  runs on the host instead). Two cases. `line-minimal-story` scaffolds a
   zero-dependency Node API as a git repo, types `/jidoka:line` with a two-AC
   backend story, and grades the dispatch order plus the end state (plan docs,
-  ledger, merged code and tests, backlog closed, worktree gone). One run is a
-  whole workflow, up to an hour and several dollars, so it is not in CI; run it
-  before merging a change to the `line` flow. The container needs a credential
-  in `~/.config/jidoka/eval.env` (`CLAUDE_CODE_OAUTH_TOKEN` from
-  `claude setup-token`, or `ANTHROPIC_API_KEY`). Harness facts it relies on:
-  the case's `plugins: ["../.."]` is what loads `jidoka/` without a manifest;
+  ledger, merged code and tests, backlog closed, worktree gone).
+  `line-greenfield-scaffold` starts from an empty repo, asks for a new project,
+  and grades the new-project branch: `project-setup` invoked, the
+  `project-scaffolder` agent dispatched, a .NET + React skeleton and project
+  context merged into `main`, and no story phase run. One run is a whole
+  workflow, up to an hour and several dollars, so it is not in CI; run it
+  before merging a change to the `line` flow (`ARGS="--case <name>"` runs one).
+  The container needs a credential in `~/.config/jidoka/eval.env`
+  (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or
+  `ANTHROPIC_API_KEY`). Harness facts it relies on: the case's
+  `plugins: ["../.."]` is what loads `jidoka/` without a manifest;
   `AskUserQuestion` is not offered headless, so the case's
   `append_system_prompt` stands in for the developer; a Bash-granting eval
   refuses to start while the host's Docker credential store holds a symlink
   (Docker Desktop's "User" CLI install mode links its tools there), which is
   why the container is the default; and the eval's bubblewrap sandbox only
   starts in a container run with `seccomp=unconfined` and
-  `systempaths=unconfined`.
+  `systempaths=unconfined`. A run's Bash also has no network beyond the
+  domains the operator grants (`--allow-tools "WebFetch(domain:...)"`; a case
+  cannot grant any), so the Makefile's `EVAL_DOMAINS` grants the npm and NuGet
+  registries the greenfield case installs from, and the image's entrypoint adds
+  a mounted `EXTRA_CA` to the system store because .NET, unlike Node, ignores
+  `NODE_EXTRA_CA_CERTS`.
 - Copilot and Cursor have no scripted test here. Copilot: install the plugin
   from a local path, run the session on an Opus-tier model, dispatch an agent
   and check the model in the session log. Cursor: copy the agents into
@@ -184,9 +202,25 @@ Three component types:
 - **Skills** (`src/skills/<name>/SKILL.md`, one file per skill) - `line` is the
   entry point; the rest are companions it invokes (`vertical-slicing`,
   `git-worktrees`, `raise-pr`, `backend-implementer`, `frontend-implementer`,
-  `sweep-implementer`, `reuse-ladder`, `codebase-context-builder`, `context-updater`,
-  `react-best-practices`, `frontend-styling-standard`, `restful-api-design`,
-  `test-plan-walkthrough`). Skills run in the main session; `context-updater` in
+  `sweep-implementer`, `reuse-ladder`, `codebase-context-builder`,
+  `context-updater`, `react-best-practices`, `frontend-styling-standard`,
+  `restful-api-design`, `test-plan-walkthrough`, `project-setup`,
+  `aspnet-backend-scaffold`, `react-frontend-scaffold`). In a folder with no
+  source code, or on a request for a new project, `line` invokes
+  `project-setup` before Phase 2. It holds the **stack catalog** (one row per
+  stack, today a .NET backend and a React frontend, each naming its scaffold
+  skill), asks the user which to set up, freezes a skeleton contract and
+  dispatches the `project-scaffolder` agent with the chosen rows. The split is
+  deliberate: only the main session can ask the user, and the build's trail
+  (two implementers' reports, every gate, the smoke, the context write-up)
+  stays in the agent's context instead of the orchestrator's. The agent
+  dispatches `impl-backend` and `impl-frontend` with scope `project scaffold`,
+  checks their work, smokes the halves together, builds the project context
+  and lands the skeleton on the base branch; `project-setup` then checks the
+  result cheaply. Adding a stack is a catalog row plus a scaffold skill;
+  nothing else names a stack. The two scaffold skills began as standalone
+  skills and keep their feature-slice guidance, but the line loads only their
+  bootstrap. Skills run in the main session; `context-updater` in
   particular must never be dispatched as a subagent and runs once per story
   from the orchestrator (the old Copilot variant had the implementers invoke it;
   that divergence was retired with the single source). `line` sets
@@ -203,7 +237,11 @@ Three component types:
   task tool with `agent_type: "jidoka:<name>"` (`jidoka-copilot:<name>` in the
   Copilot render, bare `subagent_type` on Cursor): `code-explorer`,
   `code-architect`, `plan-reviewer`, `impl-backend`, `impl-frontend`,
-  `impl-simplify`, `code-reviewer`, `security-reviewer`, `test-plan-walker`.
+  `impl-simplify`, `code-reviewer`, `security-reviewer`, `test-plan-walker`,
+  `project-scaffolder`. `project-scaffolder` dispatches the two implementers
+  itself, which Claude Code supports; the Copilot and Cursor renders carry a
+  fallback that builds the halves in the agent when nesting is refused, not
+  yet exercised on either.
   `impl-simplify` on Claude Code owns no rules of its own - it is a thin context
   boundary that invokes the built-in `simplify` skill in an isolated window; the
   Copilot and Cursor renders carry the rules in the shared body. On every

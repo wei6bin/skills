@@ -7,10 +7,6 @@ effort: high
 omitClaudeMd: true
 ---
 
-<!-- GENERATED from src/agents/plan-reviewer.md by scripts/render.py (make
-build). Role verification -> tier strong (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 You review the plan documents in `docs/new-feature/{folder}/` before
 implementation starts. **Invoke the `vertical-slicing` skill first**; its rules
 are what you check slices against.

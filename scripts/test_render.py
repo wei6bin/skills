@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Unit tests for scripts/render.py: model routing, per-harness frontmatter,
-the dispatch rewrites, error cases, and idempotence on the real source tree.
+the dispatch rewrites, error cases, no inline generated marker in rendered
+Markdown (.gitattributes marks the outputs instead), and idempotence on the
+real source tree.
 
 Run with `make test` (python3 -m unittest discover -s scripts -p 'test_*.py').
 """
 
 import json
+import re
+import subprocess
 import sys
 import tempfile
 import textwrap
@@ -138,8 +142,6 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(cursor["model"], "pinned-slug")
         claude = frontmatter(self.out / "jidoka/agents/pinned.md")
         self.assertEqual(claude["model"], "sonnet")
-        header = (self.out / "jidoka-cursor/agents/pinned.md").read_text().splitlines()
-        self.assertTrue(any("pinned in the source" in line for line in header))
 
     def test_claude_block_effort_beats_role_effort(self):
         claude = frontmatter(self.out / "jidoka/agents/effortful.md")
@@ -281,6 +283,42 @@ class HarnessSectionTests(unittest.TestCase):
             fx.close()
 
 
+class GeneratedMarkerTests(unittest.TestCase):
+    """Rendered Markdown carries no inline marker: skills, their reference files
+    and agents load into the model's context on every run, so a marker would
+    cost tokens every time. Hook scripts are executed, never loaded, and keep
+    their one-line GENERATED comment."""
+
+    def setUp(self):
+        self.fx = Fixture({"a": agent_md("a", "reasoning")})
+        self.addCleanup(self.fx.close)
+        ref = self.fx.root / "src/skills/line/references/ref.md"
+        ref.parent.mkdir()
+        ref.write_text("# Ref\n\nThen `jidoka:line`.\n")
+        self.out = self.fx.render()
+
+    def test_markdown_opens_with_its_frontmatter_and_has_no_marker(self):
+        for plugin in render.PLUGIN_DIRS.values():
+            agent = next((self.out / plugin / "agents").glob("a.*"))
+            for path in (agent, self.out / plugin / "skills/line/SKILL.md"):
+                text = path.read_text()
+                self.assertTrue(text.startswith("---\nname: "), path)
+                _fm, body = render.split_frontmatter(text, path)
+                # One blank line after the closing fence, then the body.
+                self.assertRegex(body, r"\A\n[^\n<]", path)
+                self.assertNotIn("GENERATED", text, path)
+            ref = (self.out / plugin / "skills/line/references/ref.md").read_text()
+            self.assertTrue(ref.startswith("# Ref\n\n"), plugin)
+            self.assertNotIn("GENERATED", ref, plugin)
+
+    def test_hook_scripts_keep_their_marker(self):
+        for plugin in render.PLUGIN_DIRS.values():
+            lines = (self.out / plugin / "hooks/h.sh").read_text().splitlines()
+            self.assertEqual(lines[0], "#!/usr/bin/env bash", plugin)
+            self.assertTrue(lines[1].startswith("# GENERATED copy of src/hooks/h.sh"), plugin)
+            self.assertEqual(lines[2:], ["exit 0"], plugin)
+
+
 class RealTreeTests(unittest.TestCase):
     """Invariants on the repo's own src/, and that rendering is deterministic."""
 
@@ -300,6 +338,49 @@ class RealTreeTests(unittest.TestCase):
             entry = skill.name == "line"
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
+
+    def test_skill_and_agent_bodies_have_no_positional_placeholders(self):
+        # Claude Code substitutes a skill's invocation arguments into its body:
+        # $0, $1, ... become the words it was called with. A shell snippet that
+        # uses "$2" therefore reaches the agent as a literal word. Name the
+        # values instead (the project-scaffolder smoke reads STEP/WANT/GOT).
+        pattern = re.compile(r"\$\{?[0-9]")
+        files = sorted(render.SRC.glob("skills/*/SKILL.md")) + sorted(render.SRC.glob("agents/*.md"))
+        self.assertTrue(files)
+        for path in files:
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                self.assertIsNone(pattern.search(line), f"{path.relative_to(render.ROOT)}:{number}: {line.strip()}")
+
+    def test_gitattributes_marks_exactly_the_rendered_paths_generated(self):
+        # With no inline marker, .gitattributes is the machine-readable one:
+        # every directory the renderer owns is linguist-generated, and no
+        # tracked hand-written file beside them (evals, Cursor adapter files).
+        def git(*args):
+            try:
+                result = subprocess.run(
+                    ["git", "-C", str(render.ROOT), *args], capture_output=True, text=True
+                )
+            except FileNotFoundError:
+                self.skipTest("git not installed")
+            if result.returncode != 0:
+                self.skipTest(f"git {args[0]} failed: {result.stderr.strip()}")
+            return result.stdout.splitlines()
+
+        plugins = sorted(set(render.PLUGIN_DIRS.values()))
+        rendered = [f"{rel}/any.md" for rel in render.MANAGED_DIRS]
+        hand_written = [
+            path
+            for path in git("ls-files", "--", *plugins)
+            if not any(path.startswith(f"{rel}/") for rel in render.MANAGED_DIRS)
+        ] + ["src/skills/line/SKILL.md", render.MARKETPLACE_FILE]
+        values = dict(
+            line.rsplit(": linguist-generated: ", 1)
+            for line in git("check-attr", "linguist-generated", "--", *rendered, *hand_written)
+        )
+        for path in rendered:
+            self.assertEqual(values[path], "true", path)
+        for path in hand_written:
+            self.assertEqual(values[path], "unspecified", path)
 
     def test_render_is_deterministic(self):
         with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
