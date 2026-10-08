@@ -50,9 +50,7 @@ marketplace's background auto-update on the next session start), then
 `src/` is the only place the jidoka family is edited. `make build` runs
 `scripts/render.py` (Python 3 with PyYAML) and rewrites every rendered path
 listed below; `make check` fails when the committed outputs are stale and is
-what CI runs (`.github/workflows/render-check.yml`). Rendered files carry a
-`GENERATED` header comment: never hand-edit them, edit the source, re-render and
-commit both.
+what CI runs (`.github/workflows/render-check.yml`).
 
 - `src/agents/<name>.md` - one agent: a shared body plus frontmatter with
   `name`, `description`, `tools` (Claude tool names) and a `role`, which
@@ -84,10 +82,19 @@ commit both.
   in `marketplace.json` are rendered too: adding a file under `src/agents/` or
   `src/skills/` registers it on the next build.
 
-Rendered paths: `jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
-`jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays.
-`jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code only, so
-the suite has no Copilot or Cursor render.
+Rendered paths are generated and never hand-edited:
+`jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
+`jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays. To
+change one, edit its source under `src/`, run `make build` and commit both. The
+rendered Markdown carries no inline marker on purpose: every skill, skill
+reference and agent file loads into the model's context when it runs, so the
+header comment it used to carry cost tokens on every load in every harness. This
+rule is the marker instead, backed by `.gitattributes`, which marks the same
+directories `linguist-generated` (GitHub collapses them in a diff) and which
+`make test` checks against the renderer. Hook scripts are executed, never loaded
+into context, so each keeps a one-line comment under its shebang naming its
+source. `jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code
+only, so the suite has no Copilot or Cursor render.
 
 Harness facts the renderer relies on (verified against the harness docs on
 2026-10-01): Copilot CLI reads `.claude-plugin/marketplace.json`, accepts
@@ -132,8 +139,9 @@ code-reviewer, security-reviewer), and implementation and exploration are
 
 - `make test` - unit tests for the renderer (`scripts/test_render.py`): role
   resolution per harness, pins and `claude.effort` precedence, error cases,
-  the Copilot and Cursor rewrites, and determinism on the real tree. CI runs
-  it together with `make check` and `make lint`.
+  the Copilot and Cursor rewrites, no inline marker in rendered Markdown,
+  `.gitattributes` covering exactly the rendered paths, and determinism on the
+  real tree. CI runs it together with `make check` and `make lint`.
 - `make check` - the committed renders match `src/`. `claude plugin validate .`
   checks the marketplace loads.
 - `make lint` - markdownlint-cli2 (version pinned in the `Makefile`, needs Node)

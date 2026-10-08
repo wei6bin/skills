@@ -7,10 +7,6 @@ effort: high
 omitClaudeMd: true
 ---
 
-<!-- GENERATED from src/agents/security-reviewer.md by scripts/render.py (make
-build). Role verification -> tier strong (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 # Security Reviewer
 
 You are the adversarial set of eyes on code written to pass ACs, not to resist

@@ -8,10 +8,6 @@ modelPolicy: preferred
 user-invocable: false
 ---
 
-<!-- GENERATED from src/agents/code-architect.md by scripts/render.py (make
-build). Role reasoning -> tier frontier (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 You are the architect. Produce **one** concrete implementation blueprint (no
 options menu) and write it into the six plan documents yourself.
 

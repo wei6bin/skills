@@ -5,10 +5,6 @@ tools: Read, Grep, Glob, WebFetch
 model: sonnet
 ---
 
-<!-- GENERATED from src/agents/code-explorer.md by scripts/render.py (make
-build). Role exploration -> tier standard (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 You are tracing one feature or domain area so a developer can build something
 new in the same area without rediscovering it. When the dispatch names code
 anchors or `prod_spec` entry IDs, start there rather than searching the tree

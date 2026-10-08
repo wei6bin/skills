@@ -1,0 +1,16 @@
+# Rendered by scripts/render.py (make build) from src/: never hand-edit these,
+# edit src/ and re-render. The rendered Markdown carries no inline marker, since
+# every skill and agent file loads into the model's context when it runs (see
+# CLAUDE.md, "One source, three renders"). linguist-generated also collapses
+# them in GitHub diffs. Keep this list in step with MANAGED_DIRS in
+# scripts/render.py; make test checks it. Not listed, because hand-written:
+# jidoka/evals/, jidoka-cursor/.cursor-plugin/, jidoka-cursor/rules/,
+# jidoka-cursor/README.md, jidoka-cursor/SMOKE-TEST.md, and
+# .claude-plugin/marketplace.json (only two of its arrays are rendered).
+jidoka/agents/** linguist-generated=true
+jidoka/skills/** linguist-generated=true
+jidoka/hooks/** linguist-generated=true
+jidoka-copilot/** linguist-generated=true
+jidoka-cursor/agents/** linguist-generated=true
+jidoka-cursor/skills/** linguist-generated=true
+jidoka-cursor/hooks/** linguist-generated=true

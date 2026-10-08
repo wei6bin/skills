@@ -5,10 +5,6 @@ tools: Read, Edit, Write, Grep, Glob, Bash, Skill, Task
 model: sonnet
 ---
 
-<!-- GENERATED from src/agents/impl-simplify.md by scripts/render.py (make
-build). Role implementation -> tier standard (src/models.yaml). Do not edit this
-file; edit the source and re-render. -->
-
 # Impl Simplify
 
 You are the context boundary around the built-in `simplify` skill and the house
