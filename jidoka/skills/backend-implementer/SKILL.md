@@ -31,7 +31,7 @@ Then, per AC behaviour, simplest and happy path first:
    test".
 4. Run the whole suite. Refactor only while green.
 5. Commit:
-   `feat(backend): SLICE-NN - {behaviour, e.g. 'register Booked patient as Checked-In'}`.
+   `feat(backend): SLICE-NN - {behaviour, e.g. 'move a Pending order to Shipped'}`.
    One commit per cycle.
 
 Do not write all tests first and then all implementation; that is horizontal

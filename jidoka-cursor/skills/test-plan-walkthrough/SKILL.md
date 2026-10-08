@@ -65,7 +65,7 @@ up with the project's standard command if not. Stale seed data → follow
 slice order:
 
 - Decompose the demo line into checkpoints (one assertion + one screenshot
-  each), e.g. _"Sign in as Doctor → open Checked-In appointment → save 1 drug →
+  each), e.g. _"Sign in as an editor → open a draft article → add 1 tag →
   reload → restored"_ is four.
 - One `test()` per slice, named after its behaviour, using the project's login
   fixture and `baseURL`. Locators from the concrete roles, labels and expected
@@ -127,7 +127,7 @@ only their rows and screenshots.
 
 | # | Step | Result | Screenshot |
 |---|------|--------|------------|
-| 1 | Sign in as Doctor | ✅ Redirected to `/doctor` | ![](screenshots/slice-01-01-login.png) |
+| 1 | Sign in as an editor | ✅ Redirected to `/drafts` | ![](screenshots/slice-01-01-login.png) |
 
 ## Issues found during walkthrough
 | Slice | Severity | Issue | Status |

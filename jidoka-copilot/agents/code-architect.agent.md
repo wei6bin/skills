@@ -98,7 +98,7 @@ Change-site block, one per file per slice:
 
 ````markdown
 **`path`** - one-line descriptor
-- Insertion anchor: after line 47 (`CheckedInAt` property) | new file, mirror `CancelAppointmentRequest.cs`
+- Insertion anchor: after line 47 (`ShippedAt` property) | new file, mirror `CancelOrderRequest.cs`
 - Target shape:
   ```lang
   [small snippet - just enough to lock the shape]

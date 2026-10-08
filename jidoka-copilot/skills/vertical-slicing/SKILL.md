@@ -18,11 +18,11 @@ frontend mocks it, and the story is integrated and demoed **once, at the end**.
 Slices need not be demoable in isolation; requiring that invents demo-driven
 dependencies and forces per-slice integration.
 
-| Not a slice                               | A slice                                                                    |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| "Set up the schema" (horizontal layer)    | "Award points for lesson completion (`POST /lessons/{id}/complete`)"       |
-| "Build the service layer"                 | "Reject patient registration when NRIC is malformed (`422` + field error)" |
-| "All the endpoints, then all the screens" | "Show patient's last visit date on the response card"                      |
+| Not a slice                               | A slice                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| "Set up the schema" (horizontal layer)    | "Award points for lesson completion (`POST /lessons/{id}/complete`)" |
+| "Build the service layer"                 | "Reject a sign-up when the email is malformed (`422` + field error)" |
+| "All the endpoints, then all the screens" | "Show a learner's last completed lesson on their profile card"       |
 
 A thin scaffold slice (routing, shell, service-worker registration) comes first
 only when later slices genuinely depend on it.

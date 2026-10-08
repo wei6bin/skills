@@ -34,7 +34,7 @@ error/empty/loading states:
    lean mode first, then add only what this test demands.
 4. Run the whole suite. Refactor only while green.
 5. Commit:
-   `feat(frontend): SLICE-NN - {behaviour, e.g. 'show success toast after check-in'}`.
+   `feat(frontend): SLICE-NN - {behaviour, e.g. 'show success toast after checkout'}`.
    One commit per cycle.
 
 Mock **only** the frozen contract, and match it exactly: field names, types,
