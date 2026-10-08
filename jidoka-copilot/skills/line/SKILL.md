@@ -1,7 +1,7 @@
 ---
 name: line
-description: Runs one user story down the 10-phase line to a PR - discovery, parallel codebase exploration, clarifying questions, architecture and plan docs, plan review, slice-by-slice implementation with one whole-story QA round, Playwright test-plan walkthrough, PR. Plan files go to docs/new-feature/{id}-{summary}/.
-argument-hint: "[user story, acceptance criteria or Azure DevOps ticket]"
+description: Runs one user story down the 10-phase line to a PR - discovery, parallel codebase exploration, clarifying questions, architecture and plan docs, plan review, slice-by-slice implementation with one whole-story QA round, Playwright test-plan walkthrough, PR. Plan files go to docs/new-feature/{id}-{summary}/. In a folder with no code, or when asked for a new project, it first offers the stack options and scaffolds a walking skeleton.
+argument-hint: "[user story, acceptance criteria, Azure DevOps ticket, or 'set up a new project']"
 disable-model-invocation: true
 ---
 
@@ -41,7 +41,22 @@ Never pass `model` otherwise.
 
 Capture **Title · Problem statement · Acceptance Criteria (numbered) ·
 Stakeholders · Constraints · Dependencies** from the story (ask if not provided)
-and confirm your understanding before proceeding.
+and confirm your understanding before proceeding. A request that is only to set
+up a project has no story to capture; go straight to the next paragraph.
+
+**New project first.** If the folder has no source code, or the request is to
+set up a new project or add a new layer (a backend, a frontend), invoke
+`project-setup` now; its Step 1 defines "no source code". It offers the stack
+options, then has the `project-scaffolder` agent build, verify and land a
+walking skeleton with its `docs/project_context/` on the base branch, so Phase
+2 explores real code and Phase 4's worktree starts from it. Then:
+
+- The request was only the setup: its report is the run's last message. Stop.
+- It left the skeleton on its own branch: stop as well, saying the story runs
+  once the skeleton is on its base.
+- Otherwise continue with the story on top of the skeleton. Its first story is
+  usually the first feature, and the auth the skeleton ships is already done:
+  do not plan it again.
 
 **Then classify the story's shape** and record the tier in the todo list; it
 sizes every later phase, and Phase 4 writes it into `07-progress.md` as the

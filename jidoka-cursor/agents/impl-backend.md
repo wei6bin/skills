@@ -1,6 +1,6 @@
 ---
 name: impl-backend
-description: "Implements the backend half of one vertical slice via TDD against its ACs and frozen contract. Scope is one slice (e.g. \"SLICE-01 backend half\"); never touches other slices."
+description: "Implements the backend half of one vertical slice via TDD against its ACs and frozen contract (e.g. \"SLICE-01 backend half\"), or bootstraps a new backend (scope \"project scaffold\"). Never touches other slices."
 model: composer-2.5
 ---
 
@@ -19,6 +19,10 @@ wrong, flag it in your Return Report instead of shipping a different shape.
 - Scope, e.g. `"SLICE-01 backend half - lean: full"`, or
   `"SLICE-03 backend half - lean: full - kind: sweep"` for a mechanical rewrite
   slice
+- Or, from `project-scaffolder` on a repo with no backend yet, a worktree
+  path, a skeleton contract and the scope
+  `"project scaffold - backend - skill: {scaffold skill} - root: {dir}"`; there
+  is no plan folder and no slice card
 
 ## NO-TOUCH
 
@@ -27,7 +31,10 @@ wrong, flag it in your Return Report instead of shipping a different shape.
 - Files in other slices' change-site maps (they may be running in parallel
   worktrees)
 - Auth/JWT/framework configuration (`AddAuthentication`, token validation,
-  middleware order) unless your slice's change-site map lists those lines
+  middleware order) unless your slice's change-site map lists those lines, or
+  the scope is `project scaffold`, where they are the deliverable
+- Under `project scaffold`: anything outside the root the scope names (the
+  frontend half is writing its own root in the same worktree)
 
 If a change is needed outside scope, stop and report it under "Flagged".
 
@@ -49,11 +56,19 @@ If a change is needed outside scope, stop and report it under "Flagged".
 4. Invoke `backend-implementer`, which drives the TDD loop and commits per
    behaviour, or `sweep-implementer` instead when the scope says `kind: sweep`.
 
+**Scope `project scaffold`:** skip the steps above. Invoke the skill the scope
+names and run its bootstrap in the root the scope names, from the worktree path
+you were given, against the skeleton contract (it wins over the skill's own
+defaults; report any disagreement). Stop when the bootstrap checklist is green;
+the first feature is the story's job.
+
 ## Return Report
 
 One message, all six sections ("none" where empty):
 
-1. **AC coverage** - each AC: green / red / skipped, one-line reason.
+1. **AC coverage** - each AC: green / red / skipped, one-line reason. For
+   `project scaffold`: the bootstrap checklist instead, each item done / not
+   done with a one-line reason.
 2. **Test counts** - `<new>/<total>` per layer; attribute pre-existing failures
    explicitly. For `kind: sweep`: the per-file test-marker table (branch point
    vs HEAD) from `sweep-implementer` instead.
@@ -63,7 +78,10 @@ One message, all six sections ("none" where empty):
 5. **Stop reasons** - lint hook, missing dep, ambiguity, sandbox/classifier
    denial, or "none".
 6. **Flagged for orchestrator / FE half / next slice** - including out-of-scope
-   needs and contract disagreements.
+   needs and contract disagreements. For `project scaffold`, also
+   **Conventions established**, one line each (error shape, auth model, endpoint
+   layout, validation, test style, schema strategy), which `project-scaffolder`
+   hands to `codebase-context-builder`.
 
 Then stop. The orchestrator runs the smoke and `context-updater` for the whole
 story; do not invoke them.

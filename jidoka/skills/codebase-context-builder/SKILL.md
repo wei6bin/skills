@@ -10,6 +10,20 @@ allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 Context generation only. Return control when done; do not proceed to story
 analysis.
 
+Analyse the root you were given: the current checkout, or the worktree
+`project-scaffolder` works in. A freshly scaffolded repo is a walking skeleton,
+and two things change:
+
+- `project-scaffolder` hands you the **conventions established** by each
+  scaffolded layer. Write each into the file for its layer as the project's
+  rule, and list in `00_index.md`, under "Overrides of the house skills", every
+  one that differs from `restful-api-design` or `react-best-practices`; project
+  conventions win there, and the architect and `impl-simplify` read this folder
+  before applying either.
+- The only domain is the skeleton's auth (users, sessions, audit log). Mark the
+  business sections of `02_domain_model.md` `[TODO: first story]` rather than
+  inventing a domain.
+
 ## Analyse
 
 1. **Stack**: read manifests (`package.json`, `*.csproj`/`*.sln`,

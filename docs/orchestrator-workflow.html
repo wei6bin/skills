@@ -281,7 +281,7 @@
 <line class="lane" x1="0" y1="1454" x2="1500" y2="1454"/>
 <line class="lane" x1="0" y1="1564" x2="1500" y2="1564"/>
 <rect class="nd" x="20" y="8" width="180" height="36" rx="18.0"/>
-<text class="t" x="110.0" y="30.0" text-anchor="middle">User story / AC / ADO ticket</text>
+<text class="t" x="110.0" y="30.0" text-anchor="middle">Story, ticket or new project</text>
 <rect class="ph" x="20" y="82.0" width="180" height="48" rx="3"/>
 <text class="ph-n" x="34" y="112">01</text>
 <text class="ph-t" x="70" y="110.5">Discovery</text>
@@ -345,6 +345,22 @@
 <rect class="nd" x="240" y="84" width="200" height="44" rx="3"/>
 <text class="t" x="340.0" y="102.5" text-anchor="middle">Capture title, ACs,</text>
 <text class="t" x="340.0" y="117.5" text-anchor="middle">priority, ticket ID</text>
+<rect class="nd skill" x="480" y="84" width="170" height="44" rx="3"/>
+<text class="t skill" x="565.0" y="102.5" text-anchor="middle">project-setup</text>
+<text class="t skill" x="565.0" y="117.5" text-anchor="middle">skill, if no code yet</text>
+<path class="ln dot" d="M440,106 L480,106" marker-end="url(#arr)"/>
+<rect class="nd sub" x="690" y="84" width="190" height="44" rx="3"/>
+<text class="t sub" x="785.0" y="102.5" text-anchor="middle">project-scaffolder</text>
+<text class="t sub" x="785.0" y="117.5" text-anchor="middle">builds, checks, lands</text>
+<path class="ln" d="M650,106 L690,106" marker-end="url(#arr)"/>
+<rect class="nd sub" x="920" y="84" width="230" height="44" rx="3"/>
+<text class="t sub" x="1035.0" y="102.5" text-anchor="middle">impl-backend + impl-frontend</text>
+<text class="t sub" x="1035.0" y="117.5" text-anchor="middle">scope: project scaffold</text>
+<path class="ln" d="M880,106 L920,106" marker-end="url(#arr)"/>
+<rect class="nd art" x="1190" y="84" width="250" height="44" rx="3"/>
+<text class="t art" x="1315.0" y="102.5" text-anchor="middle">walking skeleton on base</text>
+<text class="t art" x="1315.0" y="117.5" text-anchor="middle">+ docs/project_context/</text>
+<path class="ln" d="M1150,106 L1190,106" marker-end="url(#arr)"/>
 <rect class="nd" x="240" y="176" width="210" height="44" rx="3"/>
 <text class="t" x="345.0" y="202.0" text-anchor="middle">Read docs/project_context/</text>
 <rect class="nd sub" x="490" y="176" width="200" height="44" rx="3"/>
@@ -515,12 +531,12 @@
       <tbody>
         <tr>
           <td><span class="type type-sub"><i></i>Subagent <small>blue</small></span></td>
-          <td><div class="chips"><code class="c c-sub">code-explorer</code> <code class="c c-sub">code-architect</code> <code class="c c-sub">plan-reviewer</code> <code class="c c-sub">impl-backend</code> <code class="c c-sub">impl-frontend</code> <code class="c c-sub">impl-simplify</code> <code class="c c-sub">code-reviewer</code> <code class="c c-sub">security-reviewer</code> <code class="c c-sub">test-plan-walker</code></div></td>
+          <td><div class="chips"><code class="c c-sub">code-explorer</code> <code class="c c-sub">code-architect</code> <code class="c c-sub">plan-reviewer</code> <code class="c c-sub">impl-backend</code> <code class="c c-sub">impl-frontend</code> <code class="c c-sub">impl-simplify</code> <code class="c c-sub">code-reviewer</code> <code class="c c-sub">security-reviewer</code> <code class="c c-sub">test-plan-walker</code> <code class="c c-sub">project-scaffolder</code></div></td>
           <td><code>src/agents/*.md</code><span class="sub">rendered to <code>jidoka/agents/*.md</code>, <code>jidoka-copilot/agents/*.agent.md</code> and <code>jidoka-cursor/agents/*.md</code> by <code>make build</code></span></td>
         </tr>
         <tr>
           <td><span class="type type-skill"><i></i>Skill <small>orange</small></span></td>
-          <td><div class="chips"><code class="c c-skill">line</code> <code class="c c-skill">codebase-context-builder</code> <code class="c c-skill">vertical-slicing</code> <code class="c c-skill">git-worktrees</code> <code class="c c-skill">raise-pr</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">sweep-implementer</code> <code class="c c-skill">frontend-styling-standard</code> <code class="c c-skill">context-updater</code> <code class="c c-skill">test-plan-walkthrough</code></div></td>
+          <td><div class="chips"><code class="c c-skill">line</code> <code class="c c-skill">codebase-context-builder</code> <code class="c c-skill">vertical-slicing</code> <code class="c c-skill">git-worktrees</code> <code class="c c-skill">raise-pr</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">sweep-implementer</code> <code class="c c-skill">frontend-styling-standard</code> <code class="c c-skill">context-updater</code> <code class="c c-skill">test-plan-walkthrough</code> <code class="c c-skill">project-setup</code> <code class="c c-skill">aspnet-backend-scaffold</code> <code class="c c-skill">react-frontend-scaffold</code></div></td>
           <td><code>*/skills/&lt;name&gt;/SKILL.md</code><span class="sub"><code>simplify</code> is Claude Code's built-in skill</span></td>
         </tr>
         <tr>
@@ -547,9 +563,9 @@
         <tr>
           <td class="n">1</td>
           <td class="phase">Discovery</td>
-          <td class="none">-</td>
-          <td class="none">-</td>
-          <td>Captured ACs, ticket metadata, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase</td>
+          <td><code class="c c-sub">project-scaffolder</code>, which dispatches <code class="c c-sub">impl-backend</code> + <code class="c c-sub">impl-frontend</code> (parallel, scope <code>project scaffold</code>), only when the folder has no source code or the user asks for a new project</td>
+          <td><code class="c c-skill">project-setup</code> (if no code yet: asks the stack options, freezes the contract); the implementers run <code class="c c-skill">aspnet-backend-scaffold</code> / <code class="c c-skill">react-frontend-scaffold</code></td>
+          <td>Captured ACs, ticket metadata, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase; on a new project, a verified walking skeleton and <code>docs/project_context/</code> on the base branch first</td>
         </tr>
         <tr>
           <td class="n">2</td>
