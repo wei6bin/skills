@@ -32,7 +32,7 @@ move rarely; line numbers are wrong by the next commit.
 ## Entry IDs
 
 Every prose heading carries a stable ID:
-`## [DR-045] Roster drafts - overlapping time for the same doctor is rejected`.
+`## [DR-045] Roster drafts - overlapping shifts for the same person are rejected`.
 Prefixes: `FT-` features, `DR-` domain rules, `DC-` decisions, `CFG-` config.
 IDs are monotonic and permanent, never renumbered or reused; heading text may
 change, the ID may not. Match on ID, not heading, when deciding
@@ -113,7 +113,7 @@ story; several stories usually converge on one row.
 ```markdown
 | ID | Capability | Surfaces | Entities | Stories | Anchors | Rules | Decisions | Config | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| CAP-07 | Roster publish + SAP sync | admin-portal, api | RosterSlot, Publication | usr-061, usr-062 | backend/src/Api/Features/Roster/, frontend/apps/admin-portal/src/pages/roster/ | DR-036, DR-041 | DC-030, DC-078 | CFG-012 | Live |
+| CAP-07 | Roster publish + payroll sync | admin-portal, api | RosterSlot, Publication | usr-061, usr-062 | backend/src/Api/Features/Roster/, frontend/apps/admin-portal/src/pages/roster/ | DR-036, DR-041 | DC-030, DC-078 | CFG-012 | Live |
 ```
 
 Entities are the join keys; use identical names across rows. Status: `Live`,

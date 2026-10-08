@@ -33,7 +33,7 @@ def slugify(text: str) -> str:
 
 def _humanize_word(word: str) -> str:
     """Title-case a word while splitting camelCase/PascalCase boundaries
-    (e.g. 'GetAdDomainList' -> 'Get Ad Domain List', 'DoctorList' -> 'Doctor List').
+    (e.g. 'GetAdDomainList' -> 'Get Ad Domain List', 'UserList' -> 'User List').
     Leaves already-lowercase or already-spaced words unaffected."""
     word = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", word)
     word = re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", word)

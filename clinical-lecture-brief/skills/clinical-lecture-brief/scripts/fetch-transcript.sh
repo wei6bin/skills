@@ -26,10 +26,10 @@ Install it with:  npx skills add JimLiu/baoyu-skills@baoyu-youtube-transcript -g
 # ---------------------------------------------------------------------------
 # CA bundle.
 #
-# Traffic on this machine passes through a TLS-inspecting proxy (Cloudflare
-# Gateway), which re-signs certificates with a root that macOS trusts but the
-# Nix-built Python behind yt-dlp does not. Rebuild a bundle that is the system
-# roots plus every admin-installed root from the System keychain.
+# Behind a TLS-inspecting proxy (a corporate secure web gateway, say),
+# certificates are re-signed with a root that macOS trusts but the Nix-built
+# Python behind yt-dlp does not. Rebuild a bundle that is the system roots plus
+# every admin-installed root from the System keychain.
 #
 # NIX_SSL_CERT_FILE is the variable that actually governs here. SSL_CERT_FILE,
 # CURL_CA_BUNDLE and REQUESTS_CA_BUNDLE alone do NOT fix it on a Nix toolchain;
