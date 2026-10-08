@@ -67,8 +67,12 @@ smoke-claude: ## Dispatch one agent per role via Claude Code; report the model e
 
 # --ablation none: a no-plugin arm cannot run /jidoka:line, it would only double
 # the cost. --scaffold and --trust-plugin: the fixtures and the plugin are this
-# repo's own. --allow-tools: the workflow edits files and runs git and npm.
-EVAL_FLAGS := --ablation none --scaffold --trust-plugin --allow-tools Bash Write Edit
+# repo's own. --allow-tools: the workflow edits files and runs git, npm and
+# dotnet; a run's Bash has no network beyond the domains granted here, and
+# line-greenfield-scaffold installs from the npm and NuGet registries.
+EVAL_DOMAINS := registry.npmjs.org api.nuget.org globalcdn.nuget.org
+EVAL_FLAGS := --ablation none --scaffold --trust-plugin --allow-tools Bash Write Edit \
+	$(foreach d,$(EVAL_DOMAINS),'WebFetch(domain:$(d))')
 
 # The repo mounts read-only; only the results directory is writable. The eval's
 # own Bash sandbox is bubblewrap, which needs user namespaces (blocked by
@@ -86,7 +90,7 @@ eval-claude: $(if $(HOST),,eval-image) ## Run the jidoka eval suite end to end (
 	mkdir -p jidoka/evals/results
 	$(if $(HOST),,$(EVAL_RUN)) claude plugin eval ./jidoka $(EVAL_FLAGS) $(if $(HOST),,--no-publish) $(ARGS)
 
-eval-image: ## Build the eval runner image (Claude Code, bubblewrap, git, curl, Node 22)
+eval-image: ## Build the eval runner image (Claude Code, bubblewrap, git, curl, Node 22, .NET SDK)
 	docker build -t $(EVAL_IMAGE) --build-arg CLAUDE_CODE_VERSION=$(CLAUDE_CODE_VERSION) \
 		$(if $(EXTRA_CA),--secret id=ca$(,)src=$(EXTRA_CA)) - < jidoka/evals/Dockerfile
 

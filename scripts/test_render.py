@@ -8,6 +8,7 @@ Run with `make test` (python3 -m unittest discover -s scripts -p 'test_*.py').
 """
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -337,6 +338,18 @@ class RealTreeTests(unittest.TestCase):
             entry = skill.name == "line"
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
+
+    def test_skill_and_agent_bodies_have_no_positional_placeholders(self):
+        # Claude Code substitutes a skill's invocation arguments into its body:
+        # $0, $1, ... become the words it was called with. A shell snippet that
+        # uses "$2" therefore reaches the agent as a literal word. Name the
+        # values instead (the project-scaffolder smoke reads STEP/WANT/GOT).
+        pattern = re.compile(r"\$\{?[0-9]")
+        files = sorted(render.SRC.glob("skills/*/SKILL.md")) + sorted(render.SRC.glob("agents/*.md"))
+        self.assertTrue(files)
+        for path in files:
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                self.assertIsNone(pattern.search(line), f"{path.relative_to(render.ROOT)}:{number}: {line.strip()}")
 
     def test_gitattributes_marks_exactly_the_rendered_paths_generated(self):
         # With no inline marker, .gitattributes is the machine-readable one:
