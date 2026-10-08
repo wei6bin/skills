@@ -831,7 +831,7 @@ Auth test checklist:
 
 | Situation | Adjust |
 | --- | --- |
-| Two apps (e.g. clinical + admin portal) share the `UserSession`/`AuditLog` tables | Add a required `Application` column to both. Stamp it on every write and add `&& s.Application == Current` to **every** session query: Store, Retrieve, Renew, Remove, `TryEndAsync`, and the sweep. Otherwise one app's sweep ends the other's sessions. Give each app its own cookie name (browsers don't isolate cookies by port) and its own Data Protection application name. |
+| Two apps (e.g. a staff app and an admin portal) share the `UserSession`/`AuditLog` tables | Add a required `Application` column to both. Stamp it on every write and add `&& s.Application == Current` to **every** session query: Store, Retrieve, Renew, Remove, `TryEndAsync`, and the sweep. Otherwise one app's sweep ends the other's sessions. Give each app its own cookie name (browsers don't isolate cookies by port) and its own Data Protection application name. |
 | Pure machine-to-machine API, no browser | Cookies are the wrong tool. Use bearer tokens or client credentials, and raise it with the user. |
 | Needs "sign out everywhere" or admin revoke | `SessionEnding.TryEndAsync(..., SessionEndReasons.Revoked, ...)` + `AuditActions.SessionRevoked`. The constants are already reserved. |
 | More audit events later (data changes, not just auth) | Reuse `AuditLog` with a new `Action` constant and an `EntityReference` of `"{Entity}:{id}"`. Don't create a second audit table. |

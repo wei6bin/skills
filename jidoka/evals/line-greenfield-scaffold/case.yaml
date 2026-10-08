@@ -22,7 +22,7 @@ tags: [e2e, slow, scaffold]
 plugins: ["../.."]
 runs: 1
 expected_outcome: >-
-  A ClinicNotes walking skeleton merged into main: backend/ with an ASP.NET
+  A TeamNotes walking skeleton merged into main: backend/ with an ASP.NET
   Core Minimal API (cookie-session auth, CSRF header, audit log) and its xUnit
   tests, frontend/ with a Vite + React + Ant Design app (sign-in, guarded shell,
   dev proxy) and its Vitest tests, docs/project_context/ and a README, every
@@ -45,7 +45,7 @@ execution:
     something you cannot fix.
 
     Decisions the developer has already made:
-    - Project name: ClinicNotes (the workspace folder's name is random; do not
+    - Project name: TeamNotes (the workspace folder's name is random; do not
       derive the name from it).
     - Set up both layers: the .NET backend and the React frontend.
     - Passwords: the development stub, decided later.
@@ -59,8 +59,8 @@ execution:
     cannot be read, so MSBuild's git query fails in the root checkout; build
     and test there with -p:EnableSourceControlManagerQueries=false.
   prompt: |
-    /jidoka:line Set up a new project for ClinicNotes, a small app where clinic
-    staff keep notes on their day. There is no code yet.
+    /jidoka:line Set up a new project for TeamNotes, a small app where a team
+    keeps notes on their day. There is no code yet.
 
 context:
   scaffold_script: scaffold.sh
@@ -132,22 +132,22 @@ graders:
     path: "backend/*.slnx"
   - name: api-program-on-main
     type: file_exists
-    path: "backend/ClinicNotesApi/Program.cs"
+    path: "backend/TeamNotesApi/Program.cs"
   - name: session-ticket-store
     type: file_exists
-    path: "backend/ClinicNotesApi/**/CookieAuthTicketStore.cs"
+    path: "backend/TeamNotesApi/**/CookieAuthTicketStore.cs"
   - name: csrf-middleware
     type: file_exists
-    path: "backend/ClinicNotesApi/**/CsrfHeaderMiddleware.cs"
+    path: "backend/TeamNotesApi/**/CsrfHeaderMiddleware.cs"
   - name: initial-migration
     type: file_exists
-    path: "backend/ClinicNotesApi/Migrations/*InitialCreate*.cs"
+    path: "backend/TeamNotesApi/Migrations/*InitialCreate*.cs"
   - name: backend-tests
     type: file_exists
-    path: "backend/ClinicNotesApi.Tests/*.cs"
+    path: "backend/TeamNotesApi.Tests/*.cs"
   - name: dev-port-pinned
     type: regex
-    target: { source: file, path: backend/ClinicNotesApi/Properties/launchSettings.json }
+    target: { source: file, path: backend/TeamNotesApi/Properties/launchSettings.json }
     pattern: "http://localhost:5080"
   - name: frontend-stack
     type: regex

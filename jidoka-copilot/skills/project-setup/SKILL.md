@@ -59,8 +59,8 @@ root rather than writing into it. With nothing missing, say so and return.
 
 Every question here is independent, so ask them in **one** `AskUserQuestion`
 call, each with its recommended answer first. Take the project name from the
-request when it names one, else from the folder (`clinic-portal` gives
-`ClinicPortal`: `ClinicPortalApi` for .NET, `clinic-portal-web` for npm), and
+request when it names one, else from the folder (`team-portal` gives
+`TeamPortal`: `TeamPortalApi` for .NET, `team-portal-web` for npm), and
 put it in the first question's text, so the user can rename it under Other.
 
 1. **What to set up.** Build the options from the catalog, leaving out layers
