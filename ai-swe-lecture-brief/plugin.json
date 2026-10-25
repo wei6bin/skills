@@ -1,0 +1,6 @@
+{
+  "name": "ai-swe-lecture-brief",
+  "description": "Turn a YouTube talk, panel, debate, or podcast about AI and software engineering into a published, audience-calibrated teaching artifact. Fetches the transcript, repairs speech-recognition garbling of tool and model names, separates verifiable claims from opinion and checks the former for currency, and builds a designed HTML reference.",
+  "version": "1.0.0",
+  "keywords": ["ai", "software-engineering", "agentic-coding", "sdlc", "claude-code", "conference-talk", "panel-discussion", "engineering-briefing", "youtube-transcript", "claude-code-plugin"]
+}
