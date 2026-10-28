@@ -35,11 +35,11 @@ Use this checklist to validate generated PRDs before delivery.
 
 ## Structure
 
-- [ ] `prd/README.md` exists with system overview + page inventory
-- [ ] `prd/pages/` contains numbered page files
-- [ ] `prd/appendix/enum-dictionary.md` exists
-- [ ] `prd/appendix/api-inventory.md` exists
-- [ ] `prd/appendix/page-relationships.md` exists
+- [ ] `docs/prd/README.md` exists with system overview + page inventory
+- [ ] `docs/prd/pages/` contains numbered page files
+- [ ] `docs/prd/appendix/enum-dictionary.md` exists
+- [ ] `docs/prd/appendix/api-inventory.md` exists
+- [ ] `docs/prd/appendix/page-relationships.md` exists
 - [ ] Cross-references use relative links
 
 ## Backend-Specific Checks

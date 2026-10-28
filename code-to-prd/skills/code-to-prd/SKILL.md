@@ -263,10 +263,12 @@ For each needed API, document:
 
 #### Output Structure
 
-Create `prd/` in project root (or user-specified directory):
+Create `docs/prd/` in the project root, so the PRD sits with the project's other
+documentation. If the project keeps its docs in another folder, put `prd/`
+there instead; a directory the user names always wins.
 
 ```text
-prd/
+docs/prd/
 ├── README.md                     # System overview
 ├── pages/
 │   ├── 101-user-mgmt-list.md     # One file per page, numbered by module
@@ -520,7 +522,7 @@ python3 scripts/codebase_analyzer.py /path/to/project -o analysis.json
 python3 scripts/codebase_analyzer.py /path/to/project -f markdown
 
 # 3. Scaffold the PRD directory with stubs
-python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
+python3 scripts/prd_scaffolder.py analysis.json -o docs/prd/ -n "My App"
 
 # 4. Fill in TODO sections page-by-page using the SKILL.md workflow
 ```

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scaffold PRD directory structure from frontend_analyzer.py output.
 
-Reads analysis JSON and creates the prd/ directory with README.md,
+Reads analysis JSON and creates the docs/prd/ directory with README.md,
 per-page stubs, and appendix files pre-populated with extracted data.
 
 Stdlib only — no third-party dependencies.
@@ -448,7 +448,7 @@ def main():
         description="Scaffold PRD directory from codebase analysis"
     )
     parser.add_argument("analysis", help="Path to analysis JSON from codebase_analyzer.py")
-    parser.add_argument("-o", "--output-dir", default="prd", help="Output directory (default: prd/)")
+    parser.add_argument("-o", "--output-dir", default="docs/prd", help="Output directory (default: docs/prd/)")
     parser.add_argument("-n", "--project-name", help="Override project name")
     parser.add_argument("--validate-only", action="store_true",
                         help="Validate analysis JSON without generating files")
