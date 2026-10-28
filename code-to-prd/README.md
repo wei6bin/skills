@@ -30,7 +30,7 @@ python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
 prd/
 ├── README.md                  # System overview
 ├── pages/
-│   ├── 01-user-mgmt-list.md   # Per-page/endpoint docs
+│   ├── 101-user-mgmt-list.md  # Per-page/endpoint docs, 100 per module
 │   └── ...
 └── appendix/
     ├── enum-dictionary.md      # All enums and status codes

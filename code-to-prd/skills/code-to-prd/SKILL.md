@@ -269,15 +269,30 @@ Create `prd/` in project root (or user-specified directory):
 prd/
 ├── README.md                     # System overview
 ├── pages/
-│   ├── 01-user-mgmt-list.md      # One file per page
-│   ├── 02-user-mgmt-detail.md
-│   ├── 03-order-mgmt-list.md
+│   ├── 101-user-mgmt-list.md     # One file per page, numbered by module
+│   ├── 102-user-mgmt-detail.md
+│   ├── 201-order-mgmt-list.md    # Next module starts a new block
 │   └── ...
 └── appendix/
     ├── enum-dictionary.md         # All enums, status codes, type mappings
     ├── page-relationships.md      # Navigation map between pages
     └── api-inventory.md           # Complete API reference
 ```
+
+#### Page Numbering
+
+Number pages in **blocks of 100 per module**: the first module's pages are
+`101`, `102`, ...; the second module's are `201`, `202`, ...; and so on. Name
+each file `<number>-<slug>.md`, with the slug starting with the module name.
+
+- A page added later takes the next free number in its module's block, so no
+  other file is renamed and no link breaks.
+- A new module takes the next free block. Reserve a block on purpose (for
+  example `9xx` for shared or cross-cutting pages) when that helps readers.
+- Never renumber existing pages to close a gap.
+- If a module would exceed 99 pages, split it into smaller modules.
+- Add a "Page Numbering" table to the README listing each block, its module
+  and its first page, so readers can jump between sections.
 
 #### README.md Template
 
@@ -297,7 +312,14 @@ prd/
 
 | # | Page Name | Route | Module | Doc Link |
 |---|-----------|-------|--------|----------|
-| 1 | User List | /user/list | User Mgmt | [→](./pages/01-user-mgmt-list.md) |
+| 101 | User List | /user/list | User Mgmt | [→](./pages/101-user-mgmt-list.md) |
+
+## Page Numbering
+
+| Block | Module | First page |
+|-------|--------|------------|
+| 1xx | User Management | [101](./pages/101-user-mgmt-list.md) |
+| 2xx | Order Management | [201](./pages/201-order-mgmt-list.md) |
 
 ## Global Notes
 
