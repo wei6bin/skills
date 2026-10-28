@@ -16,13 +16,25 @@ with Next.js 14 (App Router) and Tailwind CSS.
 
 ## Page Inventory
 
-| #   | Page Name   | Route      | Module    | Doc Link                       |
-| --- | ----------- | ---------- | --------- | ------------------------------ |
-| 1   | Home        | /          | —         | [→](./pages/01-home.md)        |
-| 2   | Dashboard   | /dashboard | Dashboard | [→](./pages/02-dashboard.md)   |
-| 3   | User List   | /users     | User Mgmt | [→](./pages/03-user-list.md)   |
-| 4   | User Detail | /users/:id | User Mgmt | [→](./pages/04-user-detail.md) |
-| 5   | Settings    | /settings  | Settings  | [→](./pages/05-settings.md)    |
+| #   | Page Name   | Route      | Module    | Doc Link                        |
+| --- | ----------- | ---------- | --------- | ------------------------------- |
+| 101 | Home        | /          | —         | [→](./pages/101-home.md)        |
+| 201 | Dashboard   | /dashboard | Dashboard | [→](./pages/201-dashboard.md)   |
+| 301 | User List   | /users     | User Mgmt | [→](./pages/301-user-list.md)   |
+| 302 | User Detail | /users/:id | User Mgmt | [→](./pages/302-user-detail.md) |
+| 401 | Settings    | /settings  | Settings  | [→](./pages/401-settings.md)    |
+
+## Page Numbering
+
+Pages are numbered in blocks of 100 per module. A new page takes the next free
+number in its module's block; a new module takes the next free block.
+
+| Block | Module          | First page                          |
+| ----- | --------------- | ----------------------------------- |
+| 1xx   | Home            | [101](./pages/101-home.md)          |
+| 2xx   | Dashboard       | [201](./pages/201-dashboard.md)     |
+| 3xx   | User Management | [301](./pages/301-user-list.md)     |
+| 4xx   | Settings        | [401](./pages/401-settings.md)      |
 
 ## API Inventory
 

@@ -11,7 +11,7 @@ Reverse-engineer any codebase into a complete Product Requirements Document
 
 # Or step by step
 python3 scripts/codebase_analyzer.py /path/to/project -o analysis.json
-python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
+python3 scripts/prd_scaffolder.py analysis.json -o docs/prd/ -n "My App"
 ```
 
 ## Supported Frameworks
@@ -27,10 +27,10 @@ python3 scripts/prd_scaffolder.py analysis.json -o prd/ -n "My App"
 ## What It Generates
 
 ```text
-prd/
+docs/prd/
 ├── README.md                  # System overview
 ├── pages/
-│   ├── 01-user-mgmt-list.md   # Per-page/endpoint docs
+│   ├── 101-user-mgmt-list.md  # Per-page/endpoint docs, 100 per module
 │   └── ...
 └── appendix/
     ├── enum-dictionary.md      # All enums and status codes

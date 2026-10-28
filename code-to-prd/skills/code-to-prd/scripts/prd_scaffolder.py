@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scaffold PRD directory structure from frontend_analyzer.py output.
 
-Reads analysis JSON and creates the prd/ directory with README.md,
+Reads analysis JSON and creates the docs/prd/ directory with README.md,
 per-page stubs, and appendix files pre-populated with extracted data.
 
 Stdlib only — no third-party dependencies.
@@ -58,6 +58,51 @@ def route_to_page_name(route: str) -> str:
     return " ".join(_humanize_word(w) for w in words if w) or "Home"
 
 
+# Pages are numbered in blocks of BLOCK_SIZE per module (module 1 -> 101, 102,
+# ...; module 2 -> 201, ...), so a page added later takes the next free number
+# in its module's block without renumbering the rest of the PRD.
+BLOCK_SIZE = 100
+
+
+def route_module(route: str) -> str:
+    """Module key for a route: its first static path segment ('home' for /)."""
+    route = re.sub(r"\.(aspx|ascx|cshtml)$", "", route, flags=re.IGNORECASE)
+    for part in route.strip("/").split("/"):
+        if part and not part.startswith((":", "*")) and not re.fullmatch(r"\{[^}]*\}", part):
+            return slugify(part) or "home"
+    return "home"
+
+
+def number_pages(routes: List[Dict]) -> List[Dict[str, Any]]:
+    """Assign each route a module block number and a page filename.
+
+    Modules get blocks in order of first appearance. Returns one entry per
+    route, sorted by number, with keys route, number, module, name and
+    filename.
+    """
+    modules: Dict[str, int] = {}
+    used: Dict[str, int] = {}
+    pages = []
+    for route in routes:
+        path = route.get("path", "/")
+        module = route_module(path)
+        block = modules.setdefault(module, len(modules) + 1)
+        used[module] = used.get(module, 0) + 1
+        if used[module] >= BLOCK_SIZE:
+            raise SystemExit(f"Module '{module}' has more than {BLOCK_SIZE - 1} pages; "
+                             "split it into smaller modules")
+        number = block * BLOCK_SIZE + used[module]
+        name = route_to_page_name(path)
+        slug = slugify(name) or f"page-{number}"
+        pages.append({"route": route, "number": number, "module": module,
+                      "name": name, "filename": f"{number}-{slug}.md"})
+    width = max((len(str(pg["number"])) for pg in pages), default=3)
+    for pg in pages:
+        if len(str(pg["number"])) < width:
+            pg["filename"] = pg["filename"].zfill(len(pg["filename"]) + width - len(str(pg["number"])))
+    return sorted(pages, key=lambda pg: pg["number"])
+
+
 def generate_readme(project_name: str, routes: List[Dict], summary: Dict, date: str) -> str:
     """Generate the PRD README.md."""
     lines = [
@@ -93,12 +138,29 @@ def generate_readme(project_name: str, routes: List[Dict], summary: Dict, date: 
         "|---|-----------|-------|--------|----------|",
     ]
 
-    for i, route in enumerate(routes, 1):
-        path = route.get("path", "/")
-        name = route_to_page_name(path)
-        slug = slugify(name) or f"page-{i}"
-        filename = f"{i:02d}-{slug}.md"
-        lines.append(f"| {i} | {name} | `{path}` | <!-- TODO --> | [→](./pages/{filename}) |")
+    pages = number_pages(routes)
+    for pg in pages:
+        path = pg["route"].get("path", "/")
+        lines.append(f"| {pg['number']} | {pg['name']} | `{path}` | {pg['module']} "
+                     f"| [→](./pages/{pg['filename']}) |")
+
+    lines.extend([
+        "",
+        "## Page Numbering",
+        "",
+        f"Pages are numbered in blocks of {BLOCK_SIZE} per module, so a new page takes the",
+        "next free number in its module's block and nothing else is renumbered. A new",
+        "module takes the next free block.",
+        "",
+        "| Block | Module | First page |",
+        "|-------|--------|------------|",
+    ])
+    seen = set()
+    for pg in pages:
+        if pg["module"] not in seen:
+            seen.add(pg["module"])
+            block = pg["number"] // BLOCK_SIZE
+            lines.append(f"| {block}xx | {pg['module']} | [{pg['number']}](./pages/{pg['filename']}) |")
 
     lines.extend([
         "",
@@ -303,13 +365,10 @@ def scaffold(analysis: Dict[str, Any], output_dir: Path, project_name: Optional[
     print(f"  Created: README.md")
 
     # Per-page stubs
-    for i, route in enumerate(routes, 1):
-        page_name = route_to_page_name(route.get("path", "/"))
-        slug = slugify(page_name) or f"page-{i}"
-        filename = f"{i:02d}-{slug}.md"
-        content = generate_page_stub(route, i, date)
-        (pages_dir / filename).write_text(content)
-        print(f"  Created: pages/{filename}")
+    for pg in number_pages(routes):
+        content = generate_page_stub(pg["route"], pg["number"], date)
+        (pages_dir / pg["filename"]).write_text(content)
+        print(f"  Created: pages/{pg['filename']}")
 
     # Appendix
     (appendix_dir / "enum-dictionary.md").write_text(generate_enum_dictionary(enums))
@@ -389,7 +448,7 @@ def main():
         description="Scaffold PRD directory from codebase analysis"
     )
     parser.add_argument("analysis", help="Path to analysis JSON from codebase_analyzer.py")
-    parser.add_argument("-o", "--output-dir", default="prd", help="Output directory (default: prd/)")
+    parser.add_argument("-o", "--output-dir", default="docs/prd", help="Output directory (default: docs/prd/)")
     parser.add_argument("-n", "--project-name", help="Override project name")
     parser.add_argument("--validate-only", action="store_true",
                         help="Validate analysis JSON without generating files")
@@ -431,10 +490,8 @@ def main():
         routes = analysis.get("routes", {}).get("pages", [])
         print(f"Dry run — would create in {output_dir}/:\n")
         print(f"  {output_dir}/README.md")
-        for i, route in enumerate(routes, 1):
-            name = route_to_page_name(route.get("path", "/"))
-            slug = slugify(name) or f"page-{i}"
-            print(f"  {output_dir}/pages/{i:02d}-{slug}.md")
+        for pg in number_pages(routes):
+            print(f"  {output_dir}/pages/{pg['filename']}")
         print(f"  {output_dir}/appendix/enum-dictionary.md")
         print(f"  {output_dir}/appendix/api-inventory.md")
         print(f"  {output_dir}/appendix/page-relationships.md")
