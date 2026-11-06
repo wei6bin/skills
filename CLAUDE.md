@@ -127,6 +127,16 @@ and the knobs they take, and a knob goes between `just` and the recipe
 - `just lint` - markdownlint-cli2 (version pinned in the `justfile`, needs Node)
   over every Markdown file, rendered ones included, per
   `.markdownlint-cli2.jsonc`.
+- `just test-hooks` - the post-edit hooks (`scripts/test-hooks.sh`): feeds
+  each rendered hook Claude Code's `PostToolUse` payload against throwaway
+  fixture projects (an npm workspace with a root `.prettierignore`, a Biome
+  project, and single, workspace, create-vite and composite-reference
+  TypeScript projects) and asserts on its reply and on the file it leaves on
+  disk, plus a grep for bash 4 syntax. Installs pinned Prettier, Biome and
+  TypeScript from npm, so it needs Node and the registry and is not in CI.
+  `--bash32` also runs the secrets scan under bash 3.2 (macOS's `/bin/bash`)
+  in Docker; `--hooks <dir>` tests another copy, such as the committed one,
+  to check that a new case fails before a fix.
 - `just smoke-claude` - end to end on Claude Code: loads `jidoka/` through
   `--plugin-dir` (from a temp copy carrying a throwaway manifest), dispatches
   one agent per role with a trivial prompt, then reads the session's subagent
@@ -242,7 +252,8 @@ Three component types:
   files) with `tsc -b`, and treats workspace sibling-import errors as
   non-blocking advisories - preserve those properties when editing them. The
   scripts also run under macOS's bash 3.2, so no bash 4 syntax such as
-  `declare -A`. Three further properties are load-bearing:
+  `declare -A`. `just test-hooks` checks all of this. Three further properties
+  are load-bearing:
   - **Prettier auto-writes; Biome only reports.** Formatting needs no judgement,
     and an advisory the agent may decline is not a gate - a formatting-only CI
     failure reached `main` while the report-only version of this hook was

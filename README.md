@@ -102,9 +102,11 @@ after a failed review or evidence check goes up to `opus`.
 The recipes run through [just](https://just.systems); `just` alone lists them
 and their knobs. Test it with `just test` (renderer and routing rules),
 `just check` (render drift), `just lint` (markdownlint over every Markdown
-file) and `just smoke-claude` (one real dispatch per role on Claude Code,
-reporting the model each ran on; costs a few API calls). `just eval-claude` is
-the end-to-end verifier: in a container, `claude plugin eval` runs
+file), `just test-hooks` (each post-edit hook against fixture projects, with
+tools from npm) and `just smoke-claude` (one real dispatch per role on Claude
+Code, reporting the model each ran on; costs a few API calls).
+`just eval-claude` is the end-to-end verifier: in a container,
+`claude plugin eval` runs
 `/jidoka:line` on a minimal story in a scaffolded repo and grades every phase's
 output (see `jidoka/evals/README.md`; a whole workflow per run, so not in CI).
 
