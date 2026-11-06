@@ -4,7 +4,8 @@
 # Feeds each rendered hook (jidoka/hooks/) the payload Claude Code sends on
 # PostToolUse, against throwaway fixture projects, and asserts on its reply and
 # on what it leaves on disk. Installs pinned Prettier, Biome and TypeScript from
-# npm into a temp dir first, so it needs Node and the registry. Not run in CI.
+# npm into a temp dir first, so it needs Node and the registry. CI runs it
+# without --bash32.
 #
 # Usage:
 #   scripts/test-hooks.sh                # every hook

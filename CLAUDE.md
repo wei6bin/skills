@@ -121,7 +121,8 @@ and the knobs they take, and a knob goes between `just` and the recipe
   resolution, pins and `claude.effort` precedence, the worker render, render
   sections, error cases, no inline marker in rendered Markdown,
   `.gitattributes` covering exactly the rendered paths, and determinism on the
-  real tree. CI runs it together with `just check` and `just lint`.
+  real tree. CI runs it together with `just check`, `just lint` and
+  `just test-hooks`.
 - `just check` - the committed renders match `src/`. `claude plugin validate .`
   checks the marketplace loads.
 - `just lint` - markdownlint-cli2 (version pinned in the `justfile`, needs Node)
@@ -133,10 +134,11 @@ and the knobs they take, and a knob goes between `just` and the recipe
   project, and single, workspace, create-vite and composite-reference
   TypeScript projects) and asserts on its reply and on the file it leaves on
   disk, plus a grep for bash 4 syntax. Installs pinned Prettier, Biome and
-  TypeScript from npm, so it needs Node and the registry and is not in CI.
-  `--bash32` also runs the secrets scan under bash 3.2 (macOS's `/bin/bash`)
-  in Docker; `--hooks <dir>` tests another copy, such as the committed one,
-  to check that a new case fails before a fix.
+  TypeScript from npm, so it needs Node and the registry; CI runs it on the
+  runner's own Node. `--bash32` also runs the secrets scan under bash 3.2
+  (macOS's `/bin/bash`) in Docker, which CI skips so a Docker Hub or Alpine
+  mirror outage cannot turn it red; `--hooks <dir>` tests another copy, such
+  as the committed one, to check that a new case fails before a fix.
 - `just smoke-claude` - end to end on Claude Code: loads `jidoka/` through
   `--plugin-dir` (from a temp copy carrying a throwaway manifest), dispatches
   one agent per role with a trivial prompt, then reads the session's subagent

@@ -4,7 +4,7 @@
 #   just                        list recipes and knobs
 #   just build                  render jidoka/ and the marketplace arrays from
 #                               src/
-#   just test check lint        what CI runs
+#   just test check lint test-hooks   what CI runs
 #   just test-hooks --bash32    the post-edit hooks against fixture projects,
 #                               and the secrets scan under bash 3.2 in Docker
 #   just smoke-claude --override  one dispatch per role on Claude Code, with the
@@ -90,7 +90,7 @@ lint:
 validate:
     claude plugin validate .
 
-# feed the post-edit hooks Claude payloads in fixture projects (needs npm): ARGS
+# feed the post-edit hooks Claude payloads in fixture projects (CI, needs npm): ARGS
 [group('test')]
 test-hooks *args:
     bash scripts/test-hooks.sh {{ ARGS }} "$@"
