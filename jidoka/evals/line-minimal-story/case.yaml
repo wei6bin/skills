@@ -2,7 +2,7 @@
 # story that still crosses every phase (a one-layer backend feature on a
 # zero-dependency Node API) and grades the end state of the repo plus the
 # order of the dispatches that produced it. One run costs a full workflow, so
-# run it deliberately: `make eval-claude` (flags and cost in the Makefile).
+# run it deliberately: `just eval-claude` (flags and cost in the justfile).
 #
 # What it covers: the slash command expanding the user-only `line` skill,
 # Phase 2 context build and exploration, Phase 4 worktree and architect, Phase

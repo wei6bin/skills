@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render every jidoka harness variant from the single source tree in src/.
 
-Run `make build` (python3 scripts/render.py) after editing anything under src/.
-Run `make check` (python3 scripts/render.py --check) to verify the committed
+Run `just build` (python3 scripts/render.py) after editing anything under src/.
+Run `just check` (python3 scripts/render.py --check) to verify the committed
 outputs are current; CI runs the same check.
 
 Source layout
@@ -459,7 +459,7 @@ def copy_script(src_file, dest):
     lines = src_file.read_text(encoding="utf-8").split("\n")
     note = (
         f"# GENERATED copy of src/hooks/{src_file.name} by scripts/render.py "
-        "(make build). Edit the source."
+        "(just build). Edit the source."
     )
     if lines and lines[0].startswith("#!"):
         lines.insert(1, note)
@@ -618,7 +618,7 @@ def check():
             if expected != actual:
                 stale.append(rel)
     if stale:
-        print("rendered outputs are stale; run `make build` and commit:")
+        print("rendered outputs are stale; run `just build` and commit:")
         for path in stale:
             print(f"  {path}")
         return 1

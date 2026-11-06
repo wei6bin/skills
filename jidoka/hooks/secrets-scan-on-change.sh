@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GENERATED copy of src/hooks/secrets-scan-on-change.sh by scripts/render.py (make build). Edit the source.
+# GENERATED copy of src/hooks/secrets-scan-on-change.sh by scripts/render.py (just build). Edit the source.
 # After-file-edit hook: Claude Code PostToolUse (Edit/Write/MultiEdit), Copilot
 # CLI postToolUse (edit/create), Cursor afterFileEdit. Payload handling in _lib.sh.
 # Pure-regex scan for high-confidence secret patterns in the changed file.

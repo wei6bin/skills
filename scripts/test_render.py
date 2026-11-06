@@ -4,7 +4,7 @@ the dispatch rewrites, error cases, no inline generated marker in rendered
 Markdown (.gitattributes marks the outputs instead), and idempotence on the
 real source tree.
 
-Run with `make test` (python3 -m unittest discover -s scripts -p 'test_*.py').
+Run with `just test` (python3 -m unittest discover -s scripts -p 'test_*.py').
 """
 
 import json

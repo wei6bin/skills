@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
-# Runner image for `make eval-claude`: Claude Code plus what its Linux Bash
+# Runner image for `just eval-claude`: Claude Code plus what its Linux Bash
 # sandbox needs (bubblewrap, socat) and what a story's checks reach for (git,
 # Node, curl, and the .NET SDK the greenfield scaffold builds with).
 # Running the eval here keeps it off the host, so the host's Docker credential
 # store and any other machine state cannot block or leak into it.
 #
-# The build has no context (the Makefile pipes this file on stdin), and a
+# The build has no context (the justfile pipes this file on stdin), and a
 # TLS-inspecting proxy's CA comes in as the optional `ca` secret, so nothing
 # machine-specific is baked into the image.
 FROM node:22-bookworm-slim
@@ -36,7 +36,7 @@ RUN --mount=type=secret,id=ca,required=false \
 ENV DOTNET_ROOT=/usr/share/dotnet DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
 
 # Node reads an extra CA from NODE_EXTRA_CA_CERTS, but .NET only trusts the
-# system store. When the run mounts one at /etc/ssl/extra-ca.pem (the Makefile
+# system store. When the run mounts one at /etc/ssl/extra-ca.pem (the justfile
 # does for EXTRA_CA), add it to the store before the eval starts, so the image
 # itself stays free of machine-specific certificates.
 RUN printf '%s\n' '#!/bin/sh' \

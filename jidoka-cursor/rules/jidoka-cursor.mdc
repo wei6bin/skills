@@ -54,7 +54,7 @@ except to fix a failed subagent Return Report.
 
 Both ship in this plugin. Do not copy skills into `.cursor/skills/`: a project skill with the
 same `name:` collides with the plugin's. Invoke skills by name. Skills and agents are rendered
-from the skills repo's `src/` by `make build`; update the plugin rather than editing files in
+from the skills repo's `src/` by `just build`; update the plugin rather than editing files in
 the plugin cache.
 
 ## Worktree

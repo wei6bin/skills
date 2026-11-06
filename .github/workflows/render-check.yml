@@ -13,6 +13,9 @@ jobs:
         with:
           python-version: "3.x"
       - run: pip install pyyaml
-      - run: make test
-      - run: make check
-      - run: make lint
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: "1"
+      - run: just test
+      - run: just check
+      - run: just lint
