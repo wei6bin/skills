@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# After-file-edit hook: Claude Code PostToolUse (Edit/Write/MultiEdit), Copilot
-# CLI postToolUse (edit/create), Cursor afterFileEdit. Payload handling in _lib.sh.
+# After-file-edit hook: Claude Code PostToolUse (Edit/Write/MultiEdit). Payload
+# handling in _lib.sh.
 # Pure-regex scan for high-confidence secret patterns in the changed file.
 # Reports findings as additionalContext so the agent must address them
 # before continuing.

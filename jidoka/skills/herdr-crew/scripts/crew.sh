@@ -594,7 +594,7 @@ first_prompt() { # NAME -> the one-line prompt that hands a worker its brief
     printf 'Lead (herdr agent %s) here. Your task brief is %s: read it and carry it out. %s If you need a decision from me first, ask it and stop; I answer in this pane.' \
       "$lead" "$brief" "$tail"
   else
-    printf 'You are jidoka worker %s, started by the lead (herdr agent %s). Act as the jidoka agent %s: read %s now and follow its body as your instructions; its tools line is your tool budget. A skill it names (jidoka:x, jidoka-copilot:x or a bare x) is the file %s/skills/x/SKILL.md: read that file whenever it says to invoke the skill. Your task brief is %s: read it and carry it out. %s If you need a decision from me first, ask it and stop; I answer in this pane.' \
+    printf 'You are jidoka worker %s, started by the lead (herdr agent %s). Act as the jidoka agent %s: read %s now and follow its body as your instructions; its tools line is your tool budget. A skill it names (jidoka:x or a bare x) is the file %s/skills/x/SKILL.md: read that file whenever it says to invoke the skill. Your task brief is %s: read it and carry it out. %s If you need a decision from me first, ask it and stop; I answer in this pane.' \
       "$name" "$lead" "$agent" "$AGENTS_DIR/$agent.md" "$PLUGIN_ROOT" "$brief" "$tail"
   fi
 }
@@ -753,7 +753,7 @@ cmd_dispatch() {
   local agent=${1:-} model="" effort="" brief claim pane slot tab name kind rc
   [ -n "$agent" ] || die "usage: crew.sh dispatch AGENT [--model M] [--effort E] <BRIEF"
   shift
-  agent=${agent##*:} # jidoka:code-explorer, jidoka-copilot:code-explorer or code-explorer
+  agent=${agent##*:} # jidoka:code-explorer or code-explorer
   while [ $# -gt 0 ]; do
     case "$1" in
       --model) model=${2:-}; shift 2 ;;
@@ -1206,13 +1206,6 @@ cmd_check() {
       *" "*) row "claude" "native agents from this plugin dir (--plugin-dir ${native#* })" ;;
       *) row "claude" "native agents: claude --agent ${native}:<agent> (plugin installed)" ;;
     esac
-  fi
-  if have copilot; then
-    if ls -d "$HOME"/.copilot/installed-plugins/*/jidoka-copilot >/dev/null 2>&1; then
-      row "copilot" "jidoka-copilot installed; workers still read the worker render (instructions from files)"
-    else
-      row "copilot" "workers read the worker render (instructions from files)"
-    fi
   fi
   row "others" "read the worker render and write their report to a file"
 

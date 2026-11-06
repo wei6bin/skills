@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Unit tests for scripts/render.py: model routing, per-harness frontmatter,
-the dispatch rewrites, error cases, no inline generated marker in rendered
-Markdown (.gitattributes marks the outputs instead), and idempotence on the
-real source tree.
+"""Unit tests for scripts/render.py: model routing, the plugin's agent
+frontmatter, the worker render, render sections, error cases, no inline
+generated marker in rendered Markdown (.gitattributes marks the outputs
+instead), and idempotence on the real source tree.
 
 Run with `just test` (python3 -m unittest discover -s scripts -p 'test_*.py').
 """
@@ -24,8 +24,8 @@ import yaml  # noqa: E402
 MODELS = textwrap.dedent(
     """\
     tiers:
-      frontier: {claude: fable, copilot: [opus-id, sonnet-id], cursor: cursor-opus}
-      standard: {claude: sonnet, copilot: [sonnet-id], cursor: cursor-composer}
+      frontier: {claude: fable, copilot: opus-id}
+      standard: {claude: sonnet, copilot: sonnet-id}
     roles:
       reasoning: {tier: frontier, effort: high}
       implementation: {tier: standard}
@@ -73,7 +73,7 @@ class Fixture:
         )
         (root / "src" / "hooks" / "h.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
         (root / ".claude-plugin" / "marketplace.json").write_text(
-            json.dumps({"plugins": [{"name": "jidoka"}, {"name": "jidoka-copilot"}]})
+            json.dumps({"plugins": [{"name": "jidoka"}, {"name": "other", "skills": ["./skills/x"]}]})
         )
         self.root = root
         self.saved = (render.ROOT, render.SRC)
@@ -100,65 +100,41 @@ class RoutingTests(unittest.TestCase):
             {
                 "arch": agent_md("arch", "reasoning"),
                 "impl": agent_md("impl", "implementation", tools="Read, Edit, Bash"),
-                "pinned": agent_md(
-                    "pinned", "implementation", "model:\n  cursor: pinned-slug\n"
+                "pinned": agent_md("pinned", "implementation", "model:\n  claude: haiku\n"),
+                "effortful": agent_md(
+                    "effortful", "reasoning", "claude:\n  effort: max\n  omitClaudeMd: true\n"
                 ),
-                "effortful": agent_md("effortful", "reasoning", "claude:\n  effort: max\n"),
             }
         )
         self.addCleanup(self.fx.close)
         self.out = self.fx.render()
 
-    def test_role_resolves_per_harness(self):
+    def test_role_resolves_to_the_claude_alias(self):
         claude = frontmatter(self.out / "jidoka/agents/arch.md")
         self.assertEqual(claude["model"], "fable")
         self.assertEqual(claude["effort"], "high")
         self.assertTrue(claude["description"].startswith(render.INTERNAL_PREFIX))
         self.assertEqual(claude["tools"], "Read, Grep, Glob")
 
-        copilot = frontmatter(self.out / "jidoka-copilot/agents/arch.agent.md")
-        self.assertEqual(copilot["model"], "opus-id")
-        self.assertEqual(copilot["models"], ["opus-id", "sonnet-id"])
-        self.assertEqual(copilot["modelPolicy"], "preferred")
-        self.assertIs(copilot["user-invocable"], False)
-        self.assertEqual(copilot["tools"], ["read", "search"])
-
-        cursor = frontmatter(self.out / "jidoka-cursor/agents/arch.md")
-        self.assertEqual(cursor["model"], "cursor-opus")
-        self.assertIs(cursor["readonly"], True)
-        self.assertNotIn("tools", cursor)
-
-    def test_standard_role_has_no_effort_and_no_readonly_when_it_can_write(self):
+    def test_standard_role_has_no_effort(self):
         claude = frontmatter(self.out / "jidoka/agents/impl.md")
         self.assertEqual(claude["model"], "sonnet")
         self.assertNotIn("effort", claude)
-        cursor = frontmatter(self.out / "jidoka-cursor/agents/impl.md")
-        self.assertNotIn("readonly", cursor)
-        copilot = frontmatter(self.out / "jidoka-copilot/agents/impl.agent.md")
-        self.assertEqual(copilot["tools"], ["read", "edit", "execute"])
+        self.assertEqual(claude["tools"], "Read, Edit, Bash")
 
-    def test_pin_beats_role_for_that_harness_only(self):
-        cursor = frontmatter(self.out / "jidoka-cursor/agents/pinned.md")
-        self.assertEqual(cursor["model"], "pinned-slug")
-        claude = frontmatter(self.out / "jidoka/agents/pinned.md")
-        self.assertEqual(claude["model"], "sonnet")
+    def test_pin_beats_role(self):
+        self.assertEqual(frontmatter(self.out / "jidoka/agents/pinned.md")["model"], "haiku")
 
-    def test_claude_block_effort_beats_role_effort(self):
+    def test_claude_block_effort_beats_role_effort_and_adds_its_keys(self):
         claude = frontmatter(self.out / "jidoka/agents/effortful.md")
         self.assertEqual(claude["effort"], "max")
         self.assertEqual(claude["model"], "fable")
+        self.assertIs(claude["omitClaudeMd"], True)
 
-    def test_rewrites_per_harness(self):
-        body = (self.out / "jidoka-copilot/agents/arch.agent.md").read_text()
-        self.assertIn('agent_type: "jidoka-copilot:arch"', body)
-        self.assertIn("`jidoka-copilot:line`", body)
-        self.assertNotIn("jidoka:arch", body)
-        body = (self.out / "jidoka-cursor/agents/arch.md").read_text()
-        self.assertIn('subagent_type: "arch"', body)
-        self.assertIn("`line`", body)
-        self.assertNotIn("jidoka:", body)
-        skill = (self.out / "jidoka-cursor/skills/line/SKILL.md").read_text()
-        self.assertIn('subagent_type: "x"', skill)
+    def test_dispatch_strings_are_left_as_written(self):
+        body = (self.out / "jidoka/agents/arch.md").read_text()
+        self.assertIn('agent_type: "jidoka:arch"', body)
+        self.assertIn("`jidoka:line`", body)
         skill = (self.out / "jidoka/skills/line/SKILL.md").read_text()
         self.assertIn('agent_type: "jidoka:x"', skill)
 
@@ -166,17 +142,13 @@ class RoutingTests(unittest.TestCase):
         data = json.loads((self.out / ".claude-plugin/marketplace.json").read_text())
         by_name = {p["name"]: p for p in data["plugins"]}
         self.assertEqual(by_name["jidoka"]["agents"][0], "./agents/arch.md")
-        self.assertEqual(by_name["jidoka-copilot"]["agents"][0], "./agents/arch.agent.md")
         self.assertEqual(by_name["jidoka"]["skills"], ["./skills/line"])
+        self.assertEqual(by_name["other"], {"name": "other", "skills": ["./skills/x"]})
         claude = json.loads((self.out / "jidoka/hooks/hooks.json").read_text())
-        self.assertEqual(
-            claude["hooks"]["PostToolUse"][0]["hooks"][0]["command"],
-            "${CLAUDE_PLUGIN_ROOT}/hooks/h.sh",
-        )
-        cursor = json.loads((self.out / "jidoka-cursor/hooks/hooks.json").read_text())
-        self.assertIn("${CURSOR_PLUGIN_ROOT}/hooks/h.sh", cursor["hooks"]["afterFileEdit"][0]["command"])
-        copilot = json.loads((self.out / "jidoka-copilot/hooks/hooks.json").read_text())
-        self.assertEqual(copilot["hooks"]["postToolUse"][0]["matcher"], "edit|create")
+        entry = claude["hooks"]["PostToolUse"][0]
+        self.assertEqual(entry["matcher"], "Edit|Write|MultiEdit")
+        self.assertEqual(entry["hooks"][0]["command"], "${CLAUDE_PLUGIN_ROOT}/hooks/h.sh")
+        self.assertEqual(entry["hooks"][0]["timeout"], 5)
 
 
 class ErrorTests(unittest.TestCase):
@@ -196,18 +168,54 @@ class ErrorTests(unittest.TestCase):
         text = agent_md("a", "reasoning").replace("role: reasoning\n", "")
         self.assert_source_error({"a": text}, fragment="missing 'role'")
 
-    def test_tier_missing_a_harness(self):
-        models = MODELS.replace(", cursor: cursor-composer", "")
+    def test_tier_missing_a_model(self):
+        models = MODELS.replace(", copilot: sonnet-id", "")
         self.assert_source_error({"a": agent_md("a", "reasoning")}, models, "tier 'standard'")
+
+    def test_tier_model_must_be_a_string(self):
+        models = MODELS.replace("copilot: sonnet-id", "copilot: [sonnet-id]")
+        self.assert_source_error({"a": agent_md("a", "reasoning")}, models, "bad copilot value")
 
     def test_role_with_bad_effort(self):
         models = MODELS.replace("effort: high", "effort: extreme")
         self.assert_source_error({"a": agent_md("a", "reasoning")}, models, "effort")
 
-    def test_pin_for_unknown_harness(self):
+    def test_pin_for_unknown_model(self):
         self.assert_source_error(
-            {"a": agent_md("a", "reasoning", "model:\n  gemini: x\n")}, fragment="model must map"
+            {"a": agent_md("a", "reasoning", "model:\n  cursor: x\n")}, fragment="model must map"
         )
+
+    def test_claude_block_cannot_override_top_level_keys(self):
+        self.assert_source_error(
+            {"a": agent_md("a", "reasoning", "claude:\n  description: Other.\n")},
+            fragment="claude block cannot set ['description']",
+        )
+
+    def test_unknown_top_level_key(self):
+        self.assert_source_error(
+            {"a": agent_md("a", "reasoning", "copilot: {}\n")}, fragment="unknown keys ['copilot']"
+        )
+
+    def test_section_in_a_skill_is_rejected(self):
+        fx = Fixture({"a": agent_md("a", "reasoning")})
+        try:
+            skill = fx.root / "src/skills/line/SKILL.md"
+            skill.write_text(skill.read_text() + "<!-- harness: claude -->\nC.\n<!-- harness: end -->\n")
+            with self.assertRaises(render.SourceError) as ctx:
+                fx.render()
+            self.assertIn("src/skills/line/SKILL.md:6: a skill has one render", str(ctx.exception))
+        finally:
+            fx.close()
+
+    def test_marketplace_without_the_plugin_entry(self):
+        fx = Fixture({"a": agent_md("a", "reasoning")})
+        try:
+            (fx.root / ".claude-plugin/marketplace.json").write_text('{"plugins": []}')
+            with self.assertRaises(render.SourceError) as ctx:
+                fx.render()
+            self.assertIn("no entry for 'jidoka'", str(ctx.exception))
+        finally:
+            fx.close()
 
     def test_per_harness_body_file_is_rejected(self):
         fx = Fixture({"a": agent_md("a", "reasoning")})
@@ -224,7 +232,7 @@ class ErrorTests(unittest.TestCase):
         self.assert_source_error({"a": text}, fragment="not closed")
 
     def test_unknown_harness_in_section(self):
-        text = agent_md("a", "reasoning") + "<!-- harness: gemini -->\nx\n<!-- harness: end -->\n"
+        text = agent_md("a", "reasoning") + "<!-- harness: copilot -->\nx\n<!-- harness: end -->\n"
         self.assert_source_error({"a": text}, fragment="unknown harness")
 
     def test_harness_end_without_section(self):
@@ -240,43 +248,38 @@ class HarnessSectionTests(unittest.TestCase):
         <!-- harness: claude -->
         Claude only.
 
-        <!-- harness: copilot cursor -->
-        Copilot and Cursor.
+        <!-- harness: worker -->
+        Worker only.
 
         <!-- harness: end -->
         1. Shared step.
-           <!-- harness: cursor -->
-        2. Cursor step.
+           <!-- harness: claude worker -->
+        2. Both step.
            <!-- harness: end -->
         3. Last step.
         """
     )
 
-    def test_sections_kept_only_for_named_harnesses(self):
+    def test_sections_kept_only_for_named_renders(self):
         self.assertEqual(
             render.for_harness(self.BODY, "claude", "x"),
-            "Intro.\n\nClaude only.\n\n1. Shared step.\n3. Last step.\n",
+            "Intro.\n\nClaude only.\n\n1. Shared step.\n2. Both step.\n3. Last step.\n",
         )
         self.assertEqual(
-            render.for_harness(self.BODY, "copilot", "x"),
-            "Intro.\n\nCopilot and Cursor.\n\n1. Shared step.\n3. Last step.\n",
-        )
-        self.assertEqual(
-            render.for_harness(self.BODY, "cursor", "x"),
-            "Intro.\n\nCopilot and Cursor.\n\n1. Shared step.\n2. Cursor step.\n"
-            "3. Last step.\n",
+            render.for_harness(self.BODY, "worker", "x"),
+            "Intro.\n\nWorker only.\n\n1. Shared step.\n2. Both step.\n3. Last step.\n",
         )
 
-    def test_sections_in_rendered_agent_and_skill(self):
-        fx = Fixture({"a": agent_md("a", "reasoning") + "<!-- harness: claude -->\nC.\n<!-- harness: end -->\n"})
+    def test_sections_in_the_rendered_agent(self):
+        text = agent_md("a", "reasoning") + (
+            "<!-- harness: claude -->\nC.\n<!-- harness: worker -->\nW.\n<!-- harness: end -->\n"
+        )
+        fx = Fixture({"a": text})
         try:
-            skill = fx.root / "src/skills/line/SKILL.md"
-            skill.write_text(skill.read_text() + "<!-- harness: cursor -->\nK.\n<!-- harness: end -->\n")
             out = fx.render()
-            self.assertIn("\nC.\n", (out / "jidoka/agents/a.md").read_text())
-            self.assertNotIn("C.", (out / "jidoka-copilot/agents/a.agent.md").read_text())
-            self.assertIn("\nK.\n", (out / "jidoka-cursor/skills/line/SKILL.md").read_text())
-            self.assertNotIn("K.", (out / "jidoka/skills/line/SKILL.md").read_text())
+            agent = (out / "jidoka/agents/a.md").read_text()
+            self.assertIn("\nC.\n", agent)
+            self.assertNotIn("W.", agent)
             for path in out.rglob("*.md"):
                 self.assertNotIn("<!-- harness:", path.read_text(), path)
         finally:
@@ -298,25 +301,23 @@ class GeneratedMarkerTests(unittest.TestCase):
         self.out = self.fx.render()
 
     def test_markdown_opens_with_its_frontmatter_and_has_no_marker(self):
-        for plugin in render.PLUGIN_DIRS.values():
-            agent = next((self.out / plugin / "agents").glob("a.*"))
-            for path in (agent, self.out / plugin / "skills/line/SKILL.md"):
-                text = path.read_text()
-                self.assertTrue(text.startswith("---\nname: "), path)
-                _fm, body = render.split_frontmatter(text, path)
-                # One blank line after the closing fence, then the body.
-                self.assertRegex(body, r"\A\n[^\n<]", path)
-                self.assertNotIn("GENERATED", text, path)
-            ref = (self.out / plugin / "skills/line/references/ref.md").read_text()
-            self.assertTrue(ref.startswith("# Ref\n\n"), plugin)
-            self.assertNotIn("GENERATED", ref, plugin)
+        plugin = self.out / render.PLUGIN
+        for path in (plugin / "agents/a.md", plugin / "skills/line/SKILL.md"):
+            text = path.read_text()
+            self.assertTrue(text.startswith("---\nname: "), path)
+            _fm, body = render.split_frontmatter(text, path)
+            # One blank line after the closing fence, then the body.
+            self.assertRegex(body, r"\A\n[^\n<]", path)
+            self.assertNotIn("GENERATED", text, path)
+        ref = (plugin / "skills/line/references/ref.md").read_text()
+        self.assertTrue(ref.startswith("# Ref\n\n"))
+        self.assertNotIn("GENERATED", ref)
 
     def test_hook_scripts_keep_their_marker(self):
-        for plugin in render.PLUGIN_DIRS.values():
-            lines = (self.out / plugin / "hooks/h.sh").read_text().splitlines()
-            self.assertEqual(lines[0], "#!/usr/bin/env bash", plugin)
-            self.assertTrue(lines[1].startswith("# GENERATED copy of src/hooks/h.sh"), plugin)
-            self.assertEqual(lines[2:], ["exit 0"], plugin)
+        lines = (self.out / render.PLUGIN / "hooks/h.sh").read_text().splitlines()
+        self.assertEqual(lines[0], "#!/usr/bin/env bash")
+        self.assertTrue(lines[1].startswith("# GENERATED copy of src/hooks/h.sh"))
+        self.assertEqual(lines[2:], ["exit 0"])
 
 
 class WorkerRenderTests(unittest.TestCase):
@@ -325,7 +326,7 @@ class WorkerRenderTests(unittest.TestCase):
 
     SECTIONS = (
         "<!-- harness: claude -->\nClaude only.\n"
-        "<!-- harness: copilot cursor worker -->\nGeneric.\n"
+        "<!-- harness: worker -->\nGeneric.\n"
         "<!-- harness: end -->\n"
     )
 
@@ -333,7 +334,7 @@ class WorkerRenderTests(unittest.TestCase):
         self.fx = Fixture(
             {
                 "arch": agent_md("arch", "reasoning") + self.SECTIONS,
-                "impl": agent_md("impl", "implementation", "model:\n  copilot: [pinned-id]\n"),
+                "impl": agent_md("impl", "implementation", "model:\n  copilot: pinned-id\n"),
             }
         )
         self.addCleanup(self.fx.close)
@@ -343,16 +344,12 @@ class WorkerRenderTests(unittest.TestCase):
         (crew / "scripts/crew.sh").write_text("#!/usr/bin/env bash\necho crew\n")
         self.out = self.fx.render()
 
-    def worker(self, plugin, name):
-        return self.out / plugin / "skills/herdr-crew/agents" / f"{name}.md"
-
-    def test_worker_file_is_the_same_in_every_plugin(self):
-        texts = {self.worker(p, "arch").read_text() for p in render.PLUGIN_DIRS.values()}
-        self.assertEqual(len(texts), 1)
+    def worker(self, name):
+        return self.out / render.PLUGIN / "skills/herdr-crew/agents" / f"{name}.md"
 
     def test_worker_frontmatter_carries_routing_for_crew_sh(self):
         self.assertEqual(
-            frontmatter(self.worker("jidoka", "arch")),
+            frontmatter(self.worker("arch")),
             {
                 "name": "arch",
                 "role": "reasoning",
@@ -362,12 +359,12 @@ class WorkerRenderTests(unittest.TestCase):
                 "copilot-model": "opus-id",
             },
         )
-        impl = frontmatter(self.worker("jidoka", "impl"))
+        impl = frontmatter(self.worker("impl"))
         self.assertEqual(impl["copilot-model"], "pinned-id")
         self.assertNotIn("claude-effort", impl)
 
     def test_worker_frontmatter_keeps_every_value_a_string(self):
-        models = MODELS.replace("copilot: [sonnet-id]", 'copilot: ["4.1"]')
+        models = MODELS.replace("copilot: sonnet-id", 'copilot: "4.1"')
         fx = Fixture({"impl": agent_md("impl", "implementation")}, models=models)
         try:
             crew = fx.root / "src/skills/herdr-crew"
@@ -381,24 +378,22 @@ class WorkerRenderTests(unittest.TestCase):
         finally:
             fx.close()
 
-    def test_worker_body_keeps_worker_sections_and_skips_the_rewrite(self):
-        text = self.worker("jidoka-copilot", "arch").read_text()
+    def test_worker_body_keeps_worker_sections_and_the_dispatch_strings(self):
+        text = self.worker("arch").read_text()
         self.assertIn("\nGeneric.\n", text)
         self.assertNotIn("Claude only.", text)
         self.assertIn('`agent_type: "jidoka:arch"`', text)
         self.assertNotIn("Generic.", (self.out / "jidoka/agents/arch.md").read_text())
 
     def test_skill_script_gets_the_generated_comment(self):
-        for plugin in render.PLUGIN_DIRS.values():
-            path = self.out / plugin / "skills/herdr-crew/scripts/crew.sh"
-            lines = path.read_text().splitlines()
-            self.assertEqual(lines[0], "#!/usr/bin/env bash", plugin)
-            self.assertTrue(
-                lines[1].startswith("# GENERATED copy of src/skills/herdr-crew/scripts/crew.sh"),
-                plugin,
-            )
-            self.assertEqual(lines[2:], ["echo crew"], plugin)
-            self.assertTrue(path.stat().st_mode & 0o111, plugin)
+        path = self.out / render.PLUGIN / "skills/herdr-crew/scripts/crew.sh"
+        lines = path.read_text().splitlines()
+        self.assertEqual(lines[0], "#!/usr/bin/env bash")
+        self.assertTrue(
+            lines[1].startswith("# GENERATED copy of src/skills/herdr-crew/scripts/crew.sh")
+        )
+        self.assertEqual(lines[2:], ["echo crew"])
+        self.assertTrue(path.stat().st_mode & 0o111)
 
     def test_hand_written_worker_files_are_rejected(self):
         (self.fx.root / "src/skills/herdr-crew/agents").mkdir()
@@ -419,8 +414,7 @@ class RealTreeTests(unittest.TestCase):
 
     def test_every_claude_model_is_an_alias(self):
         for agent in render.load_agents(render.load_routing()):
-            model, _ = agent.resolve("claude")
-            self.assertIn(model, ("fable", "opus", "sonnet", "haiku"), agent.name)
+            self.assertIn(agent.resolve("claude"), ("fable", "opus", "sonnet", "haiku"), agent.name)
 
     def test_entry_skills_are_user_only_and_companions_are_model_only(self):
         # The entry skills (`line`, and the `check` self-check) stay out of
@@ -449,7 +443,7 @@ class RealTreeTests(unittest.TestCase):
     def test_gitattributes_marks_exactly_the_rendered_paths_generated(self):
         # With no inline marker, .gitattributes is the machine-readable one:
         # every directory the renderer owns is linguist-generated, and no
-        # tracked hand-written file beside them (evals, Cursor adapter files).
+        # tracked hand-written file beside them (the evals).
         def git(*args):
             try:
                 result = subprocess.run(
@@ -461,11 +455,10 @@ class RealTreeTests(unittest.TestCase):
                 self.skipTest(f"git {args[0]} failed: {result.stderr.strip()}")
             return result.stdout.splitlines()
 
-        plugins = sorted(set(render.PLUGIN_DIRS.values()))
         rendered = [f"{rel}/any.md" for rel in render.MANAGED_DIRS]
         hand_written = [
             path
-            for path in git("ls-files", "--", *plugins)
+            for path in git("ls-files", "--", render.PLUGIN)
             if not any(path.startswith(f"{rel}/") for rel in render.MANAGED_DIRS)
         ] + ["src/skills/line/SKILL.md", render.MARKETPLACE_FILE]
         values = dict(

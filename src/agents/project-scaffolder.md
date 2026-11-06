@@ -79,13 +79,6 @@ Each runs its skill's bootstrap only, commits inside its own root, and returns
 a Return Report whose first section is that bootstrap's checklist and whose
 last lists the conventions it established.
 
-<!-- harness: copilot cursor -->
-This harness may not let an agent start another one. If the dispatch is
-refused, build the halves yourself, backend first: invoke the row's scaffold
-skill, do its bootstrap only, in that root and against the contract, and commit
-inside that root as the implementer would. Say so under Flagged.
-
-<!-- harness: end -->
 ## Step 3 - Verify, then smoke the skeleton end to end
 
 1. **Evidence check, as Phase 8 does per slice.** Re-run each layer's Verify

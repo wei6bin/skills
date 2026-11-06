@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # GENERATED copy of src/hooks/biome-on-change.sh by scripts/render.py (just build). Edit the source.
-# After-file-edit hook: Claude Code PostToolUse (Edit/Write/MultiEdit), Copilot
-# CLI postToolUse (edit/create), Cursor afterFileEdit. Payload handling in _lib.sh.
+# After-file-edit hook: Claude Code PostToolUse (Edit/Write/MultiEdit). Payload
+# handling in _lib.sh.
 #
 # Runs Biome's linter on the changed file and surfaces error-level findings back to
 # the agent. Biome is this plugin's linter: `frontend-styling-standard` tells projects

@@ -14,19 +14,15 @@ compaction and restarts.
 **Announce at start:** "I'm using the jidoka:line skill to guide this
 enhancement through the full workflow."
 
-**Harness notes.** Dispatch strings below are rendered for the harness this
-copy ships in (Claude Code and Copilot CLI use a plugin-prefixed `agent_type`,
-Cursor a bare `subagent_type`); invoke them exactly as written.
-`AskUserQuestion` means the harness's structured question prompt; where there
-is none, ask the same questions in one chat message, each with its recommended
-answer.
+**Questions.** Ask the user through `AskUserQuestion`; where it is not
+offered (a headless run), ask the same questions in one chat message, each with
+its recommended answer.
 
 **Model routing.** Every agent's frontmatter already carries the model its role
 resolves to (reasoning, verification, implementation, exploration; the table is
 `src/models.yaml` in the plugin repo), so dispatch without a `model` by default.
-Two exceptions apply on Claude Code, where the Task call's `model` parameter
-overrides frontmatter; the other harnesses have no per-dispatch override, so
-their defaults stand:
+Two exceptions pass the Task call's `model` parameter, which overrides
+frontmatter:
 
 - `Tier: refactor` stories dispatch `code-reviewer` with `model: "sonnet"`; a
   diff that adds no behaviour does not need the verification tier.

@@ -10,12 +10,9 @@ You are the **lead**. Inside herdr you run each subagent as a **worker** in a
 `jidoka crew` tab instead of through the task tool: same agent, same brief, and
 you can answer a worker without re-dispatching it.
 
-`crew.sh` below is `scripts/crew.sh` in this skill's folder; call it by its
-absolute path.
-<!-- harness: claude -->
-On Claude Code that is `${CLAUDE_SKILL_DIR}/scripts/crew.sh`.
-<!-- harness: end -->
-For anything it does not cover, use the `herdr` skill or `herdr --skill`.
+`crew.sh` below is `${CLAUDE_SKILL_DIR}/scripts/crew.sh`, the `scripts/crew.sh`
+in this skill's folder; call it by its absolute path. For anything it does not
+cover, use the `herdr` skill or `herdr --skill`.
 
 ## 1. Decide the mode
 
