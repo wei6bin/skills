@@ -9,12 +9,10 @@ disable-model-invocation: true
 
 **Announce at start:** "Running the jidoka self-check."
 
-`crew.sh` is `../herdr-crew/scripts/crew.sh` from this skill's folder; call it
-by its absolute path.
-<!-- harness: claude -->
-On Claude Code that is `${CLAUDE_SKILL_DIR}/../herdr-crew/scripts/crew.sh`.
-<!-- harness: end -->
-Its `check` command only reads: it opens no pane and starts no agent.
+`crew.sh` is `${CLAUDE_SKILL_DIR}/../herdr-crew/scripts/crew.sh`, the
+`../herdr-crew/scripts/crew.sh` from this skill's folder; call it by its
+absolute path. Its `check` command only reads: it opens no pane and starts no
+agent.
 
 1. **Run** `crew.sh check`.
 2. **Report.** Show its output verbatim in a code block, then sum it up in two

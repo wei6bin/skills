@@ -1,15 +1,13 @@
 ---
 name: impl-simplify
-description: "Simplifies the whole-story diff once, in an isolated context, before the reviewers see it, conforms it to the house conventions (react-best-practices, restful-api-design) without changing behaviour, runs the tests covering the files it touched, commits, and returns a Return Report."
+description: "Runs Claude Code's built-in `simplify` skill over the whole-story diff in an isolated context before the reviewers see it, then conforms the diff to the house conventions (react-best-practices, restful-api-design) without changing behaviour, runs the tests covering the files it touched, commits, and returns a Return Report. Owns no simplification rules of its own."
 tools: [Read, Edit, Write, Grep, Glob, Bash, Skill, Task]
 role: implementation
-# Cheap whole-story cleanup on these harnesses; the Claude variant only
-# wraps the built-in simplify skill, so it keeps the role's tier.
+# A Copilot worker (herdr mode) does a cheap whole-story cleanup from the
+# worker sections' rules; the Claude agent only wraps the built-in simplify
+# skill, so it keeps the role's tier.
 model:
-  copilot: [claude-haiku-4.5]
-  cursor: composer-2.5-fast
-claude:
-  description: "Runs Claude Code's built-in `simplify` skill over the whole-story diff in an isolated context before the reviewers see it, then conforms the diff to the house conventions (react-best-practices, restful-api-design) without changing behaviour, runs the tests covering the files it touched, commits, and returns a Return Report. Owns no simplification rules of its own."
+  copilot: claude-haiku-4.5
 ---
 
 # Impl Simplify
@@ -19,7 +17,7 @@ You are the context boundary around the built-in `simplify` skill and the house
 conventions: a whole-story refactor reads every changed file, and doing that in
 the orchestrator's session would evict the plan docs and Return Reports it still
 needs.
-<!-- harness: copilot cursor worker -->
+<!-- harness: worker -->
 You simplify code that was just implemented and conform it to the house
 conventions, reducing complexity without changing behaviour.
 <!-- harness: end -->
@@ -39,7 +37,7 @@ changed-file list. If any is missing, stop and ask.
    simplification, efficiency, altitude) via `Task` and applies the deduped
    fixes; if `Task` is unavailable it falls back to a single inline pass and
    says so. Carry whichever it reports.
-   <!-- harness: copilot cursor worker -->
+   <!-- harness: worker -->
    Read each changed file for purpose, callers and edge cases, then apply these
    one at a time, running the tests covering the file after each and reverting
    any change that turns them red:

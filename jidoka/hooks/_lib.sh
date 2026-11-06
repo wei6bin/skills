@@ -2,31 +2,17 @@
 # GENERATED copy of src/hooks/_lib.sh by scripts/render.py (just build). Edit the source.
 # Shared helpers for the after-file-edit hooks. Sourced, never run directly.
 #
-# The same scripts run under three harnesses, each with its own payload and
-# reply shape. Claude Code sends a PostToolUse payload (tool_input.file_path)
-# and reads hookSpecificOutput.additionalContext; Copilot CLI sends a
-# postToolUse payload (toolName, toolArgs) and reads a top-level
-# additionalContext; Cursor sends an afterFileEdit payload (file_path) and has
-# no context channel for this event. hook_init below detects which one is
-# talking from the payload shape, so a script only ever calls hook_init, uses
+# Claude Code runs each hook on PostToolUse for Edit, Write and MultiEdit, with
+# the edited file at tool_input.file_path, and reads the hook's advisory back
+# from hookSpecificOutput.additionalContext. A script calls hook_init, uses
 # $file_path, and calls emit_context.
 
 # hook_init <payload-json>
 #
-# Sets HOOK_HARNESS (claude | copilot | cursor | unknown) and file_path (the
-# file the agent just edited, or "" when the payload carries none).
+# Sets file_path: the file the agent just edited, or "" when the payload
+# carries none.
 hook_init() {
-  HOOK_HARNESS=$(printf '%s' "$1" | jq -r '
-    if (.tool_input // null) != null then "claude"
-    elif (.toolName // null) != null then "copilot"
-    elif (.file_path // null) != null then "cursor"
-    else "unknown" end' 2>/dev/null)
-  [[ -z "$HOOK_HARNESS" ]] && HOOK_HARNESS=unknown
-  file_path=$(printf '%s' "$1" | jq -r '
-    .tool_input.file_path
-    // .file_path
-    // .toolArgs.path // .toolArgs.file_path // .toolArgs.filePath
-    // empty' 2>/dev/null)
+  file_path=$(printf '%s' "$1" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 }
 
 # find_tool_root <file> <marker>...
@@ -57,24 +43,14 @@ find_tool_root() {
   printf ''
 }
 
-# emit_context <text> - the advisory channel back to the agent, in whichever
-# reply shape the current harness reads. Cursor's afterFileEdit has none, so the
-# hook stays silent there and only its on-disk effect (formatting) lands.
+# emit_context <text> - the advisory channel back to the agent.
 emit_context() {
-  case "${HOOK_HARNESS:-unknown}" in
-    claude)
-      jq -n --arg ctx "$1" '{
-        hookSpecificOutput: {
-          hookEventName: "PostToolUse",
-          additionalContext: $ctx
-        }
-      }'
-      ;;
-    copilot)
-      jq -n --arg ctx "$1" '{ additionalContext: $ctx }'
-      ;;
-    *) ;;
-  esac
+  jq -n --arg ctx "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: $ctx
+    }
+  }'
 }
 
 # strip_npm_noise - npx writes npm's own warnings to stderr ("npm warn Unknown

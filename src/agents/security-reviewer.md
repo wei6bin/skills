@@ -3,10 +3,6 @@ name: security-reviewer
 description: "Security review of the story's implementation diff against the technical plan's threat surface: authorisation, input validation, injection, secrets/PII exposure, auth-adjacent controls, dependencies. Runs in parallel with code-reviewer. Reports a verdict; never patches code."
 tools: [Read, Grep, Glob, Bash]
 role: verification
-# Adversarial review stays on Claude Opus in Cursor rather than the
-# strong tier's GPT slug.
-model:
-  cursor: claude-opus-4-8
 claude:
   omitClaudeMd: true
 ---

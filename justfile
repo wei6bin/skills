@@ -1,9 +1,9 @@
-# justfile - render the jidoka plugins from src/, check and test them, and run
-# the end-to-end evals.
+# justfile - render the jidoka plugin from src/, check and test it, and run the
+# end-to-end evals.
 #
 #   just                        list recipes and knobs
-#   just build                  render jidoka/, jidoka-copilot/, jidoka-cursor/
-#                               and the marketplace arrays from src/
+#   just build                  render jidoka/ and the marketplace arrays from
+#                               src/
 #   just test check lint        what CI runs
 #   just smoke-claude --override  one dispatch per role on Claude Code, with the
 #                               Task model override too
@@ -60,7 +60,7 @@ default:
 
 # ---- render --------------------------------------------------------------------
 
-# render every harness variant and the marketplace arrays from src/: PYTHON
+# render jidoka/ and the marketplace arrays from src/: PYTHON
 [group('render')]
 build:
     {{ PYTHON }} scripts/render.py

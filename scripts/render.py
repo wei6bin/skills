@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""Render every jidoka harness variant from the single source tree in src/.
+"""Render the jidoka Claude Code plugin from the source tree in src/.
 
 Run `just build` (python3 scripts/render.py) after editing anything under src/.
 Run `just check` (python3 scripts/render.py --check) to verify the committed
 outputs are current; CI runs the same check.
 
 Source layout
-  src/agents/<name>.md             one agent: shared body plus frontmatter with
-                                   per-harness blocks (format below)
-  src/skills/<skill>/...           skills, copied verbatim; the Copilot copy has
-                                   the plugin prefix rewritten
-                                   (jidoka: -> jidoka-copilot:)
+  src/agents/<name>.md             one agent: body plus frontmatter (format
+                                   below)
+  src/skills/<skill>/...           skills, copied verbatim
   src/hooks/hooks.json             canonical hook list (event -> scripts)
   src/hooks/*.sh                   hook scripts, copied verbatim
 
@@ -18,78 +16,60 @@ Skill files that are not Markdown are copied byte for byte, except that a
 script (first line `#!`) gets the same one-line GENERATED comment as a hook.
 
 Outputs, owned entirely by this script and never hand-edited
-  jidoka/agents/*.md               Claude Code plugin agents
-  jidoka/skills/**                 Claude Code plugin skills
-  jidoka/hooks/**                  Claude Code hooks.json plus scripts
-  jidoka-copilot/agents/*.agent.md Copilot CLI plugin agents
-  jidoka-copilot/skills/**         Copilot CLI plugin skills
-  jidoka-copilot/hooks/**          Copilot hooks.json plus scripts
-  jidoka-cursor/agents/*.md        Cursor plugin agents
-  jidoka-cursor/skills/**          Cursor plugin skills (dispatch rewritten)
-  jidoka-cursor/hooks/**           Cursor hooks.json plus scripts
-  <plugin>/skills/herdr-crew/agents/*.md
-                                   the worker render of every agent, in all
-                                   three plugins (see "Worker render" below)
+  jidoka/agents/*.md               the plugin's agents
+  jidoka/skills/**                 the plugin's skills
+  jidoka/hooks/**                  hooks.json plus scripts
+  jidoka/skills/herdr-crew/agents/*.md
+                                   the worker render of every agent (see
+                                   "Worker render" below)
   .claude-plugin/marketplace.json  only the agents and skills arrays of the
-                                   jidoka and jidoka-copilot entries
+                                   jidoka entry
 
 No inline marker in rendered Markdown
   Rendered skills, skill reference files and agents carry no "generated"
   comment: each loads into the model's context whenever it runs, so a marker
-  would cost tokens on every load in every harness. The rule lives in
-  CLAUDE.md ("One source, three renders") and .gitattributes marks the output
-  directories linguist-generated. Hook scripts are executed, never loaded into
-  context, so copy_script still adds a one-line GENERATED comment to each.
+  would cost tokens on every load. The rule lives in CLAUDE.md ("One source,
+  two renders") and .gitattributes marks the output directories
+  linguist-generated. Hook scripts are executed, never loaded into context, so
+  copy_script still adds a one-line GENERATED comment to each.
 
 Agent source format (src/agents/<name>.md frontmatter)
   name: code-explorer
-  description: One sentence.          # shared; Claude gets the internal prefix
-  tools: [Read, Grep, Glob]           # Claude tool names, mapped per harness
+  description: One sentence.          # Claude gets the internal prefix
+  tools: [Read, Grep, Glob]           # Claude tool names
   role: exploration                   # resolved via src/models.yaml:
-                                      #   role -> tier -> model per harness
-  model:                              # optional: pin one or more harnesses,
-    cursor: composer-2.5-fast         #   overriding the role's tier there
-  claude:                             # optional per-harness block: extra
-    omitClaudeMd: true                #   frontmatter keys (effort here beats
-  copilot: {}                         #   the role's), or overrides for
-  cursor: {}                          #   description and tools
+                                      #   role -> tier -> model
+  model:                              # optional: pin the Claude alias or the
+    copilot: claude-haiku-4.5         #   Copilot worker model, overriding the
+                                      #   role's tier there
+  claude:                             # optional: extra Claude frontmatter keys
+    omitClaudeMd: true                #   (effort here beats the role's)
 
-Harness sections (any Markdown body under src/)
+Render sections (agent bodies only)
   <!-- harness: claude -->           on a line of its own, opens text only the
-  ...                                named harnesses get; the next marker, or
-  <!-- harness: copilot cursor -->   `<!-- harness: end -->`, closes it. Text
-  ...                                outside a section goes to every harness.
-  <!-- harness: end -->              Put the blank line that separates a section
-                                     from what follows inside the section.
-  A section may also name `worker`, the pseudo-harness of the worker render.
+  ...                                named render gets; the next marker, or
+  <!-- harness: worker -->           `<!-- harness: end -->`, closes it. Text
+  ...                                outside a section goes to both. Put the
+  <!-- harness: end -->              blank line that separates a section from
+                                     what follows inside the section.
+  `claude` is the plugin's agent, `worker` the worker render. Skills have one
+  render, read by the lead and by every worker alike, so a section in a skill
+  is an error.
 
 Worker render (src/skills/herdr-crew/ present)
   In herdr mode a jidoka agent can run on a harness that has no jidoka plugin
-  (Codex, or Copilot started bare). Such a worker reads its instructions from
-  <plugin>/skills/herdr-crew/agents/<name>.md: the shared body plus the
-  sections that name `worker`, with no prefix rewrite, under a flat frontmatter
-  (name, role, tools as Claude names, claude-model, claude-effort,
-  copilot-model) that herdr-crew/scripts/crew.sh reads. No description: it
-  says when to dispatch the agent, which only the harness renders need. The
-  file is the same in all three plugins, since a worker's harness is not the
-  lead's.
+  (Codex, Copilot CLI). Such a worker reads its instructions from
+  jidoka/skills/herdr-crew/agents/<name>.md: the body plus the sections that
+  name `worker`, under a flat frontmatter (name, role, tools as Claude names,
+  claude-model, claude-effort, copilot-model) that herdr-crew/scripts/crew.sh
+  reads. No description: it says when to dispatch the agent, which only the
+  plugin's agent needs.
 
 Model routing (src/models.yaml)
-  tiers: <tier>: {claude: alias, copilot: [ids in priority order], cursor: slug}
+  tiers: <tier>: {claude: alias, copilot: model id}
   roles: <role>: {tier: <tier>, effort: <claude effort level, optional>}
-  Claude gets the alias and the role's effort; Copilot gets `model` (first id),
-  `models` (the list) and `modelPolicy: preferred`; Cursor gets the slug.
-
-Harness differences this script owns
-  Claude Code   tools as a comma list, description prefixed with the internal
-                marker, extra keys such as effort and omitClaudeMd.
-  Copilot CLI   tools mapped to Copilot aliases (read, edit, search, execute,
-                agent, web), user-invocable: false, .agent.md suffix, every
-                `jidoka:` prefix rewritten to `jidoka-copilot:`.
-  Cursor        no tools key (readonly: true is derived when every tool is
-                read-only), picker-slug model, and in agents and skills alike
-                `agent_type: "jidoka:x"` rewritten to `subagent_type: "x"` and
-                skill ids to bare names.
+  The plugin's agent gets the Claude alias and the role's effort; the worker
+  render carries both, plus the id a Copilot CLI worker runs on.
 """
 
 import argparse
@@ -107,60 +87,30 @@ except ImportError:  # pragma: no cover
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
-HARNESSES = ("claude", "copilot", "cursor")
-# Pseudo-harness for the worker render: a harness section may name it, and the
-# renderer writes each agent's worker file from the sections that do.
+# The two renders of an agent: the plugin's own (CLAUDE) and the worker render
+# a herdr worker on another harness reads (WORKER). A section names either.
+CLAUDE = "claude"
 WORKER = "worker"
-SECTION_NAMES = HARNESSES + (WORKER,)
+SECTION_NAMES = (CLAUDE, WORKER)
+# What a tier names a model for: the Claude alias, and the model a herdr worker
+# on Copilot CLI runs on (crew.sh passes it as `copilot --model`).
+TIER_KEYS = ("claude", "copilot")
 WORKER_SKILL = "herdr-crew"  # the skill whose agents/ folder holds the render
 MODELS_FILE = "models.yaml"  # under src/
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 
 PLUGIN = "jidoka"
-COPILOT_PLUGIN = "jidoka-copilot"
-CURSOR_PLUGIN = "jidoka-cursor"
-MARKETPLACE = "skills"  # marketplace name; part of Copilot's install path
 
 INTERNAL_PREFIX = "[Internal jidoka subagent - do not invoke directly] "
-# Tools that never write: an agent restricted to these renders `readonly: true`
-# for Cursor. Skill only loads instructions into the agent's context.
-READONLY_TOOLS = {"Read", "Grep", "Glob", "WebFetch", "WebSearch", "Skill"}
-COPILOT_TOOL_ALIAS = {
-    "Read": "read",
-    "NotebookRead": "read",
-    "Edit": "edit",
-    "MultiEdit": "edit",
-    "Write": "edit",
-    "NotebookEdit": "edit",
-    "Grep": "search",
-    "Glob": "search",
-    "Bash": "execute",
-    "Task": "agent",
-    "WebFetch": "web",
-    "WebSearch": "web",
-    "TodoWrite": "todo",
-    "Skill": "skill",
-}
 CLAUDE_EDIT_MATCHER = "Edit|Write|MultiEdit"
-COPILOT_EDIT_MATCHER = "edit|create"
-# Copilot documents no plugin-root variable for plugin hooks, so the command
-# points at the documented install location of a marketplace plugin.
-COPILOT_HOOKS_DIR = (
-    f"$HOME/.copilot/installed-plugins/{MARKETPLACE}/{COPILOT_PLUGIN}/hooks"
-)
+# Frontmatter keys the renderer writes itself, so a claude block cannot set them.
+OWN_KEYS = {"name", "description", "tools", "model"}
 
 MANAGED_DIRS = (
     f"{PLUGIN}/agents",
     f"{PLUGIN}/skills",
     f"{PLUGIN}/hooks",
-    f"{COPILOT_PLUGIN}/agents",
-    f"{COPILOT_PLUGIN}/skills",
-    f"{COPILOT_PLUGIN}/hooks",
-    f"{CURSOR_PLUGIN}/agents",
-    f"{CURSOR_PLUGIN}/skills",
-    f"{CURSOR_PLUGIN}/hooks",
 )
-PLUGIN_DIRS = {"claude": PLUGIN, "copilot": COPILOT_PLUGIN, "cursor": CURSOR_PLUGIN}
 MARKETPLACE_FILE = ".claude-plugin/marketplace.json"
 
 
@@ -188,8 +138,8 @@ def tidy_body(body):
 _HARNESS_MARK = re.compile(r"\s*<!-- harness: ([a-z ]+) -->")
 
 
-def for_harness(body, harness, source):
-    """Keep the harness sections that name this harness and drop the rest."""
+def for_harness(body, render, source):
+    """Keep the sections that name this render (CLAUDE or WORKER), drop the rest."""
     out, keep, inside = [], True, False
     for line in body.split("\n"):
         mark = _HARNESS_MARK.fullmatch(line)
@@ -206,22 +156,15 @@ def for_harness(body, harness, source):
         unknown = set(names) - set(SECTION_NAMES)
         if unknown:
             raise SourceError(f"{source}: unknown harness {sorted(unknown)} in a section")
-        keep, inside = harness in names, True
+        keep, inside = render in names, True
     if inside:
         raise SourceError(f"{source}: harness section not closed with <!-- harness: end -->")
     return "\n".join(out)
 
 
-def valid_model_value(harness, value):
-    """A model choice is a string, or for Copilot a non-empty priority list."""
-    if isinstance(value, str) and value:
-        return True
-    return (
-        harness == "copilot"
-        and isinstance(value, list)
-        and bool(value)
-        and all(isinstance(v, str) and v for v in value)
-    )
+def valid_model_value(value):
+    """A model choice is a non-empty string."""
+    return isinstance(value, str) and bool(value)
 
 
 class Routing:
@@ -235,11 +178,11 @@ class Routing:
         if not isinstance(roles, dict) or not roles:
             raise SourceError(f"{path}: 'roles' must be a non-empty mapping")
         for name, tier in tiers.items():
-            if not isinstance(tier, dict) or set(tier) != set(HARNESSES):
-                raise SourceError(f"{path}: tier {name!r} needs exactly {HARNESSES}")
-            for harness in HARNESSES:
-                if not valid_model_value(harness, tier[harness]):
-                    raise SourceError(f"{path}: tier {name!r}: bad {harness} value")
+            if not isinstance(tier, dict) or set(tier) != set(TIER_KEYS):
+                raise SourceError(f"{path}: tier {name!r} needs exactly {TIER_KEYS}")
+            for key in TIER_KEYS:
+                if not valid_model_value(tier[key]):
+                    raise SourceError(f"{path}: tier {name!r}: bad {key} value")
         for name, role in roles.items():
             if not isinstance(role, dict) or role.get("tier") not in tiers:
                 raise SourceError(
@@ -269,7 +212,7 @@ class Agent:
         for key in ("description", "tools", "role"):
             if key not in fm:
                 raise SourceError(f"{path}: missing {key!r}")
-        allowed = {"name", "description", "tools", "role", "model", *HARNESSES}
+        allowed = {"name", "description", "tools", "role", "model", CLAUDE}
         unknown = set(fm) - allowed
         if unknown:
             raise SourceError(f"{path}: unknown keys {sorted(unknown)}")
@@ -283,26 +226,32 @@ class Agent:
                 f"(roles: {sorted(routing.roles)})"
             )
         overrides = fm.get("model") or {}
-        if not isinstance(overrides, dict) or not set(overrides) <= set(HARNESSES):
-            raise SourceError(f"{path}: model must map harnesses ({HARNESSES}) to ids")
-        for harness, value in overrides.items():
-            if not valid_model_value(harness, value):
-                raise SourceError(f"{path}: model.{harness}: bad value {value!r}")
-        for h in HARNESSES:
-            block = fm.get(h)
-            if block is not None and not isinstance(block, dict):
-                raise SourceError(f"{path}: {h} block must be a mapping")
-        claude_effort = (fm.get("claude") or {}).get("effort")
+        if not isinstance(overrides, dict) or not set(overrides) <= set(TIER_KEYS):
+            raise SourceError(f"{path}: model must map {TIER_KEYS} to ids")
+        for key, value in overrides.items():
+            if not valid_model_value(value):
+                raise SourceError(f"{path}: model.{key}: bad value {value!r}")
+        block = fm.get(CLAUDE)
+        if block is not None and not isinstance(block, dict):
+            raise SourceError(f"{path}: claude block must be a mapping")
+        clash = set(block or {}) & OWN_KEYS
+        if clash:
+            raise SourceError(
+                f"{path}: claude block cannot set {sorted(clash)}; "
+                "set them at the top level"
+            )
+        claude_effort = (block or {}).get("effort")
         if claude_effort is not None and claude_effort not in EFFORT_LEVELS:
             raise SourceError(f"{path}: claude.effort not in {EFFORT_LEVELS}")
         self.fm = fm
         self.source = f"src/agents/{self.name}.md"
         self.body = tidy_body(body)
-        for h in SECTION_NAMES:
-            for_harness(self.body, h, self.source)  # fail on a bad section at load
+        for render in SECTION_NAMES:
+            for_harness(self.body, render, self.source)  # fail on a bad section at load
 
-    def block(self, harness):
-        return self.fm.get(harness) or {}
+    @property
+    def claude_block(self):
+        return self.fm.get(CLAUDE) or {}
 
     @property
     def role(self):
@@ -312,19 +261,19 @@ class Agent:
     def tier(self):
         return self.routing.roles[self.role]["tier"]
 
-    def resolve(self, harness):
-        """The model for a harness: the agent's own pin if any, else its role's tier."""
-        pinned = (self.fm.get("model") or {}).get(harness)
+    def resolve(self, key):
+        """The model for a tier key: the agent's own pin if any, else its role's tier."""
+        pinned = (self.fm.get("model") or {}).get(key)
         if pinned is not None:
-            return pinned, True
-        return self.routing.tiers[self.tier][harness], False
+            return pinned
+        return self.routing.tiers[self.tier][key]
 
     def effort(self):
         """Claude Code effort: the claude block's value beats the role's."""
-        return self.block("claude").get("effort", self.routing.roles[self.role].get("effort"))
+        return self.claude_block.get("effort", self.routing.roles[self.role].get("effort"))
 
-    def body_for(self, harness):
-        return tidy_body(for_harness(self.body, harness, self.source))
+    def body_for(self, render):
+        return tidy_body(for_harness(self.body, render, self.source))
 
 
 def load_routing():
@@ -337,7 +286,7 @@ def load_agents(routing=None):
     for p in sorted(SRC.glob("agents/*.md")):
         if "." in p.stem:
             raise SourceError(
-                f"{p}: one file per agent; mark harness-only text with "
+                f"{p}: one file per agent; mark render-only text with "
                 "<!-- harness: ... --> sections in its body"
             )
         agents.append(Agent(p, routing))
@@ -378,87 +327,42 @@ def yv(value):
     return json.dumps(value, ensure_ascii=False)
 
 
-def transform_body(body, harness):
-    if harness == "copilot":
-        return re.sub(r"\bjidoka:", f"{COPILOT_PLUGIN}:", body)
-    if harness == "cursor":
-        body = re.sub(r'agent_type: "jidoka:([a-z0-9-]+)"', r'subagent_type: "\1"', body)
-        return re.sub(r"\bjidoka:([a-z0-9-]+)", r"\1", body)
-    return body
-
-
-def render_frontmatter(agent, harness):
-    fm, block = agent.fm, agent.block(harness)
-    description = block.get("description", fm["description"])
-    tools = block.get("tools", fm["tools"])
-    model, _pinned = agent.resolve(harness)
-    skip = {"description", "tools"}
-    lines = [f"name: {agent.name}"]
-    if harness == "claude":
-        lines.append(f"description: {yv(INTERNAL_PREFIX + description)}")
-        lines.append(f"tools: {', '.join(tools)}")
-        lines.append(f"model: {yv(model)}")
-        effort = agent.effort()
-        if effort is not None:
-            lines.append(f"effort: {effort}")
-        skip.add("effort")
-    elif harness == "copilot":
-        aliases = []
-        for tool in tools:
-            alias = COPILOT_TOOL_ALIAS.get(tool, tool.lower())
-            if alias not in aliases:
-                aliases.append(alias)
-        models = model if isinstance(model, list) else [model]
-        lines.append(f"description: {yv(description)}")
-        lines.append(f"tools: {json.dumps(aliases)}")
-        lines.append(f"model: {yv(models[0])}")
-        lines.append(f"models: {json.dumps(models)}")
-        lines.append("modelPolicy: preferred")
-        lines.append("user-invocable: false")
-    else:
-        lines.append(f"description: {yv(description)}")
-        lines.append(f"model: {yv(model)}")
-        if set(tools) <= READONLY_TOOLS:
-            lines.append("readonly: true")
-    for key, value in block.items():
-        if key in skip:
-            continue
-        lines.append(f"{key}: {yv(value)}")
+def render_frontmatter(agent):
+    fm = agent.fm
+    lines = [
+        f"name: {agent.name}",
+        f"description: {yv(INTERNAL_PREFIX + fm['description'])}",
+        f"tools: {', '.join(fm['tools'])}",
+        f"model: {yv(agent.resolve('claude'))}",
+    ]
+    effort = agent.effort()
+    if effort is not None:
+        lines.append(f"effort: {effort}")
+    for key, value in agent.claude_block.items():
+        if key != "effort":
+            lines.append(f"{key}: {yv(value)}")
     return "\n".join(lines) + "\n"
 
 
-def render_agent(agent, harness):
-    body = transform_body(agent.body_for(harness), harness)
-    return "---\n" + render_frontmatter(agent, harness) + "---\n\n" + body
+def render_agent(agent):
+    return "---\n" + render_frontmatter(agent) + "---\n\n" + agent.body_for(CLAUDE)
 
 
 def render_worker(agent):
-    """The agent as a worker on a foreign harness reads it (herdr mode)."""
-    claude_model, _ = agent.resolve("claude")
-    copilot_model, _ = agent.resolve("copilot")
-    if isinstance(copilot_model, list):
-        copilot_model = copilot_model[0]
-    # Every value through yv, as in the harness renders: a model id such as 4.1
+    """The agent as a worker on another harness reads it (herdr mode)."""
+    # Every value through yv, as in the plugin's agents: a model id such as 4.1
     # would otherwise read as a number. crew.sh's afm unquotes what yv quotes.
     lines = [
         f"name: {yv(agent.name)}",
         f"role: {yv(agent.role)}",
         f"tools: {yv(', '.join(agent.fm['tools']))}",
-        f"claude-model: {yv(claude_model)}",
+        f"claude-model: {yv(agent.resolve('claude'))}",
     ]
     effort = agent.effort()
     if effort is not None:
         lines.append(f"claude-effort: {yv(effort)}")
-    lines.append(f"copilot-model: {yv(copilot_model)}")
+    lines.append(f"copilot-model: {yv(agent.resolve('copilot'))}")
     return "---\n" + "\n".join(lines) + "\n---\n\n" + agent.body_for(WORKER)
-
-
-def agent_output(agent, harness):
-    if harness == "claude":
-        return Path(PLUGIN) / "agents" / f"{agent.name}.md"
-    if harness == "copilot":
-        return Path(COPILOT_PLUGIN) / "agents" / f"{agent.name}.agent.md"
-    return Path(CURSOR_PLUGIN) / "agents" / f"{agent.name}.md"
 
 
 def write_text(path, text):
@@ -475,12 +379,11 @@ def write_json(path, data):
 
 def render_agents(out, agents):
     for agent in agents:
-        for harness in HARNESSES:
-            write_text(out / agent_output(agent, harness), render_agent(agent, harness))
+        write_text(out / PLUGIN / "agents" / f"{agent.name}.md", render_agent(agent))
 
 
 def render_workers(out, agents):
-    """Write every agent's worker render into herdr-crew/agents/ in each plugin."""
+    """Write every agent's worker render into the plugin's herdr-crew/agents/."""
     skill = SRC / "skills" / WORKER_SKILL
     if not skill.is_dir():
         return
@@ -490,19 +393,17 @@ def render_workers(out, agents):
             "do not author files there"
         )
     for agent in agents:
-        text = render_worker(agent)
-        for plugin in PLUGIN_DIRS.values():
-            write_text(out / plugin / "skills" / WORKER_SKILL / "agents" / f"{agent.name}.md", text)
+        dest = out / PLUGIN / "skills" / WORKER_SKILL / "agents" / f"{agent.name}.md"
+        write_text(dest, render_worker(agent))
 
 
-def render_skills(out, harness):
-    plugin = PLUGIN_DIRS[harness]
+def render_skills(out):
     skills_root = SRC / "skills"
     for src_file in sorted(skills_root.rglob("*")):
         if src_file.is_dir():
             continue
         rel = src_file.relative_to(skills_root)
-        dest = out / plugin / "skills" / rel
+        dest = out / PLUGIN / "skills" / rel
         if src_file.suffix != ".md":
             if src_file.read_bytes().startswith(b"#!"):
                 copy_script(src_file, dest, f"src/skills/{rel.as_posix()}")
@@ -513,9 +414,13 @@ def render_skills(out, harness):
         text = src_file.read_text(encoding="utf-8")
         fm_text, body = split_frontmatter(text, src_file)
         fences = f"---\n{fm_text}---\n\n" if fm_text else ""
-        source = f"src/skills/{rel.as_posix()}"
-        body = tidy_body(for_harness(body, harness, source))
-        write_text(dest, transform_body(fences + body, harness))
+        for number, line in enumerate(text.split("\n"), 1):
+            if _HARNESS_MARK.fullmatch(line):
+                raise SourceError(
+                    f"src/skills/{rel.as_posix()}:{number}: a skill has one render, "
+                    "read by the lead and every worker; harness sections are for agents"
+                )
+        write_text(dest, fences + tidy_body(body))
 
 
 def copy_script(src_file, dest, source):
@@ -562,66 +467,19 @@ def render_hooks(out):
     }
     write_json(out / PLUGIN / "hooks" / "hooks.json", claude)
 
-    copilot = {
-        "version": 1,
-        "hooks": {
-            "postToolUse": [
-                {
-                    "type": "command",
-                    "matcher": COPILOT_EDIT_MATCHER,
-                    "bash": f'bash "{COPILOT_HOOKS_DIR}/{e["script"]}"',
-                    "timeoutSec": e["timeout"],
-                }
-                for e in edits
-            ]
-        },
-    }
-    write_json(out / COPILOT_PLUGIN / "hooks" / "hooks.json", copilot)
-
-    # ${CURSOR_PLUGIN_ROOT} expands to the plugin's install path; this is the
-    # pattern Cursor's own plugins use for bundled scripts.
-    cursor = {
-        "version": 1,
-        "hooks": {
-            "afterFileEdit": [
-                {
-                    "command": f'bash "${{CURSOR_PLUGIN_ROOT}}/hooks/{e["script"]}"',
-                    "timeout": e["timeout"],
-                }
-                for e in edits
-            ]
-        },
-    }
-    write_json(out / CURSOR_PLUGIN / "hooks" / "hooks.json", cursor)
-
-    scripts = sorted(hooks_src.glob("*.sh"))
-    for dest_dir in (
-        out / PLUGIN / "hooks",
-        out / COPILOT_PLUGIN / "hooks",
-        out / CURSOR_PLUGIN / "hooks",
-    ):
-        for script in scripts:
-            copy_script(script, dest_dir / script.name, f"src/hooks/{script.name}")
+    for script in sorted(hooks_src.glob("*.sh")):
+        copy_script(script, out / PLUGIN / "hooks" / script.name, f"src/hooks/{script.name}")
 
 
 def render_marketplace(out, agents, skills):
     data = json.loads((ROOT / MARKETPLACE_FILE).read_text(encoding="utf-8"))
     names = [a.name for a in agents]
     skill_ids = [s.name for s in skills]
-    seen = set()
-    for entry in data["plugins"]:
-        if entry["name"] == PLUGIN:
-            entry["agents"] = [f"./agents/{n}.md" for n in names]
-            entry["skills"] = [f"./skills/{s}" for s in skill_ids]
-        elif entry["name"] == COPILOT_PLUGIN:
-            entry["agents"] = [f"./agents/{n}.agent.md" for n in names]
-            entry["skills"] = [f"./skills/{s}" for s in skill_ids]
-        else:
-            continue
-        seen.add(entry["name"])
-    missing = {PLUGIN, COPILOT_PLUGIN} - seen
-    if missing:
-        raise SourceError(f"{MARKETPLACE_FILE}: no entry for {sorted(missing)}")
+    entry = next((e for e in data["plugins"] if e["name"] == PLUGIN), None)
+    if entry is None:
+        raise SourceError(f"{MARKETPLACE_FILE}: no entry for {PLUGIN!r}")
+    entry["agents"] = [f"./agents/{n}.md" for n in names]
+    entry["skills"] = [f"./skills/{s}" for s in skill_ids]
     write_json(out / MARKETPLACE_FILE, data)
 
 
@@ -629,16 +487,11 @@ def render_all(out):
     agents = load_agents(load_routing())
     skills = load_skills()
     render_agents(out, agents)
-    for harness in HARNESSES:
-        render_skills(out, harness)
+    render_skills(out)
     render_workers(out, agents)
     render_hooks(out)
     render_marketplace(out, agents, skills)
     return agents
-
-
-def managed_files(agents):
-    return [MARKETPLACE_FILE]
 
 
 # --- commands ------------------------------------------------------------------
@@ -648,11 +501,8 @@ def build():
     agents = load_agents(load_routing())
     for rel in MANAGED_DIRS:
         shutil.rmtree(ROOT / rel, ignore_errors=True)
-    for rel in managed_files(agents):
-        if rel != MARKETPLACE_FILE:
-            (ROOT / rel).unlink(missing_ok=True)
     render_all(ROOT)
-    print(f"rendered {len(agents)} agents x {len(HARNESSES)} harnesses into {ROOT}")
+    print(f"rendered {len(agents)} agents into {ROOT / PLUGIN}")
 
 
 def relative_files(base):
@@ -668,7 +518,7 @@ def relative_files(base):
 def check():
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
-        agents = render_all(out)
+        render_all(out)
         stale = []
         for rel in MANAGED_DIRS:
             expected = relative_files(out / rel)
@@ -676,11 +526,9 @@ def check():
             for name in sorted(set(expected) | set(actual)):
                 if expected.get(name) != actual.get(name):
                     stale.append(f"{rel}/{name}")
-        for rel in managed_files(agents):
-            expected = (out / rel).read_bytes()
-            actual = (ROOT / rel).read_bytes() if (ROOT / rel).exists() else None
-            if expected != actual:
-                stale.append(rel)
+        actual = ROOT / MARKETPLACE_FILE
+        if not actual.exists() or (out / MARKETPLACE_FILE).read_bytes() != actual.read_bytes():
+            stale.append(MARKETPLACE_FILE)
     if stale:
         print("rendered outputs are stale; run `just build` and commit:")
         for path in stale:
