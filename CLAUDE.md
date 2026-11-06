@@ -237,9 +237,12 @@ Three component types:
   `hookSpecificOutput.additionalContext`. The scripts self-gate (exit silently
   when the edited file doesn't apply) so they're safe in a generic plugin, and
   the ts-typecheck hook deliberately reports only the edited file's
-  diagnostics and treats workspace sibling-import errors as non-blocking
-  advisories - preserve those properties when editing them. Three further
-  properties are load-bearing:
+  diagnostics (their indented detail lines included), checks a
+  `tsconfig.json` with `references` (create-vite's layout, which lists no
+  files) with `tsc -b`, and treats workspace sibling-import errors as
+  non-blocking advisories - preserve those properties when editing them. The
+  scripts also run under macOS's bash 3.2, so no bash 4 syntax such as
+  `declare -A`. Three further properties are load-bearing:
   - **Prettier auto-writes; Biome only reports.** Formatting needs no judgement,
     and an advisory the agent may decline is not a gate - a formatting-only CI
     failure reached `main` while the report-only version of this hook was

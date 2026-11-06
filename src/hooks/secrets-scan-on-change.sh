@@ -27,24 +27,29 @@ if file -b --mime-encoding "$file_path" 2>/dev/null | grep -q binary; then
   exit 0
 fi
 
-declare -A patterns=(
-  ["AWS access key id"]='AKIA[0-9A-Z]{16}'
-  ["AWS secret access key (after aws_secret_access_key=)"]='aws_secret_access_key[[:space:]]*[:=][[:space:]]*[A-Za-z0-9/+=]{40}'
-  ["GitHub personal access token"]='ghp_[A-Za-z0-9]{36}'
-  ["GitHub OAuth token"]='gho_[A-Za-z0-9]{36}'
-  ["GitHub user-to-server token"]='ghu_[A-Za-z0-9]{36}'
-  ["GitHub server-to-server token"]='ghs_[A-Za-z0-9]{36}'
-  ["GitHub refresh token"]='ghr_[A-Za-z0-9]{36}'
-  ["Slack bot token"]='xox[baprs]-[A-Za-z0-9-]{10,}'
-  ["Google API key"]='AIza[0-9A-Za-z_\-]{35}'
-  ["Stripe live secret key"]='sk_live_[A-Za-z0-9]{24,}'
-  ["Private key block"]='-----BEGIN ((RSA|OPENSSH|EC|DSA|PGP) )?PRIVATE KEY-----'
+# Label, pattern pairs in one flat array. Not an associative array: `declare -A`
+# needs bash 4, and on macOS's stock bash 3.2 it aborts the scan, which then
+# exits 0 having reported nothing.
+rules=(
+  "AWS access key id"                'AKIA[0-9A-Z]{16}'
+  "AWS secret access key (after aws_secret_access_key=)" 'aws_secret_access_key[[:space:]]*[:=][[:space:]]*[A-Za-z0-9/+=]{40}'
+  "GitHub personal access token"     'ghp_[A-Za-z0-9]{36}'
+  "GitHub OAuth token"               'gho_[A-Za-z0-9]{36}'
+  "GitHub user-to-server token"      'ghu_[A-Za-z0-9]{36}'
+  "GitHub server-to-server token"    'ghs_[A-Za-z0-9]{36}'
+  "GitHub refresh token"             'ghr_[A-Za-z0-9]{36}'
+  "Slack bot token"                  'xox[baprs]-[A-Za-z0-9-]{10,}'
+  "Google API key"                   'AIza[0-9A-Za-z_\-]{35}'
+  "Stripe live secret key"           'sk_live_[A-Za-z0-9]{24,}'
+  "Private key block"                '-----BEGIN ((RSA|OPENSSH|EC|DSA|PGP) )?PRIVATE KEY-----'
 )
 
 findings=""
-for label in "${!patterns[@]}"; do
-  pattern=${patterns[$label]}
-  match=$(grep -nE "$pattern" "$file_path" 2>/dev/null | head -3)
+for ((i = 0; i < ${#rules[@]}; i += 2)); do
+  label=${rules[i]} pattern=${rules[i + 1]}
+  # -e: a pattern starting with "-" (the private key one) is otherwise read as
+  # an option, and the usage error goes to the 2>/dev/null below.
+  match=$(grep -nE -e "$pattern" -- "$file_path" 2>/dev/null | head -3)
   if [[ -n "$match" ]]; then
     findings+="
 - ${label}:
