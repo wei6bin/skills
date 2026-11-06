@@ -1,2 +1,5 @@
 # claude plugin eval output
 jidoka/evals/results/
+
+# just test (python3 -m unittest) byte-compiles scripts/
+__pycache__/

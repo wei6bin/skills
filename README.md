@@ -28,6 +28,35 @@ companion skills are the reverse: `user-invocable: false` keeps them out of
 Claude Code's `/` menu, but they stay visible to the model because the
 orchestrator and the subagents invoke them.
 
+## Herdr mode
+
+Run the line inside [herdr](https://herdr.dev), a terminal multiplexer for
+coding agents, and its subagents become visible workers in a `jidoka crew` tab
+beside yours, each in its own column with its own tint and emoji label. Watch
+any worker and approve its prompts in its pane; the lead (your session, renamed
+`lead`) can answer a worker's question without re-dispatching it. Outside
+herdr nothing changes.
+
+`/jidoka:check` shows whether herdr mode would engage and which harness each
+agent would run on, and offers to change it. The routing lives in
+`~/.config/jidoka/herdr.conf`:
+
+```ini
+harness = lead                      # default: the lead's own harness, or claude, copilot, codex, ...
+role.verification = codex           # per role: reasoning, verification, implementation, exploration
+agent.code-reviewer = copilot       # per agent, beats the role
+yolo.copilot = on                   # no approval prompts for those workers (copilot --yolo)
+args.codex = "-m gpt-5.5"           # extra flags for that harness's workers
+enabled = false                     # never use herdr mode
+tint = off                          # emoji labels only; light suits a light terminal theme
+```
+
+Claude Code workers run the jidoka agent with its model and tool limits; other
+harnesses (Copilot, Codex, ...) read the agent's instructions instead. An
+approval prompt waits in the worker's pane and herdr notifies you;
+`yolo.<harness> = on` skips prompts. Needs herdr 0.9.5 or later and `jq`;
+`nc` with `-U` evens out the columns.
+
 ---
 
 ## One source, three harnesses

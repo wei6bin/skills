@@ -319,6 +319,87 @@ class GeneratedMarkerTests(unittest.TestCase):
             self.assertEqual(lines[2:], ["exit 0"], plugin)
 
 
+class WorkerRenderTests(unittest.TestCase):
+    """The herdr-crew skill carries every agent's worker render: what a herdr
+    worker on a harness without the jidoka plugin reads as its instructions."""
+
+    SECTIONS = (
+        "<!-- harness: claude -->\nClaude only.\n"
+        "<!-- harness: copilot cursor worker -->\nGeneric.\n"
+        "<!-- harness: end -->\n"
+    )
+
+    def setUp(self):
+        self.fx = Fixture(
+            {
+                "arch": agent_md("arch", "reasoning") + self.SECTIONS,
+                "impl": agent_md("impl", "implementation", "model:\n  copilot: [pinned-id]\n"),
+            }
+        )
+        self.addCleanup(self.fx.close)
+        crew = self.fx.root / "src/skills/herdr-crew"
+        (crew / "scripts").mkdir(parents=True)
+        (crew / "SKILL.md").write_text("---\nname: herdr-crew\n---\n\nCrew.\n")
+        (crew / "scripts/crew.sh").write_text("#!/usr/bin/env bash\necho crew\n")
+        self.out = self.fx.render()
+
+    def worker(self, plugin, name):
+        return self.out / plugin / "skills/herdr-crew/agents" / f"{name}.md"
+
+    def test_worker_file_is_the_same_in_every_plugin(self):
+        texts = {self.worker(p, "arch").read_text() for p in render.PLUGIN_DIRS.values()}
+        self.assertEqual(len(texts), 1)
+
+    def test_worker_frontmatter_carries_routing_for_crew_sh(self):
+        self.assertEqual(
+            frontmatter(self.worker("jidoka", "arch")),
+            {
+                "name": "arch",
+                "description": "Does arch.",
+                "role": "reasoning",
+                "tools": "Read, Grep, Glob",
+                "claude-model": "fable",
+                "claude-effort": "high",
+                "copilot-model": "opus-id",
+            },
+        )
+        impl = frontmatter(self.worker("jidoka", "impl"))
+        self.assertEqual(impl["copilot-model"], "pinned-id")
+        self.assertNotIn("claude-effort", impl)
+
+    def test_worker_body_keeps_worker_sections_and_skips_the_rewrite(self):
+        text = self.worker("jidoka-copilot", "arch").read_text()
+        self.assertIn("\nGeneric.\n", text)
+        self.assertNotIn("Claude only.", text)
+        self.assertIn('`agent_type: "jidoka:arch"`', text)
+        self.assertNotIn("Generic.", (self.out / "jidoka/agents/arch.md").read_text())
+
+    def test_skill_script_gets_the_generated_comment(self):
+        for plugin in render.PLUGIN_DIRS.values():
+            path = self.out / plugin / "skills/herdr-crew/scripts/crew.sh"
+            lines = path.read_text().splitlines()
+            self.assertEqual(lines[0], "#!/usr/bin/env bash", plugin)
+            self.assertTrue(
+                lines[1].startswith("# GENERATED copy of src/skills/herdr-crew/scripts/crew.sh"),
+                plugin,
+            )
+            self.assertEqual(lines[2:], ["echo crew"], plugin)
+            self.assertTrue(path.stat().st_mode & 0o111, plugin)
+
+    def test_hand_written_worker_files_are_rejected(self):
+        (self.fx.root / "src/skills/herdr-crew/agents").mkdir()
+        with self.assertRaises(render.SourceError):
+            self.fx.render()
+
+    def test_no_worker_render_without_the_skill(self):
+        fx = Fixture({"a": agent_md("a", "reasoning")})
+        try:
+            out = fx.render()
+            self.assertFalse((out / "jidoka/skills/herdr-crew").exists())
+        finally:
+            fx.close()
+
+
 class RealTreeTests(unittest.TestCase):
     """Invariants on the repo's own src/, and that rendering is deterministic."""
 
@@ -327,15 +408,15 @@ class RealTreeTests(unittest.TestCase):
             model, _ = agent.resolve("claude")
             self.assertIn(model, ("fable", "opus", "sonnet", "haiku"), agent.name)
 
-    def test_entry_skill_is_user_only_and_companions_are_model_only(self):
-        # `line` stays out of every session's skill listing and runs only when
-        # the user types it. A companion stays out of the `/` menu but must stay
-        # model-invocable: disable-model-invocation also blocks the Skill tool
-        # and subagent preloading, which is how the orchestrator and the agents
-        # reach it.
+    def test_entry_skills_are_user_only_and_companions_are_model_only(self):
+        # The entry skills (`line`, and the `check` self-check) stay out of
+        # every session's skill listing and run only when the user types them.
+        # A companion stays out of the `/` menu but must stay model-invocable:
+        # disable-model-invocation also blocks the Skill tool and subagent
+        # preloading, which is how the orchestrator and the agents reach it.
         for skill in render.load_skills():
             fm = frontmatter(skill / "SKILL.md")
-            entry = skill.name == "line"
+            entry = skill.name in ("line", "check")
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
 

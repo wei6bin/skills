@@ -37,6 +37,14 @@ their defaults stand:
 
 Never pass `model` otherwise.
 
+**Herdr mode.** Run `printenv HERDR_ENV` before Phase 1. If it prints `1`,
+invoke `herdr-crew`, which decides whether herdr mode applies. In herdr mode
+every subagent dispatch of this run, those of `project-setup` and `raise-pr`
+included, goes through it: same agent, brief and batching, each worker in its
+own column of a crew tab and you as herdr agent `lead`; the `model` exceptions
+above become its `--model` option. Take the crew down after Phase 10. Outside
+herdr, or with herdr mode off, nothing below changes.
+
 ## Phase 1 - Discovery
 
 Capture **Title · Problem statement · Acceptance Criteria (numbered) ·
