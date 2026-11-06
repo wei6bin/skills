@@ -5,14 +5,14 @@ inside a container (`Dockerfile` here: Claude Code, bubblewrap, git, curl,
 Node 22, the .NET SDK). From the repo root:
 
 ```bash
-make eval-claude                      # build the image if needed, run every case
-make eval-claude ARGS="--case line-greenfield-scaffold"   # one case
-make eval-claude ARGS="--keep-temp"   # keep the run directory and its trace
-make eval-claude HOST=1               # run on the host instead
+just eval-claude                    # build the image if needed, run every case
+just eval-claude --case line-greenfield-scaffold   # one case
+just eval-claude --keep-temp        # keep the run directory and its trace
+just HOST=1 eval-claude             # run on the host instead
 ```
 
 The container needs a credential, kept out of the repo in
-`~/.config/jidoka/eval.env` (override with `EVAL_ENV=`):
+`~/.config/jidoka/eval.env` (override with `just EVAL_ENV=<file> eval-claude`):
 
 ```bash
 claude setup-token    # in your own terminal; prints a long-lived token
@@ -30,8 +30,8 @@ subscription. Behind a TLS-inspecting proxy, `EXTRA_CA` (default
 
 Results land in `jidoka/evals/results/<timestamp>/` (git-ignored):
 `aggregate-result.json` and a self-contained `report.html`. Container runs keep
-the report local; a `HOST=1` run also publishes it to claude.ai as a private
-artifact unless `ARGS` has `--no-publish`.
+the report local; a `just HOST=1 eval-claude` run also publishes it to claude.ai
+as a private artifact unless you pass `--no-publish`.
 
 ## line-minimal-story
 
@@ -66,7 +66,7 @@ with an identity and no commits, and the prompt asks `/jidoka:line` to set up
 a project with no story. The case's system prompt answers the setup questions
 (both layers, the development password stub, the Neutral look, merge locally).
 The run scaffolds a real .NET + React skeleton, so its Bash needs the npm and
-NuGet registries: the Makefile grants them (`EVAL_DOMAINS`), since a run's Bash
+NuGet registries: the justfile grants them (`eval_domains`), since a run's Bash
 has no network beyond the domains the operator grants and a case cannot grant
 any itself.
 

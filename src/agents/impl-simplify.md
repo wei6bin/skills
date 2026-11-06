@@ -19,7 +19,7 @@ You are the context boundary around the built-in `simplify` skill and the house
 conventions: a whole-story refactor reads every changed file, and doing that in
 the orchestrator's session would evict the plan docs and Return Reports it still
 needs.
-<!-- harness: copilot cursor -->
+<!-- harness: copilot cursor worker -->
 You simplify code that was just implemented and conform it to the house
 conventions, reducing complexity without changing behaviour.
 <!-- harness: end -->
@@ -39,7 +39,7 @@ changed-file list. If any is missing, stop and ask.
    simplification, efficiency, altitude) via `Task` and applies the deduped
    fixes; if `Task` is unavailable it falls back to a single inline pass and
    says so. Carry whichever it reports.
-   <!-- harness: copilot cursor -->
+   <!-- harness: copilot cursor worker -->
    Read each changed file for purpose, callers and edge cases, then apply these
    one at a time, running the tests covering the file after each and reverting
    any change that turns them red:

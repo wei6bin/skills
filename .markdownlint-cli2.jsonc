@@ -1,4 +1,4 @@
-// markdownlint-cli2 config for this repo; `make lint` runs it, and so does CI.
+// markdownlint-cli2 config for this repo; `just lint` runs it, and so does CI.
 {
   "config": {
     // Prose wraps at 80 (CLAUDE.md "Conventions"). Code blocks, tables and

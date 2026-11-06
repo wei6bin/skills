@@ -7,7 +7,7 @@
 # main. One run scaffolds a whole .NET + React stack, so it needs
 # the .NET SDK and Node in the runner, network to the npm and NuGet registries,
 # and tens of minutes; run it deliberately:
-# `make eval-claude ARGS="--case line-greenfield-scaffold"`.
+# `just eval-claude --case line-greenfield-scaffold`.
 #
 # What it covers: the greenfield test, the batched setup questions, the
 # skeleton contract reaching both halves, the bootstrap of both scaffold skills,

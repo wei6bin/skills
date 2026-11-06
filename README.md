@@ -28,12 +28,41 @@ companion skills are the reverse: `user-invocable: false` keeps them out of
 Claude Code's `/` menu, but they stay visible to the model because the
 orchestrator and the subagents invoke them.
 
+## Herdr mode
+
+Run the line inside [herdr](https://herdr.dev), a terminal multiplexer for
+coding agents, and its subagents become visible workers in a `jidoka crew` tab
+beside yours, each in its own column with its own tint and emoji label. Watch
+any worker and approve its prompts in its pane; the lead (your session, renamed
+`lead`) can answer a worker's question without re-dispatching it. Outside
+herdr nothing changes.
+
+`/jidoka:check` shows whether herdr mode would engage and which harness each
+agent would run on, and offers to change it. The routing lives in
+`~/.config/jidoka/herdr.conf`:
+
+```ini
+harness = lead                      # default: the lead's own harness, or claude, copilot, codex, ...
+role.verification = codex           # per role: reasoning, verification, implementation, exploration
+agent.code-reviewer = copilot       # per agent, beats the role
+yolo.copilot = on                   # no approval prompts for those workers (copilot --yolo)
+args.codex = "-m gpt-5.5"           # extra flags for that harness's workers
+enabled = false                     # never use herdr mode
+tint = off                          # emoji labels only; light suits a light terminal theme
+```
+
+Claude Code workers run the jidoka agent with its model and tool limits; other
+harnesses (Copilot, Codex, ...) read the agent's instructions instead. An
+approval prompt waits in the worker's pane and herdr notifies you;
+`yolo.<harness> = on` skips prompts. Needs herdr 0.9.5 or later and `jq`;
+`nc` with `-U` evens out the columns.
+
 ---
 
 ## One source, three harnesses
 
 The three `jidoka*` directories are build outputs. Everything is authored once
-under `src/` and rendered by `make build`:
+under `src/` and rendered by `just build`:
 
 | Source                          | Rendered to                                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -44,9 +73,9 @@ under `src/` and rendered by `make build`:
 Each agent source carries one shared body and a frontmatter block per harness
 (tool names, model ids, flags), so a change to an agent's instructions lands in
 all three harnesses from one edit. Rendered files are never hand-edited: edit
-the source, run `make build`, commit both. They carry no inline "generated"
+the source, run `just build`, commit both. They carry no inline "generated"
 marker, because every skill and agent file loads into the model's context when
-it runs; `.gitattributes` marks them `linguist-generated` instead. `make check`
+it runs; `.gitattributes` marks them `linguist-generated` instead. `just check`
 (also run in CI) fails when the committed outputs are stale. The renderer needs
 Python 3 with PyYAML; `scripts/render.py` documents the source format.
 
@@ -64,7 +93,7 @@ tiers to a model per harness:
 
 Two agents pin a harness: impl-simplify runs on the economy tier in Copilot
 and Cursor, and security-reviewer stays on Claude Opus in Cursor. To change
-the routing, edit `src/models.yaml` and run `make build`. To change it for one
+the routing, edit `src/models.yaml` and run `just build`. To change it for one
 machine without touching the plugin:
 
 - Claude Code: `ANTHROPIC_DEFAULT_OPUS_MODEL` (or `SONNET`, `HAIKU`, `FABLE`)
@@ -82,13 +111,14 @@ On Claude Code the `line` skill also overrides per dispatch in two cases:
 refactor-tier stories review on `sonnet`, and an implementer re-dispatched
 after a failed review or evidence check goes up to `opus`.
 
-Test it with `make test` (renderer and routing rules), `make check` (render
-drift), `make lint` (markdownlint over every Markdown file) and
-`make smoke-claude` (one real dispatch per role on Claude Code, reporting the
-model each ran on; costs a few API calls). `make eval-claude` is the end-to-end
-verifier: in a container, `claude plugin eval` runs `/jidoka:line` on a minimal
-story in a scaffolded repo and grades every phase's output (see
-`jidoka/evals/README.md`; a whole workflow per run, so not in CI).
+The recipes run through [just](https://just.systems); `just` alone lists them
+and their knobs. Test it with `just test` (renderer and routing rules),
+`just check` (render drift), `just lint` (markdownlint over every Markdown
+file) and `just smoke-claude` (one real dispatch per role on Claude Code,
+reporting the model each ran on; costs a few API calls). `just eval-claude` is
+the end-to-end verifier: in a container, `claude plugin eval` runs
+`/jidoka:line` on a minimal story in a scaffolded repo and grades every phase's
+output (see `jidoka/evals/README.md`; a whole workflow per run, so not in CI).
 
 ---
 

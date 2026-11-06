@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Render every jidoka harness variant from the single source tree in src/.
 
-Run `make build` (python3 scripts/render.py) after editing anything under src/.
-Run `make check` (python3 scripts/render.py --check) to verify the committed
+Run `just build` (python3 scripts/render.py) after editing anything under src/.
+Run `just check` (python3 scripts/render.py --check) to verify the committed
 outputs are current; CI runs the same check.
 
 Source layout
@@ -14,6 +14,9 @@ Source layout
   src/hooks/hooks.json             canonical hook list (event -> scripts)
   src/hooks/*.sh                   hook scripts, copied verbatim
 
+Skill files that are not Markdown are copied byte for byte, except that a
+script (first line `#!`) gets the same one-line GENERATED comment as a hook.
+
 Outputs, owned entirely by this script and never hand-edited
   jidoka/agents/*.md               Claude Code plugin agents
   jidoka/skills/**                 Claude Code plugin skills
@@ -24,6 +27,9 @@ Outputs, owned entirely by this script and never hand-edited
   jidoka-cursor/agents/*.md        Cursor plugin agents
   jidoka-cursor/skills/**          Cursor plugin skills (dispatch rewritten)
   jidoka-cursor/hooks/**           Cursor hooks.json plus scripts
+  <plugin>/skills/herdr-crew/agents/*.md
+                                   the worker render of every agent, in all
+                                   three plugins (see "Worker render" below)
   .claude-plugin/marketplace.json  only the agents and skills arrays of the
                                    jidoka and jidoka-copilot entries
 
@@ -55,6 +61,18 @@ Harness sections (any Markdown body under src/)
   ...                                outside a section goes to every harness.
   <!-- harness: end -->              Put the blank line that separates a section
                                      from what follows inside the section.
+  A section may also name `worker`, the pseudo-harness of the worker render.
+
+Worker render (src/skills/herdr-crew/ present)
+  In herdr mode a jidoka agent can run on a harness that has no jidoka plugin
+  (Codex, or Copilot started bare). Such a worker reads its instructions from
+  <plugin>/skills/herdr-crew/agents/<name>.md: the shared body plus the
+  sections that name `worker`, with no prefix rewrite, under a flat frontmatter
+  (name, role, tools as Claude names, claude-model, claude-effort,
+  copilot-model) that herdr-crew/scripts/crew.sh reads. No description: it
+  says when to dispatch the agent, which only the harness renders need. The
+  file is the same in all three plugins, since a worker's harness is not the
+  lead's.
 
 Model routing (src/models.yaml)
   tiers: <tier>: {claude: alias, copilot: [ids in priority order], cursor: slug}
@@ -90,6 +108,11 @@ except ImportError:  # pragma: no cover
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 HARNESSES = ("claude", "copilot", "cursor")
+# Pseudo-harness for the worker render: a harness section may name it, and the
+# renderer writes each agent's worker file from the sections that do.
+WORKER = "worker"
+SECTION_NAMES = HARNESSES + (WORKER,)
+WORKER_SKILL = "herdr-crew"  # the skill whose agents/ folder holds the render
 MODELS_FILE = "models.yaml"  # under src/
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 
@@ -180,7 +203,7 @@ def for_harness(body, harness, source):
                 raise SourceError(f"{source}: harness end without an open section")
             keep, inside = True, False
             continue
-        unknown = set(names) - set(HARNESSES)
+        unknown = set(names) - set(SECTION_NAMES)
         if unknown:
             raise SourceError(f"{source}: unknown harness {sorted(unknown)} in a section")
         keep, inside = harness in names, True
@@ -275,7 +298,7 @@ class Agent:
         self.fm = fm
         self.source = f"src/agents/{self.name}.md"
         self.body = tidy_body(body)
-        for h in HARNESSES:
+        for h in SECTION_NAMES:
             for_harness(self.body, h, self.source)  # fail on a bad section at load
 
     def block(self, harness):
@@ -409,6 +432,27 @@ def render_agent(agent, harness):
     return "---\n" + render_frontmatter(agent, harness) + "---\n\n" + body
 
 
+def render_worker(agent):
+    """The agent as a worker on a foreign harness reads it (herdr mode)."""
+    claude_model, _ = agent.resolve("claude")
+    copilot_model, _ = agent.resolve("copilot")
+    if isinstance(copilot_model, list):
+        copilot_model = copilot_model[0]
+    # Every value through yv, as in the harness renders: a model id such as 4.1
+    # would otherwise read as a number. crew.sh's afm unquotes what yv quotes.
+    lines = [
+        f"name: {yv(agent.name)}",
+        f"role: {yv(agent.role)}",
+        f"tools: {yv(', '.join(agent.fm['tools']))}",
+        f"claude-model: {yv(claude_model)}",
+    ]
+    effort = agent.effort()
+    if effort is not None:
+        lines.append(f"claude-effort: {yv(effort)}")
+    lines.append(f"copilot-model: {yv(copilot_model)}")
+    return "---\n" + "\n".join(lines) + "\n---\n\n" + agent.body_for(WORKER)
+
+
 def agent_output(agent, harness):
     if harness == "claude":
         return Path(PLUGIN) / "agents" / f"{agent.name}.md"
@@ -435,6 +479,22 @@ def render_agents(out, agents):
             write_text(out / agent_output(agent, harness), render_agent(agent, harness))
 
 
+def render_workers(out, agents):
+    """Write every agent's worker render into herdr-crew/agents/ in each plugin."""
+    skill = SRC / "skills" / WORKER_SKILL
+    if not skill.is_dir():
+        return
+    if (skill / "agents").exists():
+        raise SourceError(
+            f"src/skills/{WORKER_SKILL}/agents/ is rendered from src/agents/; "
+            "do not author files there"
+        )
+    for agent in agents:
+        text = render_worker(agent)
+        for plugin in PLUGIN_DIRS.values():
+            write_text(out / plugin / "skills" / WORKER_SKILL / "agents" / f"{agent.name}.md", text)
+
+
 def render_skills(out, harness):
     plugin = PLUGIN_DIRS[harness]
     skills_root = SRC / "skills"
@@ -444,6 +504,9 @@ def render_skills(out, harness):
         rel = src_file.relative_to(skills_root)
         dest = out / plugin / "skills" / rel
         if src_file.suffix != ".md":
+            if src_file.read_bytes().startswith(b"#!"):
+                copy_script(src_file, dest, f"src/skills/{rel.as_posix()}")
+                continue
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src_file, dest)
             continue
@@ -455,11 +518,11 @@ def render_skills(out, harness):
         write_text(dest, transform_body(fences + body, harness))
 
 
-def copy_script(src_file, dest):
+def copy_script(src_file, dest, source):
     lines = src_file.read_text(encoding="utf-8").split("\n")
     note = (
-        f"# GENERATED copy of src/hooks/{src_file.name} by scripts/render.py "
-        "(make build). Edit the source."
+        f"# GENERATED copy of {source} by scripts/render.py "
+        "(just build). Edit the source."
     )
     if lines and lines[0].startswith("#!"):
         lines.insert(1, note)
@@ -538,7 +601,7 @@ def render_hooks(out):
         out / CURSOR_PLUGIN / "hooks",
     ):
         for script in scripts:
-            copy_script(script, dest_dir / script.name)
+            copy_script(script, dest_dir / script.name, f"src/hooks/{script.name}")
 
 
 def render_marketplace(out, agents, skills):
@@ -568,6 +631,7 @@ def render_all(out):
     render_agents(out, agents)
     for harness in HARNESSES:
         render_skills(out, harness)
+    render_workers(out, agents)
     render_hooks(out)
     render_marketplace(out, agents, skills)
     return agents
@@ -618,7 +682,7 @@ def check():
             if expected != actual:
                 stale.append(rel)
     if stale:
-        print("rendered outputs are stale; run `make build` and commit:")
+        print("rendered outputs are stale; run `just build` and commit:")
         for path in stale:
             print(f"  {path}")
         return 1

@@ -47,9 +47,9 @@ marketplace's background auto-update on the next session start), then
 
 ## One source, three renders
 
-`src/` is the only place the jidoka family is edited. `make build` runs
+`src/` is the only place the jidoka family is edited. `just build` runs
 `scripts/render.py` (Python 3 with PyYAML) and rewrites every rendered path
-listed below; `make check` fails when the committed outputs are stale and is
+listed below; `just check` fails when the committed outputs are stale and is
 what CI runs (`.github/workflows/render-check.yml`).
 
 - `src/agents/<name>.md` - one agent: a shared body plus frontmatter with
@@ -64,12 +64,24 @@ what CI runs (`.github/workflows/render-check.yml`).
   marker or `<!-- harness: end -->` closes it, and the renderer drops the
   sections that do not name the harness (format in `scripts/render.py`). Today
   only `impl-simplify` has them, because on Claude Code it wraps the built-in
-  `simplify` skill while Copilot and Cursor get the simplification rules.
-  There is one file per agent; the renderer rejects a `<name>.<harness>.md`.
+  `simplify` skill while Copilot and Cursor get the simplification rules. A
+  section may also name `worker`, the pseudo-harness of the worker render
+  below; `impl-simplify`'s generic sections do, since a Codex worker has no
+  built-in `simplify`. One file per agent; the renderer rejects a
+  `<name>.<harness>.md`.
 - `src/skills/<skill>/` - copied into all three plugins. Dispatch strings are
   written as `agent_type: "jidoka:<agent>"`; the Copilot copy gets the prefix
   rewritten and the Cursor copy gets `subagent_type` plus bare skill ids, so
   skill prose stays harness-neutral (`line` opens with a legend that says so).
+  A bundled script (a non-Markdown file starting `#!`) gets the hooks' one-line
+  GENERATED comment; other files are copied byte for byte.
+- The worker render: every agent is also written, identical in all three
+  plugins, to `<plugin>/skills/herdr-crew/agents/<name>.md` for herdr mode (see
+  "Architecture"): the shared body plus the `worker` sections, no prefix
+  rewrite, under a flat frontmatter (`role`, `tools`, `claude-model`,
+  `claude-effort`, `copilot-model`) that `crew.sh` reads. A worker without the
+  jidoka plugin (Codex, a bare Copilot session) reads it as its instructions.
+  `src/skills/herdr-crew/agents/` must not exist; the renderer refuses it.
 - `src/hooks/hooks.json` - the canonical `afterFileEdit` script list, rendered
   to Claude's `PostToolUse` (matcher `Edit|Write|MultiEdit`,
   `${CLAUDE_PLUGIN_ROOT}`), Copilot's `postToolUse` (matcher `edit|create`,
@@ -85,16 +97,16 @@ what CI runs (`.github/workflows/render-check.yml`).
 Rendered paths are generated and never hand-edited:
 `jidoka/{agents,skills,hooks}/`, all of `jidoka-copilot/`,
 `jidoka-cursor/{agents,skills,hooks}/`, and the two marketplace arrays. To
-change one, edit its source under `src/`, run `make build` and commit both. The
+change one, edit its source under `src/`, run `just build` and commit both. The
 rendered Markdown carries no inline marker on purpose: every skill, skill
 reference and agent file loads into the model's context when it runs, so the
 header comment it used to carry cost tokens on every load in every harness. This
 rule is the marker instead, backed by `.gitattributes`, which marks the same
 directories `linguist-generated` (GitHub collapses them in a diff) and which
-`make test` checks against the renderer. Hook scripts are executed, never loaded
-into context, so each keeps a one-line comment under its shebang naming its
-source. `jidoka/evals/` is hand-written: `claude plugin eval` is Claude Code
-only, so the suite has no Copilot or Cursor render.
+`just test` checks against the renderer. Hook and skill scripts are executed,
+never loaded into context, so each keeps a one-line comment under its shebang
+naming its source. `jidoka/evals/` is hand-written: `claude plugin eval` is
+Claude Code only, so the suite has no Copilot or Cursor render.
 
 Harness facts the renderer relies on (verified against the harness docs on
 2026-10-01): Copilot CLI reads `.claude-plugin/marketplace.json`, accepts
@@ -115,7 +127,7 @@ code-reviewer, security-reviewer, project-scaffolder), and implementation and
 exploration are `standard`. Three layers, in order of how often they change:
 
 1. **Source** - edit `src/models.yaml` to move a role between tiers or change a
-   tier's model, then `make build`. Pin a single agent with its `model:` map
+   tier's model, then `just build`. Pin a single agent with its `model:` map
    only when it must deviate (impl-simplify runs cheaper on Copilot and Cursor;
    security-reviewer stays on Claude Opus in Cursor).
 2. **Run time, Claude Code only** - `line` passes `model` on a Task call for two
@@ -137,37 +149,44 @@ exploration are `standard`. Three layers, in order of how often they change:
 
 ## Testing
 
-- `make test` - unit tests for the renderer (`scripts/test_render.py`): role
+The task runner is [just](https://just.systems): `just` alone lists the recipes
+and the knobs they take, and a knob goes between `just` and the recipe
+(`just HOST=1 eval-claude`).
+
+- `just test` - unit tests for the renderer (`scripts/test_render.py`): role
   resolution per harness, pins and `claude.effort` precedence, error cases,
   the Copilot and Cursor rewrites, no inline marker in rendered Markdown,
   `.gitattributes` covering exactly the rendered paths, and determinism on the
-  real tree. CI runs it together with `make check` and `make lint`.
-- `make check` - the committed renders match `src/`. `claude plugin validate .`
+  real tree. CI runs it together with `just check` and `just lint`.
+- `just check` - the committed renders match `src/`. `claude plugin validate .`
   checks the marketplace loads.
-- `make lint` - markdownlint-cli2 (version pinned in the `Makefile`, needs Node)
+- `just lint` - markdownlint-cli2 (version pinned in the `justfile`, needs Node)
   over every Markdown file, rendered ones included, per
   `.markdownlint-cli2.jsonc`. The rendered files are linted because the Copilot
   render turns every `jidoka:` into `jidoka-copilot:`, 8 characters longer, so a
   source line holding a dispatch string needs that much slack under 80.
-- `make smoke-claude` - end to end on Claude Code: loads `jidoka/` through
+- `just smoke-claude` - end to end on Claude Code: loads `jidoka/` through
   `--plugin-dir` (from a temp copy carrying a throwaway manifest), dispatches
   one agent per role with a trivial prompt, then reads the session's subagent
   transcripts under `~/.claude/projects/` to report the model each actually
   ran on against the alias in its frontmatter. Costs a few short API calls, so
-  it is not in CI. `ARGS=--override` also exercises the Task `model` parameter.
-- `make eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
+  it is not in CI. `just smoke-claude --override` also exercises the Task
+  `model` parameter.
+- `just eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
   case under `jidoka/evals/` in a sandboxed headless session, inside a
-  container built from `jidoka/evals/Dockerfile` (`make eval-image`; `HOST=1`
-  runs on the host instead). Two cases. `line-minimal-story` scaffolds a
-  zero-dependency Node API as a git repo, types `/jidoka:line` with a two-AC
-  backend story, and grades the dispatch order plus the end state (plan docs,
-  ledger, merged code and tests, backlog closed, worktree gone).
+  container built from `jidoka/evals/Dockerfile` (`just eval-image`;
+  `just HOST=1 eval-claude` runs on the host instead). Two cases.
+  `line-minimal-story` scaffolds a zero-dependency Node API as a git repo,
+  types `/jidoka:line` with a two-AC backend story, and grades the dispatch
+  order plus the end state (plan docs, ledger, merged code and tests, backlog
+  closed, worktree gone).
   `line-greenfield-scaffold` starts from an empty repo, asks for a new project,
   and grades the new-project branch: `project-setup` invoked, the
   `project-scaffolder` agent dispatched, a .NET + React skeleton and project
   context merged into `main`, and no story phase run. One run is a whole
   workflow, up to an hour and several dollars, so it is not in CI; run it
-  before merging a change to the `line` flow (`ARGS="--case <name>"` runs one).
+  before merging a change to the `line` flow (`just eval-claude --case <name>`
+  runs one).
   The container needs a credential in `~/.config/jidoka/eval.env`
   (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or
   `ANTHROPIC_API_KEY`). Harness facts it relies on: the case's
@@ -180,10 +199,16 @@ exploration are `standard`. Three layers, in order of how often they change:
   starts in a container run with `seccomp=unconfined` and
   `systempaths=unconfined`. A run's Bash also has no network beyond the
   domains the operator grants (`--allow-tools "WebFetch(domain:...)"`; a case
-  cannot grant any), so the Makefile's `EVAL_DOMAINS` grants the npm and NuGet
+  cannot grant any), so the justfile's `eval_domains` grants the npm and NuGet
   registries the greenfield case installs from, and the image's entrypoint adds
   a mounted `EXTRA_CA` to the system store because .NET, unlike Node, ignores
   `NODE_EXTRA_CA_CERTS`.
+- Herdr mode has no scripted test. Inside herdr, run `/jidoka:check`, then
+  drive `crew.sh` (`up`, `dispatch`, `wait`, `report`, `send`, `release`,
+  `down`) against a scratch config and state (`JIDOKA_HERDR_CONF`,
+  `JIDOKA_HERDR_STATE`). For native Claude workers without the plugin
+  installed, run it from a copy of `jidoka/` with a throwaway manifest, as
+  `just smoke-claude` does.
 - Copilot and Cursor have no scripted test here. Copilot: install the plugin
   from a local path, run the session on an Opus-tier model, dispatch an agent
   and check the model in the session log. Cursor: copy the agents into
@@ -205,7 +230,9 @@ Three component types:
   `sweep-implementer`, `reuse-ladder`, `codebase-context-builder`,
   `context-updater`, `react-best-practices`, `frontend-styling-standard`,
   `restful-api-design`, `test-plan-walkthrough`, `project-setup`,
-  `aspnet-backend-scaffold`, `react-frontend-scaffold`). In a folder with no
+  `aspnet-backend-scaffold`, `react-frontend-scaffold`, `herdr-crew`). `check`
+  is the second entry point, the self-check (see "Herdr mode" below). In a
+  folder with no
   source code, or on a request for a new project, `line` invokes
   `project-setup` before Phase 2. It holds the **stack catalog** (one row per
   stack, today a .NET backend and a React frontend, each naming its scaffold
@@ -223,16 +250,17 @@ Three component types:
   bootstrap. Skills run in the main session; `context-updater` in
   particular must never be dispatched as a subagent and runs once per story
   from the orchestrator (the old Copilot variant had the implementers invoke it;
-  that divergence was retired with the single source). `line` sets
-  `disable-model-invocation: true` (honoured by all three harnesses): its
-  description stays out of every session's skill listing, and it runs only when
-  the user types `/jidoka:line`. The companions must not set it. The flag also
+  that divergence was retired with the single source). `line` and `check` set
+  `disable-model-invocation: true` (honoured by all three harnesses): their
+  descriptions stay out of every session's skill listing, and they run only
+  when the user types `/jidoka:line` or `/jidoka:check`. The companions must
+  not set it. The flag also
   blocks the Skill tool and subagent `skills:` preloading, and that is how the
   orchestrator and the agents reach them. Instead they set
   `user-invocable: false`, which drops them from the `/` menu on Claude Code
   but leaves them in the model's listing. Copilot CLI documents that field for
   agents only and Cursor not at all, so there they may still show in the menu.
-  `make test` enforces all of this.
+  `just test` enforces all of this.
 - **Agents** (`src/agents/`) - subagents the orchestrator dispatches via the
   task tool with `agent_type: "jidoka:<name>"` (`jidoka-copilot:<name>` in the
   Copilot render, bare `subagent_type` on Cursor): `code-explorer`,
@@ -283,6 +311,57 @@ Three component types:
     `--reporter=json`'s `.summary.errors`, which stays 0 for infos and warnings,
     matching what a `biome lint` CI step actually fails on.
 
+### Herdr mode
+
+Inside herdr (`HERDR_ENV=1`) `line` invokes `herdr-crew`, and every subagent
+dispatch goes through `scripts/crew.sh` instead of the task tool. Each worker is
+a full agent session in a pane of a `jidoka crew` tab. The tab starts as one
+free pane; a worker takes it or splits the rightmost pane to the right, and
+crew.sh evens the columns out. Release closes a worker's column; the first tab
+keeps its last pane, free. A fifth concurrent worker, or a column under 40
+cells, opens another tab. The orchestrator's herdr agent is renamed `lead` and
+can answer a worker through `crew.sh send`. `~/.config/jidoka/herdr.conf` picks
+each agent's harness (`agent.<agent>`, `role.<role>`, `harness`, then the
+lead's own) and `yolo.<harness> = on` adds its no-prompts flag;
+`/jidoka:check` shows and changes it.
+
+A Claude worker runs the agent natively (`claude --agent jidoka:<agent>`) when
+the plugin is installed or the plugin root carries a manifest, and reports via
+the last turn of its transcript. Any other worker reads the worker render and
+writes its report to a file in `~/.local/state/jidoka/herdr/<lead pane>/`
+(`--add-dir`; a named herdr session's name leads the folder name, since each
+session has its own pane ids). Crew panes set `JIDOKA_CREW_ROLE=worker`, so a
+worker that dispatches agents (`project-scaffolder`) uses its own task tool.
+Load-bearing, verified on herdr 0.9.5 on 2026-11-06:
+
+- **The pane's shell sends the tint.** herdr ties an OSC 11 background to the
+  sending process group and restores the host colors when it exits, so `paint`
+  types the shell's `printf` builtin; a child script's tint vanishes at random.
+- **Release waits for the whole process group.** Helpers (Copilot's native
+  binary, MCP servers) outlive the shell's direct child and reset the colors on
+  exit, after a kept pane is repainted.
+- **crew.sh equalizes columns itself** (no herdr action): it reads `pane layout`
+  and sets each split's ratio with the socket API's `layout.set_split_ratio`,
+  which has no CLI command, through `nc -U`. herdr answers one request per
+  connection and closes it. A split id ends in its tree path (`split_3_11`:
+  root, second, second), sent as booleans. It re-runs after a release or a pane
+  someone closed; without `nc` the columns stay uneven and `/jidoka:check` says
+  so.
+- **Only a Claude worker gets a brief twice, and only when its transcript lacks
+  it.** A paste into a starting TUI can be lost (Claude Code on Fable at
+  xhigh), so the first prompt waits for a still screen; a lagging screen means
+  other harnesses never get a second copy.
+- **herdr's state for Copilot is a fallback guess** (`herdr agent explain`:
+  `default_known_agent_idle_fallback`; Copilot CLI 1.0.10x). A file-reporting
+  worker is ready once its file is newer than its prompt; no report and a still
+  screen for two minutes is `quiet`.
+- Claude Code's TUI keeps no scrollback in a pane, so reports come from a
+  transcript or a file.
+- **The run lock is a file bash creates with `noclobber` (`O_EXCL`), not a
+  `mkdir`.** uutils coreutils' `mkdir` (0.10, the system one on recent Ubuntu)
+  lets two racing calls both succeed; in a test with six crew.sh processes,
+  half the rounds had two holders.
+
 ## Registrations and versioning
 
 - The jidoka plugins' `agents` and `skills` arrays in
@@ -311,7 +390,7 @@ Three component types:
   under `src/` or the rendered plugins, `jidoka-cursor: ...` for the
   hand-written adapter files, `utility-skills: ...`, `code-to-prd: ...`,
   `clinical-lecture-brief: ...`, or `marketplace: ...` for the marketplace,
-  renderer, Makefile and CI.
+  renderer, justfile and CI.
 - Skill/agent prose is written as direct instructions to the executing agent
   ("You are...", numbered phases where order matters, explicit announce lines
   and return-report formats) - match that style, and keep it harness-neutral:
@@ -321,5 +400,5 @@ Three component types:
   prefix.
 - Markdown prose wraps at 80 columns (MD013); tables, code blocks, headings and
   frontmatter are exempt. A command or string too long to wrap goes in a fenced
-  block, not inline code. `make lint` enforces this and the other markdownlint
+  block, not inline code. `just lint` enforces this and the other markdownlint
   rules; skills and agents count their frontmatter `name:` as the title (MD041).

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GENERATED copy of src/hooks/_lib.sh by scripts/render.py (make build). Edit the source.
+# GENERATED copy of src/hooks/_lib.sh by scripts/render.py (just build). Edit the source.
 # Shared helpers for the after-file-edit hooks. Sourced, never run directly.
 #
 # The same scripts run under three harnesses, each with its own payload and
