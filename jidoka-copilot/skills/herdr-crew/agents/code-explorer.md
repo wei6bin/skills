@@ -1,8 +1,7 @@
 ---
 name: code-explorer
-description: "Traces how an existing feature or domain area is implemented - entry points, execution flow, conventions, reusable code, key files. Dispatched in parallel by the orchestrator in Phase 2."
 role: exploration
-tools: Read, Grep, Glob, WebFetch
+tools: "Read, Grep, Glob, WebFetch"
 claude-model: sonnet
 copilot-model: claude-sonnet-5
 ---

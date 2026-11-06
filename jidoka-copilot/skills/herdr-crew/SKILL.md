@@ -58,6 +58,8 @@ returns within 9 minutes, one line per worker:
   missing report.
 - `exited`: try `crew.sh report {name}`; with no report, release it and
   dispatch again.
+- `no-brief`: its brief did not go through; the next wait sends it again. If
+  it fails again, quote the error, release it and dispatch again.
 
 `blocked-at-start` from dispatch is the same, before the brief: wait sends the
 brief once the user answers the prompt.

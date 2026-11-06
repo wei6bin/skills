@@ -1,8 +1,7 @@
 ---
 name: code-architect
-description: "Designs one decisive implementation blueprint for a feature - vertical slices with frozen per-slice API contracts, change-site map, data changes, dependency graph - and writes the six plan documents directly into the user-story folder. Returns a short manifest, not options."
 role: reasoning
-tools: Read, Grep, Glob, Write, Skill
+tools: "Read, Grep, Glob, Write, Skill"
 claude-model: fable
 claude-effort: high
 copilot-model: claude-opus-4.8

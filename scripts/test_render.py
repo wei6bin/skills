@@ -355,7 +355,6 @@ class WorkerRenderTests(unittest.TestCase):
             frontmatter(self.worker("jidoka", "arch")),
             {
                 "name": "arch",
-                "description": "Does arch.",
                 "role": "reasoning",
                 "tools": "Read, Grep, Glob",
                 "claude-model": "fable",
@@ -366,6 +365,21 @@ class WorkerRenderTests(unittest.TestCase):
         impl = frontmatter(self.worker("jidoka", "impl"))
         self.assertEqual(impl["copilot-model"], "pinned-id")
         self.assertNotIn("claude-effort", impl)
+
+    def test_worker_frontmatter_keeps_every_value_a_string(self):
+        models = MODELS.replace("copilot: [sonnet-id]", 'copilot: ["4.1"]')
+        fx = Fixture({"impl": agent_md("impl", "implementation")}, models=models)
+        try:
+            crew = fx.root / "src/skills/herdr-crew"
+            (crew / "scripts").mkdir(parents=True)
+            (crew / "SKILL.md").write_text("---\nname: herdr-crew\n---\n\nCrew.\n")
+            (crew / "scripts/crew.sh").write_text("#!/usr/bin/env bash\necho crew\n")
+            out = fx.render()
+            fm = frontmatter(out / "jidoka/skills/herdr-crew/agents/impl.md")
+            self.assertEqual(fm["copilot-model"], "4.1")
+            self.assertTrue(all(isinstance(v, str) for v in fm.values()), fm)
+        finally:
+            fx.close()
 
     def test_worker_body_keeps_worker_sections_and_skips_the_rewrite(self):
         text = self.worker("jidoka-copilot", "arch").read_text()

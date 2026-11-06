@@ -1,8 +1,7 @@
 ---
 name: impl-simplify
-description: "Simplifies the whole-story diff once, in an isolated context, before the reviewers see it, conforms it to the house conventions (react-best-practices, restful-api-design) without changing behaviour, runs the tests covering the files it touched, commits, and returns a Return Report."
 role: implementation
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill, Task
+tools: "Read, Edit, Write, Grep, Glob, Bash, Skill, Task"
 claude-model: sonnet
 copilot-model: claude-haiku-4.5
 ---

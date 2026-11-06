@@ -1,8 +1,7 @@
 ---
 name: code-reviewer
-description: "Reviews the story's implementation diff against the slice cards' ACs and the technical plan: AC intent vs test assertions, error paths, convention adherence. Runs in parallel with security-reviewer. Reports a verdict; never patches code."
 role: verification
-tools: Read, Grep, Glob, Bash
+tools: "Read, Grep, Glob, Bash"
 claude-model: opus
 claude-effort: high
 copilot-model: claude-opus-4.8

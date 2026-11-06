@@ -1,8 +1,7 @@
 ---
 name: security-reviewer
-description: "Security review of the story's implementation diff against the technical plan's threat surface: authorisation, input validation, injection, secrets/PII exposure, auth-adjacent controls, dependencies. Runs in parallel with code-reviewer. Reports a verdict; never patches code."
 role: verification
-tools: Read, Grep, Glob, Bash
+tools: "Read, Grep, Glob, Bash"
 claude-model: opus
 claude-effort: high
 copilot-model: claude-opus-4.8

@@ -1,8 +1,7 @@
 ---
 name: impl-backend
-description: "Implements the backend half of one vertical slice via TDD against its ACs and frozen contract (e.g. \"SLICE-01 backend half\"), or bootstraps a new backend (scope \"project scaffold\"). Never touches other slices."
 role: implementation
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: "Read, Edit, Write, Grep, Glob, Bash, Skill"
 claude-model: sonnet
 copilot-model: claude-sonnet-5
 ---

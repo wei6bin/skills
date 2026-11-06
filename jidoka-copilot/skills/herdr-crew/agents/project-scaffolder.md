@@ -1,8 +1,7 @@
 ---
 name: project-scaffolder
-description: "Builds, verifies and lands a new project's walking skeleton from the skeleton contract and stack rows that project-setup hands it: repository and worktree, both halves in parallel through impl-backend and impl-frontend, an evidence check and an end-to-end smoke, project context and README, the merge onto the base branch. Returns a short Return Report."
 role: verification
-tools: Read, Write, Edit, Grep, Glob, Bash, Skill, Task
+tools: "Read, Write, Edit, Grep, Glob, Bash, Skill, Task"
 claude-model: opus
 claude-effort: high
 copilot-model: claude-opus-4.8

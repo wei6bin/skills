@@ -191,8 +191,14 @@ agent_names() { local f; for f in "$AGENTS_DIR"/*.md; do [ -f "$f" ] && basename
 roles() { local a; for a in $(agent_names); do afm "$a" role; done | sort -u; }
 
 afm() { # AGENT KEY -> a frontmatter value of the agent's worker render
-  awk -v k="$2" 'NR == 1 { next } /^---$/ { exit } index($0, k ": ") == 1 { print substr($0, length(k) + 3); exit }' \
-    "$AGENTS_DIR/$1.md"
+  local v
+  v=$(awk -v k="$2" 'NR == 1 { next } /^---$/ { exit } index($0, k ": ") == 1 { print substr($0, length(k) + 3); exit }' \
+    "$AGENTS_DIR/$1.md")
+  case "$v" in
+    \"*\") # the renderer JSON-quotes a value YAML would misread, such as 4.1
+      if have jq; then jq -r . <<< "$v"; else v=${v#\"}; printf '%s\n' "${v%\"}"; fi ;;
+    *) printf '%s\n' "$v" ;;
+  esac
 }
 
 lead_kind() { # the harness the lead runs on, as herdr names it
@@ -243,19 +249,27 @@ need_herdr() {
 }
 
 LOCKED=0
-lock() { # mkdir is atomic everywhere; flock is not on macOS
+lock() { # a file created with O_EXCL (bash's noclobber) that holds the pid
+  # Not mkdir: uutils coreutils' mkdir (the system one on recent Ubuntu) lets
+  # two racing calls both succeed. Not flock: macOS has none.
   local i=0 holder
-  until mkdir "$RUN/.lock" 2>/dev/null; do
-    holder=$(cat "$RUN/.lock/pid" 2>/dev/null || true)
-    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then rm -rf "$RUN/.lock"; continue; fi
+  until (set -C; echo $$ > "$RUN/.lock") 2>/dev/null; do
+    holder=$(cat "$RUN/.lock" 2>/dev/null || true)
+    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null && (set -C; echo $$ > "$RUN/.lock-reap") 2>/dev/null; then
+      # A crew.sh died holding the lock. One waiter at a time takes it away,
+      # and only while that dead one still holds it: another waiter may have
+      # taken it away and locked it again since this one read the pid.
+      [ "$(cat "$RUN/.lock" 2>/dev/null || true)" != "$holder" ] || rm -f "$RUN/.lock"
+      rm -f "$RUN/.lock-reap"
+      continue
+    fi
     i=$((i + 1))
-    [ $i -lt 600 ] || die "lock held for 2 minutes: $RUN/.lock (remove it if no crew.sh is running)"
+    [ $i -lt 600 ] || die "lock held for 2 minutes: $RUN/.lock (remove it, and .lock-reap beside it, if no crew.sh is running)"
     sleep 0.2
   done
-  echo $$ > "$RUN/.lock/pid"
   LOCKED=1
 }
-unlock() { if [ "$LOCKED" = 1 ]; then rm -rf "$RUN/.lock"; LOCKED=0; fi; }
+unlock() { if [ "$LOCKED" = 1 ]; then rm -f "$RUN/.lock"; LOCKED=0; fi; }
 trap unlock EXIT
 
 state_get() { if [ -f "$STATE" ]; then jq -r "$@" "$STATE"; fi; }
@@ -289,7 +303,7 @@ group_gone() { # PANE PGID: the shell is back in front and no process of the gro
   return 1
 }
 
-stop_pane() { # PANE: end the foreground job, every process of it, leaving the shell
+stop_pane() { # PANE: end the foreground job, every process of it; 1 when the shell is not back in front
   # The whole group, not just its leader: the shell takes the terminal back as
   # soon as its direct child exits, while helpers in the group (Copilot's
   # native binary, an agent's MCP servers) can outlive it by seconds and reset
@@ -302,7 +316,7 @@ stop_pane() { # PANE: end the foreground job, every process of it, leaving the s
   kill -TERM -- "-$fg" 2>/dev/null || true
   group_gone "$1" "$fg" && return 0
   kill -KILL -- "-$fg" 2>/dev/null || true
-  group_gone "$1" "$fg" || note "pane $1 did not return to its shell"
+  group_gone "$1" "$fg"
 }
 
 paint() { # PANE SLOT TEXT: tint the pane and show its banner
@@ -453,7 +467,7 @@ slot_taken() { # PANE -> 0 when a worker holds it
   return 1
 }
 
-add_column() { # TAB -> a new pane at the tab's right, evened out with the rest; 1 when full
+add_column() { # TAB -> a new pane at the tab's right, evened out with the rest; 1 when full, 2 when herdr fails
   local layout count width ours right slot pane
   count=$(tab_panes "$1" | wc -l | tr -d ' ')
   [ "$count" -lt "$TAB_MAX" ] || return 1
@@ -466,7 +480,7 @@ add_column() { # TAB -> a new pane at the tab's right, evened out with the rest;
   [ -n "$right" ] || return 1
   slot=$(state_get --arg t "$1" --argjson max "$TAB_MAX" '[.tabs[] | select(.tab == $t) | .panes[].slot] as $used
     | first(range(1; $max + 1) | select(. as $s | $used | index($s) | not))')
-  pane=$(split_pane "$right" right)
+  pane=$(split_pane "$right" right) || return 2 # split_pane said why
   state_put --arg t "$1" --arg p "$pane" --argjson s "$slot" \
     '(.tabs[] | select(.tab == $t) | .panes) += [{pane: $p, slot: $s}]'
   equalize "$1"
@@ -474,7 +488,9 @@ add_column() { # TAB -> a new pane at the tab's right, evened out with the rest;
 }
 
 claim_slot() { # -> "PANE SLOT TAB": a free crew pane, else a new column, else a new crew tab
-  local n t pane tab
+  # Callers run it as `$(claim_slot) || die`, where errexit is off: every
+  # herdr call that can fail returns here by hand.
+  local n t pane tab rc
   n=$(state_get '.tabs | length')
   t=0
   while [ "$t" -lt "$n" ]; do
@@ -490,13 +506,16 @@ claim_slot() { # -> "PANE SLOT TAB": a free crew pane, else a new column, else a
   t=0
   while [ "$t" -lt "$n" ]; do
     tab=$(state_get ".tabs[$t].tab")
-    if pane=$(add_column "$tab"); then
+    rc=0; pane=$(add_column "$tab") || rc=$?
+    if [ $rc = 0 ]; then
       printf '%s %s %s' "$pane" "$(pane_slot "$pane")" "$tab"
       return 0
     fi
+    [ $rc = 1 ] || return 1 # herdr failed the split
     t=$((t + 1))
   done
-  if [ "$n" -eq 0 ]; then tab=$(new_tab "$TAB_LABEL"); else tab=$(new_tab "$TAB_LABEL $((n + 1))"); fi
+  if [ "$n" -eq 0 ]; then tab=$(new_tab "$TAB_LABEL") || return 1
+  else tab=$(new_tab "$TAB_LABEL $((n + 1))") || return 1; fi
   printf '%s %s %s' "$(tab_panes "$tab")" 1 "$tab"
 }
 
@@ -513,6 +532,12 @@ free_pane() { # PANE TAB: close a worker's column, or keep a tab's last pane, fr
     herdr tab close "$2" >/dev/null 2>&1 || true
     state_put --arg t "$2" '.tabs |= map(select(.tab != $t))'
     echo "crew tab closed"
+  elif ! at_shell "$1"; then
+    # Something the stop could not end holds the terminal, and painting would
+    # type into it. Close the tab instead; the next dispatch opens a new one.
+    herdr tab close "$2" >/dev/null 2>&1 || true
+    state_put --arg t "$2" '.tabs |= map(select(.tab != $t))'
+    echo "crew tab closed, since its pane did not return to its shell"
   else
     state_put --arg p "$1" '(.tabs[].panes[] | select(.pane == $p) | .slot) = 1'
     paint_free "$1" 1
@@ -592,23 +617,38 @@ claude_transcript() { # NAME -> path of its Claude Code session file, if any yet
   [ -z "$sid" ] || find "$CLAUDE_HOME/projects" -maxdepth 2 -name "$sid.jsonl" 2>/dev/null | head -n 1
 }
 
-delivered() { # NAME TEXT -> 0 when the worker shows it has the text
-  local needle f
-  needle=$(printf '%s' "$2" | alnum | cut -c1-40)
+claude_prompts() { # NAME -> one line per user entry of its session file, letters and digits only
+  # A prompt's content is a string or a list of blocks; a tool result's line
+  # stays empty, so the count of lines only grows.
+  local f
+  f=$(claude_transcript "$1")
+  [ -n "$f" ] || return 0
+  jq -r 'select(.type == "user" and ((.isMeta // false) | not)) | .message.content
+    | if type == "string" then . else [.[]? | select(.type == "text") | .text] | join(" ") end
+    | gsub("[^A-Za-z0-9]"; "")' "$f" 2>/dev/null || true
+}
+
+delivered() { # NAME TEXT [SINCE] -> 0 when the worker shows it has the text
+  local needle
   if [ "$(wval "$1" .kind)" = claude ]; then
-    # Claude Code writes every submitted prompt to its session file.
-    f=$(claude_transcript "$1")
-    [ -n "$f" ] && jq -r 'select(.type == "user" and (.message.content | type) == "string") | .message.content' \
-      "$f" 2>/dev/null | alnum | grep -qF "$needle"
+    # Claude Code writes every submitted prompt to its session file. The whole
+    # text, among the entries after the first SINCE: an earlier prompt that
+    # starts the same way (the last follow-up) is not this one.
+    needle=$(printf '%s' "$2" | alnum)
+    claude_prompts "$1" | tail -n +"$((${3:-0} + 1))" | grep -F -- "$needle" >/dev/null
   else
-    herdr pane read "$(wval "$1" .pane)" --source recent-unwrapped --lines 400 2>/dev/null | alnum | grep -qF "$needle"
+    # A screen wraps, truncates and redraws, so only the start of the text.
+    needle=$(printf '%s' "$2" | alnum | cut -c1-40)
+    herdr pane read "$(wval "$1" .pane)" --source recent-unwrapped --lines 400 2>/dev/null | alnum |
+      grep -F -- "$needle" >/dev/null
   fi
 }
 
 prompt_gate() { # NAME TEXT: submit, then wait until the worker takes it
-  local out code try=0
+  local out code try=0 since=0
   touch "$RUN/workers/$1.prompted"
   wset "$1" '.notified = false'
+  [ "$(wval "$1" .kind)" != claude ] || since=$(claude_prompts "$1" | wc -l | tr -d ' ')
   while :; do
     out=$(herdr agent prompt "$1" "$2" --wait --timeout "$GATE_TIMEOUT_MS" 2>&1) && return 0
     code=$(jq -r '.error.code // empty' <<< "$out" 2>/dev/null || true)
@@ -629,7 +669,7 @@ prompt_gate() { # NAME TEXT: submit, then wait until the worker takes it
       fi
       return 0
     fi
-    delivered "$1" "$2" && return 0
+    delivered "$1" "$2" "$since" && return 0
     try=$((try + 1))
     [ $try -le 2 ] || break
     note "$1 did not get the prompt; sending it again ($try of 2)"
@@ -731,7 +771,7 @@ cmd_dispatch() {
 
   lock
   prune_tabs
-  claim=$(claim_slot) || die "no free slot"
+  claim=$(claim_slot) || die "could not open a crew pane for $agent (herdr's error is above)"
   read -r pane slot tab <<< "$claim"
   name=$(next_name "$agent")
   jq -n --arg name "$name" --arg agent "$agent" --arg kind "$kind" --arg pane "$pane" \
@@ -785,8 +825,13 @@ cmd_wait() {
       i=$((i + 1))
       st=$(worker_state "$n")
       if [ "$(wval "$n" .pending)" = true ] && { [ "$st" = idle ] || [ "$st" = "done" ]; }; then
-        if prompt_gate "$n" "$(first_prompt "$n")"; then wset "$n" '.pending = false'; fi
-        st=$(worker_state "$n")
+        if prompt_gate "$n" "$(first_prompt "$n")"; then
+          wset "$n" '.pending = false'
+          st=$(worker_state "$n")
+        else
+          st=$(worker_state "$n") # blocked again, or idle without its brief
+          [ "$st" = blocked ] || [ "$st" = gone ] || st=no-brief
+        fi
       fi
       # A worker that reports through a file is done when the file is: herdr's
       # idle for it may be a fallback guess. A still screen with no report
@@ -804,6 +849,9 @@ cmd_wait() {
       case "$st" in
         quiet)
           res="quiet: no report yet and its screen has not changed for ${QUIET_SECONDS}s; peek it, and answer a question with send"
+          newly=1 ;;
+        no-brief)
+          res="no-brief: its brief did not go through (herdr's error is above); wait again to resend it"
           newly=1 ;;
         idle | done) res=ready ;;
         gone) res=exited ;;
@@ -880,19 +928,15 @@ cmd_send() {
   st=$(worker_state "$name")
   case "$st" in idle | done) ;; *) die "$name is $st; wait for it to settle first" ;; esac
   kind=$(wval "$name" .kind); report=$(wval "$name" .report)
-  case "$msg" in
-    *"
-"*) f=multi ;;
-    *) f="" ;;
-  esac
-  if [ -z "$f" ] && [ ${#msg} -le 1500 ]; then
+  if [ "${msg//$'\n'/}" = "$msg" ] && [ ${#msg} -le 1500 ]; then # one short line goes inline
     text="Lead: $msg"
   else
     n=1
     while [ -e "$RUN/briefs/$name.followup-$n.md" ]; do n=$((n + 1)); done
     f="$RUN/briefs/$name.followup-$n.md"
     printf '%s\n' "$msg" > "$f"
-    text="Lead: my follow-up is in $f - read it and answer."
+    # Its number first: a screen check compares only the start of the text.
+    text="Lead follow-up $n: it is in $f - read it and answer."
   fi
   [ "$kind" = claude ] || text="$text When you finish, rewrite $report with your full updated answer, then reply with only: REPORT $report"
   prompt_gate "$name" "$text" || die "$name did not take the follow-up (crew.sh peek $name)"
@@ -912,7 +956,7 @@ cmd_peek() {
 drop_worker() { # NAME: stop it, forget it, and close its column -> what became of the pane
   local pane tab
   pane=$(wval "$1" .pane); tab=$(wval "$1" .tab)
-  stop_pane "$pane"
+  stop_pane "$pane" || true # free_pane sees a pane that is not back at its shell
   lock
   rm -f "$(wfile "$1")" "$RUN/workers/$1.prompted"
   if herdr pane get "$pane" >/dev/null 2>&1; then
@@ -1018,7 +1062,7 @@ cmd_down() {
   lock
   for f in "$RUN"/workers/*.json; do
     [ -f "$f" ] || continue
-    stop_pane "$(jq -r .pane "$f")"
+    stop_pane "$(jq -r .pane "$f")" || true # closing its tab below ends what is left
     rm -f "$f" "${f%.json}.prompted"
   done
   for tab in $(state_get '.tabs[].tab'); do
@@ -1047,8 +1091,14 @@ cmd_config() {
     set) [ $# -eq 3 ] || die "usage: crew.sh config set KEY VALUE"; conf_set "$2" "$3"; echo "set $2 = $3 in $CONF" ;;
     unset)
       [ $# -eq 2 ] || die "usage: crew.sh config unset KEY"
-      if [ -f "$CONF" ]; then conf_drop "$2" > "$CONF.tmp.$$" && mv "$CONF.tmp.$$" "$CONF"; fi
-      echo "unset $2 in $CONF" ;;
+      if conf_keys | grep -qxF -- "$2"; then
+        conf_drop "$2" > "$CONF.tmp.$$" && mv "$CONF.tmp.$$" "$CONF"
+        echo "unset $2 in $CONF"
+      elif [ -n "$(conf_keys)" ]; then
+        echo "$2 is not set in $CONF; nothing changed (set: $(conf_keys | paste -sd , - | sed 's/,/, /g'))"
+      else
+        echo "$2 is not set; nothing changed (no settings in $CONF)"
+      fi ;;
     path) echo "$CONF" ;;
     *) die "usage: crew.sh config [show | set KEY VALUE | unset KEY | path]" ;;
   esac

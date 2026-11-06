@@ -1,8 +1,7 @@
 ---
 name: test-plan-walker
-description: "Runs the Phase 9 walkthrough in a clean context: writes a Playwright spec per slice from 05-test-plan.md that self-captures screenshots, runs them headless, writes 06-walkthrough.md, persists the specs into the project's existing e2e suite, and returns a Return Report. Reports app bugs; never patches app code."
 role: implementation
-tools: Read, Write, Edit, Bash, Grep, Glob, Skill
+tools: "Read, Write, Edit, Bash, Grep, Glob, Skill"
 claude-model: sonnet
 copilot-model: claude-sonnet-5
 ---

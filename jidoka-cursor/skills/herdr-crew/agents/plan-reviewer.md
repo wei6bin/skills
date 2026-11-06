@@ -1,8 +1,7 @@
 ---
 name: plan-reviewer
-description: "Reviews the six plan documents (not code) for AC coverage, slice integrity, real-vs-imagined dependencies, security, test coverage and cross-document consistency. Dispatched in parallel pairs by the orchestrator in Phase 6."
 role: verification
-tools: Read, Grep, Glob, Skill
+tools: "Read, Grep, Glob, Skill"
 claude-model: opus
 claude-effort: high
 copilot-model: claude-opus-4.8

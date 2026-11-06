@@ -1,8 +1,7 @@
 ---
 name: impl-frontend
-description: "Implements the frontend half of one vertical slice via TDD against a typed mock of its frozen contract (scope \"SLICE-01 frontend half\"), reconciles every slice's mock against the real backends once (scope \"whole-story integration\"), or bootstraps a new frontend (scope \"project scaffold\"). Never touches other slices when scoped to one."
 role: implementation
-tools: Read, Edit, Write, Grep, Glob, Bash, Skill
+tools: "Read, Edit, Write, Grep, Glob, Bash, Skill"
 claude-model: sonnet
 copilot-model: claude-sonnet-5
 ---

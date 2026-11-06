@@ -68,9 +68,11 @@ Worker render (src/skills/herdr-crew/ present)
   (Codex, or Copilot started bare). Such a worker reads its instructions from
   <plugin>/skills/herdr-crew/agents/<name>.md: the shared body plus the
   sections that name `worker`, with no prefix rewrite, under a flat frontmatter
-  (name, description, role, tools as Claude names, claude-model, claude-effort,
-  copilot-model) that herdr-crew/scripts/crew.sh reads. The file is the same in
-  all three plugins, since a worker's harness is not the lead's.
+  (name, role, tools as Claude names, claude-model, claude-effort,
+  copilot-model) that herdr-crew/scripts/crew.sh reads. No description: it
+  says when to dispatch the agent, which only the harness renders need. The
+  file is the same in all three plugins, since a worker's harness is not the
+  lead's.
 
 Model routing (src/models.yaml)
   tiers: <tier>: {claude: alias, copilot: [ids in priority order], cursor: slug}
@@ -436,17 +438,18 @@ def render_worker(agent):
     copilot_model, _ = agent.resolve("copilot")
     if isinstance(copilot_model, list):
         copilot_model = copilot_model[0]
+    # Every value through yv, as in the harness renders: a model id such as 4.1
+    # would otherwise read as a number. crew.sh's afm unquotes what yv quotes.
     lines = [
-        f"name: {agent.name}",
-        f"description: {yv(agent.fm['description'])}",
-        f"role: {agent.role}",
-        f"tools: {', '.join(agent.fm['tools'])}",
-        f"claude-model: {claude_model}",
+        f"name: {yv(agent.name)}",
+        f"role: {yv(agent.role)}",
+        f"tools: {yv(', '.join(agent.fm['tools']))}",
+        f"claude-model: {yv(claude_model)}",
     ]
     effort = agent.effort()
     if effort is not None:
-        lines.append(f"claude-effort: {effort}")
-    lines.append(f"copilot-model: {copilot_model}")
+        lines.append(f"claude-effort: {yv(effort)}")
+    lines.append(f"copilot-model: {yv(copilot_model)}")
     return "---\n" + "\n".join(lines) + "\n---\n\n" + agent.body_for(WORKER)
 
 

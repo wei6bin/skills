@@ -357,6 +357,10 @@ Load-bearing, verified on herdr 0.9.5 on 2026-11-06:
   screen for two minutes is `quiet`.
 - Claude Code's TUI keeps no scrollback in a pane, so reports come from a
   transcript or a file.
+- **The run lock is a file bash creates with `noclobber` (`O_EXCL`), not a
+  `mkdir`.** uutils coreutils' `mkdir` (0.10, the system one on recent Ubuntu)
+  lets two racing calls both succeed; in a test with six crew.sh processes,
+  half the rounds had two holders.
 
 ## Registrations and versioning
 
