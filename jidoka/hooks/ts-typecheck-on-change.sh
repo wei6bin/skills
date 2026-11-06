@@ -56,16 +56,36 @@ if ! npx --no-install tsc --version >/dev/null 2>&1; then
   exit 0
 fi
 
-output=$(npx --no-install tsc --noEmit 2>&1)
+# A tsconfig.json with "references" is checked in build mode, as the project's
+# own typecheck does. Vite's templates (and so react-frontend-scaffold) write a
+# solution-style one, "files": [] plus references to tsconfig.app.json and
+# tsconfig.node.json, on which plain `tsc --noEmit` checks no file and exits 0.
+# `-b` writes what the referenced configs ask for (tsbuildinfo; a composite
+# package's dist/), the same as running the project's `tsc -b`. Adding
+# --noEmit instead fails on a referenced composite project with TS6310 and
+# reports nothing else.
+# --pretty false: the scoping below needs one "path(line,col): error" line per
+# diagnostic, and a tsconfig's "pretty": true would add colors and code frames.
+if grep -q '"references"[[:space:]]*:' tsconfig.json 2>/dev/null; then
+  output=$(npx --no-install tsc -b --pretty false 2>&1)
+else
+  output=$(npx --no-install tsc --noEmit --pretty false 2>&1)
+fi
 status=$?
 
 # Clean compile — nothing to say.
 [[ $status -eq 0 ]] && exit 0
 
 # Scope to the file just edited. tsc prints paths relative to its cwd
-# (ts_root), e.g. "src/Foo.tsx(12,3): error TS....".
+# (ts_root), e.g. "src/Foo.tsx(12,3): error TS....". A diagnostic starts with
+# exactly that path and "(", so src/a/x.ts does not also pick up
+# src/vendor/src/a/x.ts, and it keeps its indented continuation lines, which
+# carry the reason ("The types of 'x.y' are incompatible ...") and have no path.
 rel_path="${file_path#"$ts_root"/}"
-scoped=$(printf '%s\n' "$output" | grep -F "$rel_path" 2>/dev/null)
+scoped=$(printf '%s\n' "$output" | awk -v start="${rel_path}(" '
+  index($0, start) == 1 { keep = 1; print; next }
+  /^[[:space:]]/ { if (keep) print; next }
+  { keep = 0 }')
 
 # No diagnostics for the edited file → the failures are elsewhere (commonly
 # other files still mid-TDD in the same slice). A per-edit hook should not

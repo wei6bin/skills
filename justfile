@@ -4,7 +4,9 @@
 #   just                        list recipes and knobs
 #   just build                  render jidoka/ and the marketplace arrays from
 #                               src/
-#   just test check lint        what CI runs
+#   just test check lint test-hooks   what CI runs
+#   just test-hooks --bash32    the post-edit hooks against fixture projects,
+#                               and the secrets scan under bash 3.2 in Docker
 #   just smoke-claude --override  one dispatch per role on Claude Code, with the
 #                               Task model override too
 #   just eval-claude            every eval case, in the runner container
@@ -14,8 +16,8 @@
 # Knobs are the upper-case variables below, and go between `just` and the
 # recipe: `just HOST=1 eval-claude`. `HOST=1 just eval-claude` is ignored: knobs
 # are just variables, not environment reads (EXTRA_CA's default excepted).
-# Arguments after smoke-claude and eval-claude pass straight through, as ARGS
-# does.
+# Arguments after test-hooks, smoke-claude and eval-claude pass straight
+# through, as ARGS does.
 
 # Arguments arrive as $1, $2, ... so "$@" keeps quoted ones intact.
 set positional-arguments
@@ -28,8 +30,9 @@ PYTHON := "python3"
 # markdownlint command; pinned so a new rule cannot fail CI unannounced (needs
 # Node)
 MARKDOWNLINT := "npx --yes markdownlint-cli2@0.23.3"
-# extra words for smoke-claude (--override) and eval-claude (--case <glob>,
-# --model <m>, --no-publish, --keep-temp)
+# extra words for test-hooks (--bash32, --keep, --hooks <dir>), smoke-claude
+# (--override) and eval-claude (--case <glob>, --model <m>, --no-publish,
+# --keep-temp)
 ARGS := ""
 # 1: eval-claude runs on the host instead of the container
 HOST := ""
@@ -86,6 +89,11 @@ lint:
 [group('test')]
 validate:
     claude plugin validate .
+
+# feed the post-edit hooks Claude payloads in fixture projects (CI, needs npm): ARGS
+[group('test')]
+test-hooks *args:
+    bash scripts/test-hooks.sh {{ ARGS }} "$@"
 
 # dispatch one agent per role via Claude Code, report each one's model: ARGS
 [group('test')]

@@ -19,3 +19,4 @@ jobs:
       - run: just test
       - run: just check
       - run: just lint
+      - run: just test-hooks
