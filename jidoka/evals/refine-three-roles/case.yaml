@@ -96,12 +96,13 @@ graders:
   - name: format-checked
     type: tool_used
     tool: Bash
-    input_match: "agreement.py check"
-  - name: three-sign-offs-through-the-script
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+check\b'
+  # One Bash call may sign all three roles, so this counts calls, not
+  # sign-offs; three-live-sign-offs-at-one-hash below checks the three.
+  - name: signed-through-the-script
     type: tool_used
     tool: Bash
-    input_match: "agreement.py sign"
-    min: 3
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+sign\b'
   - name: marked-ready-through-the-script
     type: tool_used
     tool: Bash

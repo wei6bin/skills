@@ -303,7 +303,10 @@ check it out (it has a resume mode for an existing branch), then read its
    **Refactor tier: none.** Do the census yourself with greps over the files the
    story names (declarations, call sites, counts); a refactor's exploration is a
    count, and explorers dispatched to re-map what you just grepped are the layer
-   that gets thrown away.
+   that gets thrown away. Otherwise the count is the tier's, whatever the
+   tree's size: a one-layer story in a four-file repo you have already read
+   still gets its explorer. The run is unattended, so a phase skipped on
+   judgement is a deviation nobody reviews.
 4. Read the key files they name. Then note: the reference implementation, the
    capabilities and entities touched (graph IDs), layers affected, reusable
    code and the conventions to follow.

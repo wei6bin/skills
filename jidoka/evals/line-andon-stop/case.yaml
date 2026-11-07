@@ -42,7 +42,7 @@ graders:
   - name: claim-attempted
     type: tool_used
     tool: Bash
-    input_match: "agreement.py claim"
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
   # --- Claimed and branched, then stopped before any implementation ----------
   - name: no-implementation
     type: tool_used

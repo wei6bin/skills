@@ -39,8 +39,9 @@ touching the file.
 Phase 9 should have produced `docs/new-feature/{folder}/06-walkthrough.md` and
 `screenshots/`.
 
-- **Present:** read `06-walkthrough.md`. Any ❌ slice row or Blocker in
-  "Issues found" → stop. Phase 8 owns the fix; this skill does not fix bugs.
+- **Present:** read `06-walkthrough.md`. Any ❌ slice row, a Blocker in
+  "Issues found", or a verdict other than `ALL_GREEN` → stop. Phase 8 owns
+  the fix; this skill does not fix bugs.
 - **Missing, or slices from `04-task-plan.md` absent from it:** dispatch
   `agent_type: "jidoka:test-plan-walker"`, scoped to the missing slices if
   partial, and wait for its Return Report. Never run the

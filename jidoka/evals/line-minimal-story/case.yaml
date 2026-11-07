@@ -55,7 +55,7 @@ graders:
   - name: story-claimed
     type: tool_used
     tool: Bash
-    input_match: "agreement.py claim"
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
 
   # --- Every phase dispatched its agent or skill -----------------------------
   - name: context-builder-invoked

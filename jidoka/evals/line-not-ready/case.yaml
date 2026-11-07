@@ -37,7 +37,7 @@ graders:
   - name: claim-attempted
     type: tool_used
     tool: Bash
-    input_match: "agreement.py claim"
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
   # --- Refused before any work: no agent, no worktree, no branch ------------
   - name: nothing-dispatched
     type: tool_used

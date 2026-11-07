@@ -138,6 +138,7 @@ only their rows and screenshots.
 (write "None" if everything passed)
 
 ## Summary
+- Verdict: {ALL_GREEN | FIXES_NEEDED | PARTIAL}
 - Slices walked: {N} · all AC demos passed: ✅/❌
 - Persisted specs added: {N} (all green: ✅/❌) - or "none: no e2e suite"
 - New bugs surfaced: {N}
@@ -145,7 +146,8 @@ only their rows and screenshots.
 
 Every slice in `04-task-plan.md` appears; BE-only slices get _"BE only - no UI;
 verified via API smoke."_ Demo lines are pasted verbatim so the report stands
-alone. Never paste credentials.
+alone. Never paste credentials. The verdict is the one your return report
+gives: `raise-pr` and a resumed run read this file, never the report.
 
 ### 6. Commit
 
