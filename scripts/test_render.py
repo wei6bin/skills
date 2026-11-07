@@ -395,6 +395,18 @@ class WorkerRenderTests(unittest.TestCase):
         self.assertEqual(lines[2:], ["echo crew"])
         self.assertTrue(path.stat().st_mode & 0o111)
 
+    def test_python_bytecode_beside_a_skill_script_is_not_rendered(self):
+        # `just test` imports skill scripts (the refine skill's agreement.py),
+        # which leaves __pycache__ in src/; CI runs `just check` after it.
+        cache = self.fx.root / "src/skills/herdr-crew/scripts/__pycache__"
+        cache.mkdir()
+        (cache / "crew.cpython-312.pyc").write_bytes(b"\x00")
+        (self.fx.root / "src/skills/herdr-crew/scripts/stray.pyc").write_bytes(b"\x00")
+        out = self.fx.render()
+        rendered = render.relative_files(out / render.PLUGIN / "skills/herdr-crew")
+        self.assertIn("scripts/crew.sh", rendered)
+        self.assertFalse([name for name in rendered if name.endswith(".pyc")], rendered)
+
     def test_hand_written_worker_files_are_rejected(self):
         (self.fx.root / "src/skills/herdr-crew/agents").mkdir()
         with self.assertRaises(render.SourceError):
