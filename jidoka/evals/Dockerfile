@@ -49,4 +49,11 @@ RUN printf '%s\n' '#!/bin/sh' \
  && chmod +x /usr/local/bin/trust-extra-ca
 ENTRYPOINT ["trust-extra-ca"]
 
+# The eval makes each run's workspace under TMPDIR, and its Bash sandbox denies
+# writes to /tmp, which beats its own grant to the workspace: a workspace under
+# /tmp leaves the run unable to write anything. /eval-tmp is outside every
+# path the sandbox denies.
+RUN mkdir -m 1777 /eval-tmp
+ENV TMPDIR=/eval-tmp
+
 WORKDIR /repo

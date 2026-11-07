@@ -196,6 +196,23 @@ passes, a change after sign-off, and confirming a line run's decisions.
   paths block both, so the run uses `seccomp=unconfined` and
   `systempaths=unconfined`. The repo is mounted read-only; only `results/` is
   writable.
+- The eval makes each run's workspace under `TMPDIR`, and its Bash sandbox
+  denies writes to `/tmp` over its own grant to that workspace (Claude Code
+  2.1.319). A workspace under `/tmp` leaves the run unable to write anything,
+  and the line stops at its claim. So the image sets `TMPDIR=/eval-tmp`, and
+  `HOST=1` sets it to `~/.cache/jidoka/eval-tmp`. On the host the sandbox
+  also needs `bwrap` and `socat` (`sudo apt install bubblewrap socat`).
+- On the host the sandbox reads nothing in your home but the `PATH`
+  directories, and its network proxy wants the credentials in its URL. A tool
+  that links elsewhere in your home is unreadable, so the next one on `PATH`
+  runs instead: nvm's `npm` links into `lib/node_modules`, and Ubuntu's npm
+  9.2, which never sends proxy credentials, gets `407 Proxy Authentication
+  Required`. `line-greenfield-scaffold` needs npm, so run it in the container.
+- On a WSL host the container shares WSL's kernel, so the eval takes it for
+  WSL and refuses a Bash grant unless `/proc/mounts` shows a Windows drive it
+  can put out of the sandbox's reach. The container mounts none, so
+  `eval-claude` adds an empty tmpfs at `/mnt/c` whose source reads `C:`, and
+  the sandbox denies it like a drive.
 - One run is a full workflow: up to an hour (the case's `timeout_seconds`) and
   a few dollars across the orchestrator and nine subagents. The two refusal
   cases take minutes.

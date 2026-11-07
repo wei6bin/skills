@@ -200,10 +200,18 @@ and the knobs they take, and a knob goes between `just` and the recipe
   Bash-granting eval
   refuses to start while the host's Docker credential store holds a symlink
   (Docker Desktop's "User" CLI install mode links its tools there), which is
-  why the container is the default; and the eval's bubblewrap sandbox only
+  why the container is the default; the eval's bubblewrap sandbox only
   starts in a container run with `seccomp=unconfined` and
-  `systempaths=unconfined`. A run's Bash also has no network beyond the
-  domains the operator grants (`--allow-tools "WebFetch(domain:...)"`; a case
+  `systempaths=unconfined`; and that sandbox denies writes to `/tmp` over its
+  grant to the run's workspace, which the eval makes under `TMPDIR`, so the
+  image and `HOST=1` both point `TMPDIR` outside `/tmp` (on the host the
+  sandbox also needs `bwrap` and `socat`, and Ubuntu's npm 9.2 fails its
+  proxy, so the greenfield case needs the container). On a WSL host the
+  container shares WSL's kernel, and the eval refuses a Bash grant there
+  unless `/proc/mounts` shows a Windows drive to exclude, so the recipe mounts
+  an empty tmpfs whose source reads `C:` at `/mnt/c`. A run's Bash also has no
+  network beyond the domains the operator grants
+  (`--allow-tools "WebFetch(domain:...)"`; a case
   cannot grant any), so the justfile's `eval_domains` grants the npm and NuGet
   registries the greenfield case installs from, and the image's entrypoint adds
   a mounted `EXTRA_CA` to the system store because .NET, unlike Node, ignores
