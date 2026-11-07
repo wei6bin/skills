@@ -246,7 +246,14 @@ Refinements that came out of building it:
   the claim does: a write must not overwrite someone else's edit.
 - **One hash.** It covers the whole signed text, so any change after sign-off
   needs every role to sign again, not only the role whose part changed.
-  refine shows each of them the diff, so re-signing is quick.
+  refine shows each of them the diff, so re-signing is quick. For the same
+  reason nobody signs while a HIGH or MEDIUM question is open, whoever owns
+  it: sign-off happens once, on the final text.
+- **The status follows its order.** A story a run holds, or has finished, is
+  never set back to `draft` or `jidoka-ready` by hand (`--force` repairs one
+  a crashed run left behind).
+- **One person signs several roles only as `solo`.** A second role signed
+  any other way is refused before it is written.
 - **A sixth state, `jidoka-done`.** A run that merges locally has no pull
   request to point at, so it ends there.
 - **Phase 3 is kept.** Rather than being deleted, it became the place where

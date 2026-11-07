@@ -71,6 +71,7 @@ SAMPLE = textwrap.dedent(
     - No new dependencies.
       - nested point a
       - nested point b
+
     1. ordered one
     2. ordered two
 
@@ -149,6 +150,11 @@ def work_item(agreement, rev=18, tags="api", links=True):
     return item
 
 
+def reference_example():
+    reference = (SCRIPT.parent.parent / "references/agreement-format.md").read_text(encoding="utf-8")
+    return reference.split("```markdown\n", 1)[1].split("\n```\n", 1)[0]
+
+
 def run(*argv):
     out, err = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -211,6 +217,37 @@ class RoundTripTests(unittest.TestCase):
         )
 
 
+    def test_a_wrapped_bullet_stays_one_item(self):
+        # Markdown wrapped at 80 columns: the second line continues the item.
+        # Nothing may become a stray paragraph or split the list.
+        body = "- Contract: one endpoint; errors use\n  the existing envelope.\n- No new dependencies."
+        back = A.html_to_md(A.md_to_html(body))
+        self.assertEqual(back, "- Contract: one endpoint; errors use the existing envelope.\n- No new dependencies.")
+        self.assertEqual(A.html_to_md(A.md_to_html(back)), back)
+
+    def test_a_lazy_continuation_line_also_stays_in_its_item(self):
+        self.assertEqual(A.html_to_md(A.md_to_html("- one\ntwo\n- three")), "- one two\n- three")
+
+    def test_the_format_reference_example_survives_the_fields(self):
+        # It wraps a bullet in section 6; every section must come back whole,
+        # and a second round trip must change nothing.
+        example = A.parse(reference_example())
+        once = A.from_work_item(work_item(example))
+        self.assertIn("errors use the existing envelope", once.body(6))
+        self.assertEqual(once.body(6).count("\n- "), example.body(6).count("\n- "))
+        twice = A.from_work_item(work_item(once))
+        self.assertEqual(twice.sections, once.sections)
+        self.assertEqual(A.digest(twice), A.digest(once))
+
+    def test_a_list_after_a_list_stays_its_own_list(self):
+        body = "- a\n- b\n\n1. one\n2. two"
+        self.assertEqual(A.html_to_md(A.md_to_html(body)), body)
+
+    def test_jidoka_tags_are_read_case_blind(self):
+        back = A.from_work_item(work_item(A.parse(SAMPLE), tags="api; Jidoka-Ready"))
+        self.assertEqual(back.meta["Status"], "jidoka-ready")
+
+
 class HashTests(unittest.TestCase):
     def test_formatting_does_not_change_the_hash(self):
         base = A.parse(SAMPLE)
@@ -242,9 +279,7 @@ class FormatCheckTests(unittest.TestCase):
         # The example in references/agreement-format.md is what refine copies
         # from, so it must pass the same check refine runs. Its hashes are
         # illustrative, so it is not ready; the format must hold.
-        reference = (SCRIPT.parent.parent / "references/agreement-format.md").read_text(encoding="utf-8")
-        example = reference.split("```markdown\n", 1)[1].split("\n```\n", 1)[0]
-        self.assertEqual(A.check(A.parse(example)), [])
+        self.assertEqual(A.check(A.parse(reference_example())), [])
 
     def test_the_skeleton_is_valid(self):
         self.assertEqual(A.check(A.parse(A.render(A.skeleton("USR-9", "T", "file")))), [])
@@ -363,6 +398,48 @@ class CommandTests(unittest.TestCase):
         rows = A.rows_of(A.parse(Path(self.path).read_text()), 13, [])
         self.assertEqual([(r["Role"], r["Name"]) for r in rows], [("BA", "Ana"), ("Dev Lead", "Ben"), ("QE", "Cy")])
         self.assertEqual(run("check", "--ready", self.path)[0], 0)
+
+    def sign(self, role, name, mode="live"):
+        return run("sign", self.path, "--role", role, "--name", name, "--mode", mode, "--date", "2026-11-07")
+
+    def test_one_person_on_two_roles_must_sign_solo(self):
+        self.assertEqual(self.sign("BA", "Ann")[0], 0)
+        code, _, err = self.sign("Dev Lead", "Ann")
+        self.assertEqual(code, 1)
+        self.assertIn("Ann already signed as BA", err)
+        # Nothing was written, so the agreement is not wedged: the remaining
+        # roles still sign, and Ann re-signs both rows solo.
+        self.assertEqual(self.sign("QE", "Chen")[0], 0)
+        self.assertEqual(self.sign("BA", "Ann", "solo")[0], 0)
+        self.assertEqual(self.sign("Dev Lead", "Ann", "solo")[0], 0)
+        self.assertEqual(run("check", "--ready", self.path)[0], 0)
+
+    def test_a_bad_row_left_by_hand_can_be_signed_over(self):
+        rows = A.render(signed(A.parse(SAMPLE), names=("Ann", "Ann", "Chen")))
+        Path(self.path).write_text(rows)  # Ann on two roles, both live
+        self.assertEqual(self.sign("BA", "Ann", "solo")[0], 0)
+        self.assertEqual(self.sign("Dev Lead", "Ann", "solo")[0], 0)
+        self.assertEqual(run("check", "--ready", self.path)[0], 0)
+
+    def test_a_name_that_would_break_the_table_is_refused(self):
+        for name in ("A|B", "  "):
+            self.assertEqual(self.sign("BA", name)[0], 2, name)
+        self.assertEqual(A.rows_of(A.parse(Path(self.path).read_text()), 13, []), [])
+
+    def test_status_on_a_file_checks_the_current_state(self):
+        Path(self.path).write_text(A.render(signed(A.parse(SAMPLE))))
+        self.assertEqual(run("status", self.path, "--set", "jidoka-ready")[0], 0)
+        self.assertEqual(run("status", self.path, "--set", "jidoka-running")[0], 0)
+        code, _, err = run("status", self.path, "--set", "jidoka-ready")
+        self.assertEqual(code, 1)
+        self.assertIn("is 'jidoka-running'", err)
+        self.assertEqual(run("status", self.path, "--set", "draft", "--force")[0], 0)
+
+    def test_save_keeps_the_file_mode_and_leaves_no_temp_file(self):
+        os.chmod(self.path, 0o644)
+        self.assertEqual(self.sign("BA", "Ann")[0], 0)
+        self.assertEqual(os.stat(self.path).st_mode & 0o777, 0o644)
+        self.assertEqual(sorted(os.listdir(self.dir.name)), ["story.md"])
 
     def test_sign_refuses_an_agreement_that_is_not_ready(self):
         Path(self.path).write_text(SAMPLE.replace("| MEDIUM | answered |", "| MEDIUM | open |"))
@@ -501,6 +578,35 @@ class AzureDevOpsTests(unittest.TestCase):
         self.assertEqual(served["bodies"][0][0], {"op": "test", "path": "/rev", "value": 18})
         self.assertEqual(served["item"]["fields"]["System.Tags"], "api; team-a; jidoka-ready")
         self.assertIn("Status: jidoka-ready", Path(self.path).read_text())
+
+    def test_status_keeps_unpushed_local_edits(self):
+        self.serve(work_item(A.parse(SAMPLE), tags="jidoka-ready"))
+        Path(self.path).write_text(self.pull().replace("200 with", "201 with"))
+        code, out, err = run("status", self.path, "--set", "draft")
+        self.assertEqual(code, 0, err)
+        self.assertIn("left as it is", out)
+        text = Path(self.path).read_text()
+        self.assertIn("201 with", text)
+        self.assertIn("Rev: 18", text)  # still the rev the edit was based on
+
+    def test_status_never_reopens_a_story_a_run_holds(self):
+        self.serve(work_item(signed(A.parse(SAMPLE.replace("USR-002", "4711"))), tags="jidoka-running"))
+        self.pull()
+        for state in ("jidoka-ready", "draft"):
+            code, _, err = run("status", self.path, "--set", state)
+            self.assertEqual(code, 1, state)
+            self.assertIn("is 'jidoka-running'", err)
+        self.assertEqual(self.served()["bodies"], [])
+
+    def test_a_board_link_names_the_work_item(self):
+        self.serve(work_item(A.parse(SAMPLE)))
+        board = "https://dev.azure.com/Contoso/Bookings/_boards/board/t/Team/Stories/?workitem=4711"
+        self.assertEqual(run("pull", "--ado", board, "-o", self.path)[0], 0)
+        self.assertIn("--id", self.served()["calls"][0])
+        self.assertEqual(self.served()["calls"][0][4], "4711")
+        code, _, err = run("pull", "--ado", "https://dev.azure.com/Contoso/Bookings/_boards", "-o", self.path)
+        self.assertEqual(code, 2)
+        self.assertIn("is not a work item", err)
 
     def test_ready_tag_checks_the_work_item_not_the_local_file(self):
         # Signed locally, never pushed: the work item still holds the unsigned text.

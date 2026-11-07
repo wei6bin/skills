@@ -167,8 +167,9 @@ Owner and Confirm by are `BA`, `Dev Lead` or `QE`. Severity is `HIGH`,
 `MEDIUM` or `LOW`. A question's Status is `open`, `answered` or `deferred`; a
 line decision's is `pending`, `confirmed` or `rejected`. Mode is `live`
 (signed in a refine session the person attended), `own-account` (signed in
-their own session, under their own `az` login) or `solo` (one person signed
-for several roles). Dates are `YYYY-MM-DD`. A table section with no rows holds
+their own session, as themselves: their `az` login on Azure DevOps, their git
+identity for a story file) or `solo` (one person signed for several roles,
+each of them `solo`). Dates are `YYYY-MM-DD`. A table section with no rows holds
 `None.` instead.
 
 ## Writing it
