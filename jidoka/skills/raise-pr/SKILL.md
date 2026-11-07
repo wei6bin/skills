@@ -104,7 +104,7 @@ Built against story {id} rev {rev} ({hash}), signed by {BA}, {Dev Lead} and {QE}
 Opened by jidoka:line ({scheduled run on {$JIDOKA_HOST} | run by {git config user.name}}).
 
 ## Summary
-- {1-3 bullets from 00-overview.md}
+- {1-3 bullets from story.md: the why from section 1, the change from section 3}
 
 ## Acceptance criteria
 | AC | Then | Tests | Result | Evidence |
@@ -139,18 +139,17 @@ Full report and screenshots: [06-walkthrough.md]({absolute link})
 {verbatim from 05-test-plan.md}
 ```
 
-**Refactor tier** (no `01-business-plan.md` or `05-test-plan.md` in the
-folder): the template's sources do not exist, so do not invent them.
+**Refactor tier** (no `05-test-plan.md` in the folder): the template's
+sources do not exist, so do not invent them.
 
-- `## Summary` comes from `00-overview.md`.
 - `## Acceptance criteria` still lists the agreement's ACs, with the
   verification that proves each.
 - `## Slices shipped` and `## Test Plan Walkthrough` collapse into one
   `## Verification` table, copied from `06-walkthrough.md` (command, observed,
   ✅) under the full-report link, with no screenshots.
 - `## Test Plan (automated)` keeps the suite-count line only.
-- `## Rollback` is a revert of the merge, unless `00-overview.md` says
-  otherwise.
+- `## Rollback` is a revert of the merge, unless `04-task-plan.md` ends
+  with a `## Rollback` section; then it is that section, verbatim.
 
 **Screenshot and file links must be absolute and pinned to the head branch.** PR
 descriptions are not rendered against the head branch on either host, so

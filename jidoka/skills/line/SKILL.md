@@ -281,14 +281,14 @@ is enough.
    `Tier:` line, so later steps read the classification instead of re-deriving
    it from the diff.
 
-| Shape                                                                                         | Explorers (Ph 2)                               | Architect writes (Ph 4)                                                                                   | Plan review (Ph 6) | Reviews (Ph 8)                      | Walkthrough (Ph 9)                                                    | Per-slice verify (Ph 8) |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------ | ----------------------------------- | --------------------------------------------------------------------- | ----------------------- |
-| **Feature, BE + FE** (`full-stack`)                                                           | 2-3                                            | six docs                                                                                                  | 2 reviewers        | code + security                     | Playwright walker                                                     | run the suite           |
-| **Feature, one layer** (`one-layer`)                                                          | 1                                              | six docs                                                                                                  | 1 reviewer         | code + security                     | walker (Playwright or CLI)                                            | run the suite           |
-| **Refactor / test-only / docs** (`refactor`) - no new behaviour, or production code untouched | 0 - your own Phase 2 census is the exploration | `00-overview.md` + `04-task-plan.md` only (flat tasks or `Kind: sweep` slices, verification steps inline) | none               | code only, security brief folded in | none - run the story's own Verification section from the main session | build + greps           |
+| Shape                                                                                         | Explorers (Ph 2)                               | Architect writes (Ph 4)                                                                | Plan review (Ph 6) | Reviews (Ph 8)                      | Walkthrough (Ph 9)                                                    | Per-slice verify (Ph 8) |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------ | ----------------------------------- | --------------------------------------------------------------------- | ----------------------- |
+| **Feature, BE + FE** (`full-stack`)                                                           | 2-3                                            | four docs, `02`-`05`                                                                   | 2 reviewers        | code + security                     | Playwright walker                                                     | run the suite           |
+| **Feature, one layer** (`one-layer`)                                                          | 1                                              | four docs, `02`-`05`                                                                   | 1 reviewer         | code + security                     | walker (Playwright or CLI)                                            | run the suite           |
+| **Refactor / test-only / docs** (`refactor`) - no new behaviour, or production code untouched | 0 - your own Phase 2 census is the exploration | `04-task-plan.md` only (flat tasks or `Kind: sweep` slices, verification steps inline) | none               | code only, security brief folded in | none - run the story's own Verification section from the main session | build + greps           |
 
 The third row exists because the full workflow, applied to a test-only sweep,
-spends its architect on four documents nobody reads, its plan reviewers on
+spends its architect on three documents nobody reads, its plan reviewers on
 finding nothing, its security reviewer on a diff with no production code, and
 its walker on evidence that is two shell commands. When a later phase says "per
 the tier", this table is what it means.
@@ -403,16 +403,17 @@ with:
 - the Phase 3 summary and `09-decisions.md`;
 - the **absolute path** of the plan folder.
 
-It designs the blueprint and writes `00-overview.md` … `05-test-plan.md`
-itself; you transcribe nothing. Its final message is a manifest: summary,
-slice table, waves and critical path, files written, risks, and the choices
-it made that the agreement did not settle.
+It designs the blueprint and writes `02-technical-plan.md` …
+`05-test-plan.md` itself; you transcribe nothing. There is no overview or
+business plan: `story.md` is that half. Its final message is a manifest:
+summary, slice table, waves and critical path, files written, risks, and the
+choices it made that the agreement did not settle.
 
 Tell the architect the tier and two facts about the machine, or it will
 over-serialise: how many worktree slots exist, and that `Kind: sweep` slices
 (see `vertical-slicing`) gate on the build, not on container tests, so disjoint
 sweeps are parallel-safe even when only one database container fits. **Refactor
-tier:** the architect writes `00-overview.md` and `04-task-plan.md` only.
+tier:** the architect writes `04-task-plan.md` only.
 
 ### Step 2 - Check the slice list, then write the ledger
 
@@ -452,7 +453,7 @@ Nobody confirms the slice list; you check it against the agreement.
 
 ## Phase 5 - Finalize Documents
 
-1. Every file the tier calls for exists and is complete (six for a feature, two
+1. Every file the tier calls for exists and is complete (four for a feature, one
    for a refactor); re-dispatch the architect for any stub rather than filling
    it in by hand.
 2. **Cross-document consistency.**
@@ -476,8 +477,8 @@ Per the tier, dispatch **`plan-reviewer` subagents in parallel**
 the path of `story.md`. They are the plan's only reviewers, so their verdict
 is the gate:
 
-- One reviews AC coverage against the agreement, security, edge cases, and
-  business and technical consistency.
+- One reviews AC coverage, security, edge cases, and whether the technical
+  plan keeps to the agreement.
 - One reviews slice completeness, dependency edges, test coverage and sizing.
 - A one-layer feature gets only the first.
 

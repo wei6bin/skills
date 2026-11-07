@@ -141,14 +141,15 @@ graders:
     after: { tool: Skill, input_match: "raise-pr" }
 
   # --- End state on main: these paths exist only after the local merge -------
-  - name: overview-doc
-    type: regex
-    target: { source: file, path: docs/new-feature/usr-001-delete-a-note/00-overview.md }
-    pattern: "\\S"
-  - name: business-plan-doc
-    type: regex
-    target: { source: file, path: docs/new-feature/usr-001-delete-a-note/01-business-plan.md }
-    pattern: "note_not_found"
+  # The agreement is the plan's business half: no overview, no business plan.
+  - name: no-overview-doc
+    type: file_exists
+    path: docs/new-feature/usr-001-delete-a-note/00-overview.md
+    exists: false
+  - name: no-business-plan-doc
+    type: file_exists
+    path: docs/new-feature/usr-001-delete-a-note/01-business-plan.md
+    exists: false
   - name: technical-plan-doc
     type: regex
     target: { source: file, path: docs/new-feature/usr-001-delete-a-note/02-technical-plan.md }
@@ -157,6 +158,16 @@ graders:
     type: regex
     target: { source: file, path: docs/new-feature/usr-001-delete-a-note/03-implementation-plan.md }
     pattern: "\\S"
+  # A change-site snippet locks a shape: no fenced block runs past 12 lines.
+  # Anchored at the file's start, the pattern pairs the fences (\x60 is a
+  # backtick) through every block of 12 lines or fewer, then looks for an
+  # opening fence with 13 or more lines after it, so prose after a closing
+  # fence never counts.
+  - name: implementation-plan-snippets-are-shapes
+    type: regex
+    target: { source: file, path: docs/new-feature/usr-001-delete-a-note/03-implementation-plan.md }
+    pattern: '^(?:(?:(?! *\x60{3})[^\n]*\n)* *\x60{3}[^\n]*\n(?:(?! *\x60{3})[^\n]*\n){0,12} *\x60{3}[^\n]*\n)*(?:(?! *\x60{3})[^\n]*\n)* *\x60{3}[^\n]*\n(?:(?! *\x60{3})[^\n]*\n){13,}'
+    match: not_contains
   - name: task-plan-has-dependency-graph
     type: regex
     target: { source: file, path: docs/new-feature/usr-001-delete-a-note/04-task-plan.md }
@@ -165,7 +176,7 @@ graders:
   - name: test-plan-doc
     type: regex
     target: { source: file, path: docs/new-feature/usr-001-delete-a-note/05-test-plan.md }
-    pattern: "\\S"
+    pattern: "note_not_found"
   - name: walkthrough-all-green
     type: regex
     target: { source: file, path: docs/new-feature/usr-001-delete-a-note/06-walkthrough.md }

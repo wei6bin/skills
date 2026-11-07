@@ -166,9 +166,11 @@ and the knobs they take, and a knob goes between `just` and the recipe
   question in the run is a failure.
   `line-minimal-story` scaffolds a zero-dependency Node API as a git repo,
   types `/jidoka:line` on a two-AC backend story, and grades the claim, the
-  dispatch order and the end state (story.md, plan docs, ledger, line
-  decisions, the summary's AC table, merged code with tests citing the AC
-  IDs, story `jidoka-done`, backlog closed, worktree gone).
+  dispatch order and the end state (story.md, the four plan docs `02`-`05`
+  with no overview or business plan copying the agreement and no change-site
+  snippet over 12 lines, ledger, line decisions, the summary's AC table,
+  merged code with tests citing the AC IDs, story `jidoka-done`, backlog
+  closed, worktree gone).
   `line-greenfield-scaffold` starts from a repo with no code and a setup
   agreement whose `Stack:` line holds the Dev Lead's answers, and grades the
   new-project branch: `project-setup` invoked, the `project-scaffolder` agent

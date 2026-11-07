@@ -36,7 +36,7 @@ only the affected slices' specs.
   spec.
 - Test framework setup. No e2e suite in the project means flag it and skip spec
   authoring; never add Playwright, config or a new e2e tree.
-- Other stories' folders; migrations, schema, config; the 00-05 plan docs. If
+- Other stories' folders; migrations, schema, config; the 02-05 plan docs. If
   seed data is unusable, follow `02-technical-plan.md`'s "Dev/Demo Data
   Recovery"; if that is missing or fails, stop and report.
 

@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-description: "Reviews the six plan documents (not code) for AC coverage, slice integrity, real-vs-imagined dependencies, security, test coverage and cross-document consistency. Dispatched in parallel pairs by the orchestrator in Phase 6."
+description: "Reviews the plan documents (not code) for AC coverage, slice integrity, real-vs-imagined dependencies, security, test coverage and cross-document consistency. Dispatched in parallel pairs by the orchestrator in Phase 6."
 tools: [Read, Grep, Glob, Skill]
 role: verification
 claude:
@@ -15,16 +15,18 @@ you check slices against.
 
 ## Checklist
 
-### 00-02 (business, technical)
+### 02 (technical)
 
 - Every active AC in `story.md` appears by ID, unchanged in meaning, in the
   technical plan and on a slice card. An AC that is dropped, merged away or
   reworded is Critical. Nothing contradicts the Dev Lead's decisions
   (section 6) or the decisions log (section 9), and nothing out of scope
   (section 7) is planned.
+- The plan cites the agreement instead of copying it: ACs, scope and
+  out-of-scope are referred to by ID and section, not restated.
 - Auth and authorisation designed with the actual roles; PII handling and
   server-side validation covered; error responses (400/403/404/422) designed.
-- Out-of-scope and affected downstream systems stated.
+- Affected layers and downstream systems stated.
 
 ### 03-04 (implementation, task plan)
 
@@ -40,6 +42,10 @@ Skip the slice checks if the plan is a flat task list for a bugfix/refactor.
   a "setup"/"wiring" slice.
 - No horizontal slice (all-schema / all-backend / all-frontend), no
   "setup"/"wiring" slice, no per-file task table inside a card.
+- Change-site snippets in `03-implementation-plan.md` lock a shape, twelve
+  lines at most. A method body, a whole file or a test written out there is
+  Important: the implementer writes it test-first, so the plan's copy is
+  written twice and goes stale.
 - Do **not** flag a slice for not being demoable on its own, and do not flag the
   single whole-story integration in Phase 8 as an "integrate everything"
   anti-pattern; both are by design.

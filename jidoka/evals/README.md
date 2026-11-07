@@ -55,8 +55,11 @@ The graders check three things:
 - **End state on `main`**, under `docs/new-feature/usr-001-delete-a-note/` (the
   slug the script derives from the title):
   - `story.md` carrying its hash;
-  - the plan documents `00`-`07`, with an `ALL_GREEN` walkthrough and a
-    ledger with nothing pending;
+  - the plan documents `02`-`07`, with an `ALL_GREEN` walkthrough and a
+    ledger with nothing pending, and no `00` overview or `01` business
+    plan, which would copy the agreement;
+  - change-site snippets in `03-implementation-plan.md` of 12 lines at
+    most, shapes rather than the code;
   - `09-decisions.md`;
   - `10-summary.md`, with a row per AC.
 

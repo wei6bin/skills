@@ -51,10 +51,9 @@ If a change is needed outside scope, stop and report it under "Flagged".
    after every slice ships. Spend this context on the ACs.
 2. Read your slice's card in `04-task-plan.md`. Feature tier: also its reference
    patterns and change sites in `03-implementation-plan.md` (targets, not an
-   order). `kind: sweep`, or a refactor-tier story (the folder has only
-   `00-overview.md` and `04-task-plan.md`): the card's `Files:` set and inline
-   verification steps are the whole spec; do not go looking for the other
-   documents.
+   order). `kind: sweep`, or a refactor-tier story (the folder has no
+   `02-technical-plan.md`): the card's `Files:` set and inline verification
+   steps are the whole spec; do not go looking for the other documents.
 3. Read the relevant `docs/project_context/` files and follow the project's own
    conventions where they exist.
 4. In a JS/TS monorepo where the app imports a shared local package, build

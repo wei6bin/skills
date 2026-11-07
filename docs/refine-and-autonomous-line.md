@@ -269,6 +269,7 @@ unagreed decisions in.
 | 42 | The base is tested before the claim; a broken base stops the run and leaves the story ready |
 | 43 | A resumed run merges its base in, never rebases |
 | 44 | The scheduled pick-up holds a broken base's stories until the base moves |
+| 45 | The plan is four documents (`02`-`05`), one for a refactor; the agreement is its business half |
 
 Refinements that came out of building it:
 
@@ -296,6 +297,15 @@ Refinements that came out of building it:
 - **No resume eval.** An eval run is one session, so a stop and its resume
   cannot be chained. The unit tests cover `compare`, which the resume rests
   on.
+- **Four plan documents, not six.** The overview and the business plan
+  predate the agreement. Once `story.md` sat in the plan folder they only
+  copied it: in the usr-008 run the business plan's AC rows were
+  byte-identical to section 4, and its one addition was a second reading of
+  AC-1. Nothing downstream read them except the plan reviewer, which checks
+  against `story.md` anyway. The same run's implementation plan held 417
+  lines of code in its change sites, on the architect's model, which the
+  implementer then writes again; a snippet now locks a shape, twelve lines at
+  most.
 
 ## What each PR shipped
 
