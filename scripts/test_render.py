@@ -429,14 +429,15 @@ class RealTreeTests(unittest.TestCase):
             self.assertIn(agent.resolve("claude"), ("fable", "opus", "sonnet", "haiku"), agent.name)
 
     def test_entry_skills_are_user_only_and_companions_are_model_only(self):
-        # The entry skills (`line`, and the `check` self-check) stay out of
-        # every session's skill listing and run only when the user types them.
+        # The entry skills (`line`, `refine` before it, and the `check`
+        # self-check) stay out of every session's skill listing and run only
+        # when the user types them.
         # A companion stays out of the `/` menu but must stay model-invocable:
         # disable-model-invocation also blocks the Skill tool and subagent
         # preloading, which is how the orchestrator and the agents reach it.
         for skill in render.load_skills():
             fm = frontmatter(skill / "SKILL.md")
-            entry = skill.name in ("line", "check")
+            entry = skill.name in ("line", "refine", "check")
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
 

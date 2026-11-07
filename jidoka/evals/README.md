@@ -1,8 +1,8 @@
 # jidoka evals
 
-The end-to-end verifier for the `line` workflow, run by `claude plugin eval`
-inside a container (`Dockerfile` here: Claude Code, bubblewrap, git, curl,
-Node 22, the .NET SDK). From the repo root:
+The end-to-end verifier for the `line` and `refine` workflows, run by
+`claude plugin eval` inside a container (`Dockerfile` here: Claude Code,
+bubblewrap, git, curl, Python, Node 22, the .NET SDK). From the repo root:
 
 ```bash
 just eval-claude                    # build the image if needed, run every case
@@ -97,13 +97,40 @@ the worktree; the case's system prompt says to pass
 `-p:EnableSourceControlManagerQueries=false` there. Real repositories have no
 such files.
 
+## refine-three-roles
+
+A live refinement session. `scaffold.sh` builds the line-minimal-story repo
+(it calls that case's scaffold) and adds a second commit with USR-002, "Edit a
+note", as two vague lines in `docs/stories/usr-002-edit-note.md`: a Markdown
+file standing in for the tracker. The prompt types `/jidoka:refine` on that
+file. The case's system prompt plays the three people in the room: the BA
+(which fields change, the title rule), the Dev Lead (PATCH, the reply, no
+remote) and the QE (evidence per AC, the 200-character boundary). Anything
+else takes the session's own recommendation. The error envelope, the code for
+an unknown note and the status for an invalid title are in the code, not in
+any position, so the session has to find them.
+
+The graders check that the skill announced itself and tagged its questions by
+role (the method went to the Dev Lead, the evidence to the QE), and that
+`agreement.py` did the mechanical parts (check, three `sign` calls, `--set
+jidoka-ready`). Then the end state of the file: `Status: jidoka-ready`, the
+fixed sections, three live sign-offs at one hash, permanent AC ids,
+`Exit: merge`, no open HIGH or MEDIUM question, no file paths. Judged: the
+agreement settles every planted gap, and the last message reports the story
+ready for `/jidoka:line`.
+
+Not covered: Azure DevOps (`pull`, `push` and the tag, which
+`scripts/test_agreement.py` runs against a fake `az`), `--role` and `--solo`
+passes, a change after sign-off, and confirming a line run's decisions.
+
 ## Running it headless
 
 - `AskUserQuestion` is not offered in an eval run, so `line` would end its turn
-  at the first checkpoint. The case's `append_system_prompt` stands in for the
-  developer: it pre-answers the plan folder, the slice list and the exit action
-  (merge locally), and tells the session to take its own recommendation
-  everywhere else.
+  at the first checkpoint, and `refine` would wait on its first round. The
+  line cases' `append_system_prompt` stands in for the developer: it
+  pre-answers the plan folder, the slice list and the exit action (merge
+  locally), and tells the session to take its own recommendation everywhere
+  else. `refine-three-roles` does the same for its three roles.
 - `jidoka/` has no `plugin.json`, so the case sets `plugins: ["../.."]` to
   load it.
 - A Bash-granting eval refuses to start while the host's Docker credential
