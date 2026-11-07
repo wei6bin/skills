@@ -17,7 +17,7 @@ wrong, flag it in your Return Report instead of shipping a different shape.
 
 ## Inputs
 
-- Path to `docs/new-feature/{id}-{summary}/04-task-plan.md`
+- Path to `docs/new-feature/{slug}/04-task-plan.md`
 - Scope, e.g. `"SLICE-01 backend half - lean: full"`, or
   `"SLICE-03 backend half - lean: full - kind: sweep"` for a mechanical rewrite
   slice

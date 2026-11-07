@@ -124,9 +124,15 @@ and the knobs they take, and a knob goes between `just` and the recipe
   `.gitattributes` covering exactly the rendered paths, and determinism on the
   real tree. Also the refine skill's `agreement.py`
   (`scripts/test_agreement.py`): the round trip through the work item fields,
-  the hash, every format and ready rule, and the Azure DevOps reads and writes
-  against a fake `az` on `PATH`. CI runs it together with `just check`,
-  `just lint` and `just test-hooks`.
+  the hash, every format and ready rule, the line's claim, compare, record
+  and comment, and the Azure DevOps reads and writes against a fake `az` on
+  `PATH`. Also the line's scheduled pick-up (`scripts/test_pickup.py`): the
+  oldest story chosen, the container started and killed past its time, the
+  `flock` lock, the wait after a failed run, and the stale-claim report,
+  against a fake `az` and `docker`. And, on the real tree, that only
+  `refine` and `check` mention `AskUserQuestion`: nothing the line runs may
+  ask. CI runs it together with `just check`, `just lint` and
+  `just test-hooks`.
 - `just check` - the committed renders match `src/`. `claude plugin validate .`
   checks the marketplace loads.
 - `just lint` - markdownlint-cli2 (version pinned in the `justfile`, needs Node)
@@ -153,29 +159,45 @@ and the knobs they take, and a knob goes between `just` and the recipe
 - `just eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
   case under `jidoka/evals/` in a sandboxed headless session, inside a
   container built from `jidoka/evals/Dockerfile` (`just eval-image`;
-  `just HOST=1 eval-claude` runs on the host instead). Three cases.
+  `just HOST=1 eval-claude` runs on the host instead). Six cases. No line
+  case has anyone standing in for a developer: each story is a signed
+  agreement file the scaffold builds and signs with `agreement.py`, so a
+  question in the run is a failure.
   `line-minimal-story` scaffolds a zero-dependency Node API as a git repo,
-  types `/jidoka:line` with a two-AC backend story, and grades the dispatch
-  order plus the end state (plan docs, ledger, merged code and tests, backlog
-  closed, worktree gone).
-  `line-greenfield-scaffold` starts from an empty repo, asks for a new project,
-  and grades the new-project branch: `project-setup` invoked, the
-  `project-scaffolder` agent dispatched, a .NET + React skeleton and project
-  context merged into `main`, and no story phase run.
+  types `/jidoka:line` on a two-AC backend story, and grades the claim, the
+  dispatch order and the end state (story.md, plan docs, ledger, line
+  decisions, the summary's AC table, merged code with tests citing the AC
+  IDs, story `jidoka-done`, backlog closed, worktree gone).
+  `line-greenfield-scaffold` starts from a repo with no code and a setup
+  agreement whose `Stack:` line holds the Dev Lead's answers, and grades the
+  new-project branch: `project-setup` invoked, the `project-scaffolder` agent
+  dispatched, a .NET + React skeleton and project context merged into `main`,
+  and no story phase run.
+  `line-not-ready` (a draft story) and `line-changed-after-signoff` (an AC
+  edited after the sign-offs) must be refused at the claim, before any agent,
+  worktree or branch; they take minutes.
+  `line-andon-stop` signs a stop condition the story must hit (any change to
+  the note store) and grades the stop: no implementer, `andon.md` and an open
+  Andon row on the branch, the story `jidoka-blocked` there, the worktree
+  kept.
   `refine-three-roles` types `/jidoka:refine` on a vague story file in that
   same Node repo, with the case's system prompt playing the BA, Dev Lead and
   QE, and grades the questions' role tags, the agreement on disk (format,
   three live sign-offs at one hash, `jidoka-ready`) and, judged, that it
-  settles every planted gap. A line run is a whole workflow, up to an hour and
-  several dollars, so none of this is in CI; run the line cases before merging
-  a change to the `line` flow and the refine case before one to `refine` or
-  the agreement format (`just eval-claude --case <name>` runs one).
+  settles every planted gap. A full line run is a whole workflow, up to an
+  hour and several dollars, so none of this is in CI; run the line cases
+  before merging a change to the `line` flow and the refine case before one to
+  `refine` or the agreement format (`just eval-claude --case <name>` runs one).
+  A resumed run (after an andon answer) has no case: an eval run is one
+  session, and `scripts/test_agreement.py` covers `compare`, which it rests
+  on.
   The container needs a credential in `~/.config/jidoka/eval.env`
   (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or
   `ANTHROPIC_API_KEY`). Harness facts it relies on: the case's
   `plugins: ["../.."]` is what loads `jidoka/` without a manifest;
-  `AskUserQuestion` is not offered headless, so the case's
-  `append_system_prompt` stands in for the developer; a Bash-granting eval
+  `AskUserQuestion` is not offered headless, so `refine-three-roles`'s
+  `append_system_prompt` stands in for the three people in the room; a
+  Bash-granting eval
   refuses to start while the host's Docker credential store holds a symlink
   (Docker Desktop's "User" CLI install mode links its tools there), which is
   why the container is the default; and the eval's bubblewrap sandbox only
@@ -195,9 +217,11 @@ and the knobs they take, and a knob goes between `just` and the recipe
 
 ## Architecture
 
-The jidoka plugin implements one 10-phase orchestrator-driven flow (discovery →
-exploration → clarifying questions → architecture → plan docs → review → summary
-→ slice-by-slice implementation → test-plan walkthrough with screenshots → PR).
+The jidoka plugin implements one 10-phase orchestrator-driven flow that runs
+unattended (readiness and claim → exploration → settle against the agreement →
+architecture → plan docs → review → summary → slice-by-slice implementation →
+test-plan walkthrough with screenshots → PR), from a story the BA, Dev Lead and
+QE signed in `refine`.
 The full phase → subagent/skill → artifact map, drawn as an inline SVG flow, is
 in `docs/orchestrator-workflow.html` - open it in a browser.
 
@@ -208,24 +232,33 @@ Three component types:
   QE settle every decision and sign **the agreement** (format in
   `src/skills/refine/references/agreement-format.md`, moved between an Azure
   DevOps work item and Markdown only by its bundled `scripts/agreement.py`),
-  and `line` builds the story. The split and the decisions behind it are in
-  `docs/refine-and-autonomous-line.md`; until its second PR lands, `line`
-  still asks its own questions. The rest are companions `line` invokes
-  (`vertical-slicing`,
+  and `line` builds the story with nobody to ask. The split and the decisions
+  behind it are in `docs/refine-and-autonomous-line.md`. `line` claims a
+  `jidoka-ready` story through the same script, which snapshots it as
+  `story.md` on the story's branch. A gap the agreement leaves that it may
+  close, it decides and records in `09-decisions.md` (`AD-n`, later confirmed
+  by the owning role through `refine`). Anything else stops the line: andon,
+  with `andon.md`, a draft PR, a question on the story and the story marked
+  `jidoka-blocked`. Every gate gets three attempts. A timer can start it:
+  `src/skills/line/scripts/pickup.py` picks the oldest `jidoka-ready` story
+  and runs the line in a fresh container from `src/skills/line/runner/`, the
+  only place it skips permission prompts. The rest are companions `line`
+  invokes (`vertical-slicing`,
   `git-worktrees`, `raise-pr`, `backend-implementer`, `frontend-implementer`,
   `sweep-implementer`, `reuse-ladder`, `codebase-context-builder`,
   `context-updater`, `react-best-practices`, `frontend-styling-standard`,
   `restful-api-design`, `test-plan-walkthrough`, `project-setup`,
   `aspnet-backend-scaffold`, `react-frontend-scaffold`, `herdr-crew`). `check`
-  is the third entry point, the self-check (see "Herdr mode" below). In a
-  folder with no source code, or on a request for a new project, `line` invokes
+  is the third entry point, the self-check (see "Herdr mode" below). When the
+  agreement's `Stack:` line sets up a new project or layer, `line` invokes
   `project-setup` before Phase 2. It holds the **stack catalog** (one row per
   stack, today a .NET backend and a React frontend, each naming its scaffold
-  skill), asks the user which to set up, freezes a skeleton contract and
-  dispatches the `project-scaffolder` agent with the chosen rows. The split is
-  deliberate: only the main session can ask the user, and the build's trail
-  (two implementers' reports, every gate, the smoke, the context write-up)
-  stays in the agent's context instead of the orchestrator's. The agent
+  skill) and the questions `refine` asks the Dev Lead for that line, reads the
+  answers from it, freezes a skeleton contract and dispatches the
+  `project-scaffolder` agent with the chosen rows. The split is deliberate:
+  the build's trail (two implementers' reports, every gate, the smoke, the
+  context write-up) stays in the agent's context instead of the
+  orchestrator's. The agent
   dispatches `impl-backend` and `impl-frontend` with scope `project scaffold`,
   checks their work, smokes the halves together, builds the project context
   and lands the skeleton on the base branch; `project-setup` then checks the

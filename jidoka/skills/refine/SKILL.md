@@ -112,7 +112,9 @@ alone, so settle it here.
      questions when that skill is installed. Otherwise ask in plain words for
      the layers and their technology, the project name, how passwords are
      verified, the look, and whether the skeleton merges or waits on its own
-     branch. Record the answers on a `Stack:` line in section 6.
+     branch. Record the answers on one `Stack:` line in section 6, in the form
+     `project-setup`'s Step 2 shows. The line builds the skeleton from that
+     line alone.
 
    Without a checkout, say so once. Mark any recommendation that would need
    the code "not checked against the code".
@@ -261,7 +263,7 @@ while a question is still open.
 The story and its Status. Who signed, with the hash. The number of questions
 asked and answered, and those left open or deferred, with their owners. The
 decisions logged. Follow-ups for other stories. Then the next step: once it
-is `jidoka-ready`, `/jidoka:line {story}` builds it. Until the unattended line
-ships, that run still asks its own questions as well. A `file` agreement
+is `jidoka-ready`, `/jidoka:line {story}` builds it unattended, or the
+scheduled pick-up does. A `file` agreement
 must reach the base branch before a run elsewhere can read it. Say so, and
 commit it only if asked.

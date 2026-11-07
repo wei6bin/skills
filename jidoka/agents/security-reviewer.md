@@ -16,7 +16,8 @@ slices and ACs.
 
 ## Inputs
 
-- Path to `docs/new-feature/{id}-{summary}/`
+- Path to `docs/new-feature/{slug}/`, which holds the story's signed agreement,
+  `story.md`
 - Diff range, e.g. `{branch-point-sha}..HEAD` (`git diff --stat`, then
   `git diff`)
 

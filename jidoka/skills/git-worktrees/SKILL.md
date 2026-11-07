@@ -1,8 +1,8 @@
 ---
 name: git-worktrees
-description: Internal - creates an isolated git worktree on a new branch with a clean test baseline. Invoked by the orchestrator.
+description: Internal - creates an isolated git worktree on a new branch with a recorded test baseline, or checks out an existing branch to resume it. Invoked by the orchestrator.
 user-invocable: false
-allowed-tools: Read, Bash, AskUserQuestion
+allowed-tools: Read, Bash
 ---
 
 # Git Worktrees
@@ -16,8 +16,8 @@ In priority order:
 
 1. An existing `.worktrees/` (preferred) or `worktrees/` directory in the repo.
 2. A location named in `CLAUDE.md` (`grep -i "worktree.*director" CLAUDE.md`).
-3. Otherwise ask: `.worktrees/` (project-local, hidden) or
-   `~/.config/jidoka/worktrees/<project>/` (global).
+3. Otherwise `.worktrees/` (project-local, hidden). This runs unattended, so
+   take the default rather than asking.
 
 For a project-local directory, verify it is ignored
 (`git check-ignore -q <dir>`, where `<dir>` is `.worktrees` or `worktrees`,
@@ -33,9 +33,24 @@ cd "$path/$BRANCH_NAME"
 
 Then run the project's dependency install (detect from `package.json`,
 `Cargo.toml`, `pyproject.toml`/`requirements.txt`, `go.mod`, `*.sln`/`*.csproj`)
-and the test suite to establish a clean baseline. If tests fail, report the
-failures and ask whether to proceed or investigate; a dirty baseline makes new
-bugs indistinguishable from pre-existing ones.
+and the test suite to establish the baseline. If tests fail, report each
+failing test by name as the baseline. A dirty baseline makes new bugs
+indistinguishable from pre-existing ones, so the orchestrator decides whether
+the failures touch the story (an andon stop) or stay as the known baseline.
+
+## Resume an existing branch
+
+When the orchestrator resumes a story whose branch an earlier run left, check
+it out instead of creating it:
+
+- **A worktree already has it** (`git worktree list` shows the branch): use
+  that path.
+- **Only the remote has it:** `git fetch origin {branch}`, then
+  `git worktree add "$path/{branch}" {branch}`.
+- **Otherwise:** `git worktree add "$path/{branch}" {branch}`, without `-b`.
+
+Then install dependencies and run the suite as above; the report's baseline is
+the branch's own.
 
 ## Report
 

@@ -2,7 +2,7 @@
 name: restful-api-design
 description: Internal - REST API house conventions. Invoked by code-architect (contract shape) and impl-simplify (code structure).
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # RESTful API Design

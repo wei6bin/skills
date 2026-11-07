@@ -1,7 +1,8 @@
-# End-to-end verifier for the new-project branch of /jidoka:line: in an empty
-# repository, a request to set up a project must run the project-setup skill,
-# which offers the stack catalog's options, freezes one skeleton contract and
-# dispatches the project-scaffolder agent; the agent has impl-backend and
+# End-to-end verifier for the new-project branch of /jidoka:line: in a
+# repository with no code, a signed setup agreement (a Stack line, no ACs) must
+# run the project-setup skill, which reads the stack from that line without
+# asking, freezes one skeleton contract and dispatches the project-scaffolder
+# agent; the agent has impl-backend and
 # impl-frontend build the halves (scope `project scaffold`), verifies and
 # smokes them together, builds docs/project_context/ and lands the skeleton on
 # main. One run scaffolds a whole .NET + React stack, so it needs
@@ -9,8 +10,8 @@
 # and tens of minutes; run it deliberately:
 # `just eval-claude --case line-greenfield-scaffold`.
 #
-# What it covers: the greenfield test, the batched setup questions, the
-# skeleton contract reaching both halves, the bootstrap of both scaffold skills,
+# What it covers: the greenfield test, the Stack line standing in for the setup
+# questions, the skeleton contract reaching both halves, the bootstrap of both scaffold skills,
 # the through-the-proxy auth smoke, the context build, the local merge and the
 # worktree cleanup. Not covered: a story running on top of the skeleton (the
 # line-minimal-story case covers the story phases), a non-git folder, a repo
@@ -34,33 +35,15 @@ execution:
   timeout_seconds: 3600
   allowed_tools:
     [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
-  # AskUserQuestion is not offered headless; this stands in for the developer.
+  # Nobody stands in for the developer: the agreement's Stack line holds every
+  # setup decision. What remains is a fact about this sandbox, not a decision.
   append_system_prompt: |
-    This session is an unattended evaluation run of the jidoka workflow. No
-    human will read or answer anything until the run ends, and there is no
-    AskUserQuestion tool. Wherever the workflow tells you to ask, confirm or
-    wait for the user, write the question and your recommended answer in one
-    line, take the recommended answer, and continue in the same turn. Do not
-    end your turn until the scaffold has landed or you are blocked by
-    something you cannot fix.
-
-    Decisions the developer has already made:
-    - Project name: TeamNotes (the workspace folder's name is random; do not
-      derive the name from it).
-    - Set up both layers: the .NET backend and the React frontend.
-    - Passwords: the development stub, decided later.
-    - Look: Neutral Enterprise.
-    - The repository has no remote: merge the skeleton into main locally, and
-      skip every pull and push.
-    - This request is only the project setup; no story follows it.
-
     Sandbox facts about this evaluation workspace, not about the project: its
     root holds placeholder dotfiles (.gitmodules, .gitconfig and others) that
     cannot be read, so MSBuild's git query fails in the root checkout; build
     and test there with -p:EnableSourceControlManagerQueries=false.
   prompt: |
-    /jidoka:line Set up a new project for TeamNotes, a small app where a team
-    keeps notes on their day. There is no code yet.
+    /jidoka:line docs/stories/tn-000-set-up-teamnotes.md
 
 context:
   scaffold_script: scaffold.sh
@@ -182,6 +165,11 @@ graders:
     type: regex
     target: { source: file, path: README.md }
     pattern: "DevAuth"
+  - name: setup-story-done
+    type: regex
+    target: { source: file, path: docs/stories/tn-000-set-up-teamnotes.md }
+    pattern: "^Status: jidoka-done$"
+    flags: m
   - name: no-plan-folder
     type: file_exists
     path: "docs/new-feature/**"

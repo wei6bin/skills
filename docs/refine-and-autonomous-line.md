@@ -2,10 +2,9 @@
 
 jidoka splits a story's journey at one point: everything a person must decide
 happens in `/jidoka:refine`, and `/jidoka:line` builds the result with nobody
-there to ask. This note records the design and the decisions behind it. PR 1
-ships `refine`, the agreement format and its script; PR 2 makes `line`
-autonomous. Until PR 2 lands, `line` runs as before and still asks its
-questions.
+there to ask. This note records the design and the decisions behind it. It
+shipped in two PRs: the first added `refine`, the agreement format and its
+script, and the second made `line` autonomous.
 
 The cut follows the plugin's name. In Toyota's jidoka the line runs on its own
 and stops itself when something is wrong (the andon); people work before it
@@ -102,14 +101,19 @@ skills, decisions made by the line, and sign-off.
   roles signed at the current hash. On Azure DevOps the check reads the work
   item itself, not the local copy.
 
-## The boundary file (PR 2)
+## The boundary file
 
-`line` never reads the tracker's HTML directly. After its readiness check and
-its claim on the story, it runs the same converter and writes `story.md` into
-the plan folder (`docs/new-feature/{id}-{summary}/`). That file is the first
-commit on the story's branch, with the story id, revision, hash and sign-offs
-at its head. No LLM touches this step, so what the line builds against is
-byte for byte what was signed.
+`line` never reads the tracker's HTML directly. `agreement.py claim` checks
+that the story is ready, claims it, runs the same converter and writes the
+snapshot. The line moves the snapshot into the plan folder
+(`docs/new-feature/{slug}/`) as `story.md`, the first commit on the story's
+branch. The slug comes from the title (`USR-001 - Delete a note` is
+`usr-001-delete-a-note`). A later run instead takes the branch an earlier run
+of the story left, found by the story's id, so a title edited after a stop
+keeps its branch. The snapshot is
+the agreement plus three metadata lines: `Source` (a story file's path in the
+repository), `Hash` and `Fetched`. No LLM touches this step, so what the line
+builds against is byte for byte what was signed.
 
 `story.md` is read-only once written. The line's own decisions go to
 `09-decisions.md` as it makes them, and to the story's section 12 at the end
@@ -123,26 +127,35 @@ explorers somewhere to start. There is deliberately no second, unsigned
 briefing file: two documents drift, and unsigned text in the line's input lets
 unagreed decisions in.
 
-## line: the unattended part (PR 2)
+## line: the unattended part
 
 - **Starting.** By hand (`/jidoka:line <story>`), or a scheduled job picks up
   stories tagged `jidoka-ready`. A story counts as ready only when the tag is
   present, the format check passes and the hash matches the sign-offs. A
-  story edited after sign-off is refused with "changed after sign-off". A
-  refused story gets one message pointing at `/jidoka:refine` (also posted on
-  the story for a scheduled run), and no branch.
+  story edited after sign-off is refused with "changed after sign-off", and
+  on Azure DevOps it is set back to `draft`, so nothing retries it until the
+  roles sign again. A refused story gets one message pointing at
+  `/jidoka:refine` (also posted on the story for a scheduled run), and no
+  branch.
 - **Claiming.** A story carries one `jidoka-*` tag at a time:
   `jidoka-ready` becomes `jidoka-running`, then `jidoka-pr` or
   `jidoka-blocked`. Once refine answers a blocked story and the roles
   re-sign, it returns to `jidoka-ready`. The claim is the same refused-on-
   conflict write, so of two runs racing for a story, one skips it. A story
   left `jidoka-running` with no activity is reported, never taken over.
-- **No questions.** Phase 3 is gone. The Phase 4 slice confirmation becomes
-  the plan-reviewer's verdict, plus a check that every AC maps to a slice and
-  a test-plan case. Companion skills report problems instead of asking. QE's
-  scenarios drive `05-test-plan.md`, and the walker reports evidence per AC.
-  The worktree is created right after the claim, so `story.md` can be the
-  branch's first commit.
+- **No questions.**
+  - Phase 3 is now "settle against the agreement": each open point is
+    answered from the code, decided and recorded, or stops the line.
+  - The Phase 4 slice confirmation becomes a check that every AC maps by ID to
+    a slice and a test-plan case, and the plan-reviewer's verdict becomes the
+    gate.
+  - Companion skills and agents report problems instead of asking. A
+    renderer test keeps it that way: only `refine` and `check` may mention
+    `AskUserQuestion`.
+  - QE's scenarios drive `05-test-plan.md`, tests cite AC IDs, and the walker
+    reports evidence per AC.
+  - The worktree is created right after the claim, so `story.md` can be the
+    branch's first commit.
 - **Andon.**
   - The line makes a choice itself, and records it, when the choice is
     reversible and stays inside the agreement.
@@ -150,10 +163,11 @@ unagreed decisions in.
     agreement or a recorded decision, or touch auth, data visibility or
     personal data. It also stops on the agreement's own extra stop
     conditions, and when it meets a deferred question.
-  - Every check gets three attempts (the first, a retry, and a retry one
-    model tier up), then andon.
-  - A stop pushes the branch, opens a draft PR, posts the question on the
-    story and records it in `07-progress.md`.
+  - Every check gets three attempts (the first, then two retries on `opus`,
+    the existing rule for a retry), then andon.
+  - A stop writes `andon.md`, records it in `07-progress.md`'s `## Andon`
+    table, and pushes the branch with a draft PR. It posts the question on
+    the story and marks it `jidoka-blocked`.
 - **Resuming.** From the pushed branch, so any machine can resume. The new
   agreement is compared with `story.md` AC by AC:
   - unchanged ACs keep their finished slices;
@@ -171,14 +185,18 @@ unagreed decisions in.
     there: its own section, comments, and the state change `raise-pr` already
     makes.
 - **Ending.** `Exit: pr` (the default) or `Exit: merge` for a repository with
-  no remote; `ask` is gone. The PR leads with the AC coverage table and the
-  decisions table, and says "built against story rev N".
+  no remote; `ask` is gone. `raise-pr` writes `10-summary.md`, which is the PR
+  body or the merge message. It leads with the AC coverage table and the
+  decisions table, and says which revision of the agreement it was built
+  against. The story ends at `jidoka-pr` or, merged, `jidoka-done`.
 - **Scheduled runs.**
   - Who runs them: a timer on a machine the team controls calls a bundled
     pick-up script.
   - What they run in: each story gets a fresh container, like the eval image.
     Permission prompts are skipped only inside it.
-  - Pace: one story at a time, oldest first.
+  - Pace: one story at a time per machine (an `flock` lock), oldest first.
+    A story whose run failed there waits `--retry-hours` before it is tried
+    again, and a run past `--max-hours` is stopped.
   - Identity: a service account, or a person's account until one exists. The
     line's PRs carry a `jidoka` label and its comments say they came from
     `jidoka:line`.
@@ -228,23 +246,34 @@ unagreed decisions in.
 | 39 | The line's decisions go to `09-decisions.md`; `story.md` stays read-only |
 | 40 | The worktree is created right after the claim |
 
-Two refinements came out of building PR 1. Writes to the agreement use `az
-rest` for the same reason the claim does: a write must not overwrite someone
-else's edit. And because one hash covers the whole signed text, any change
-after sign-off needs every role to sign again, not only the role whose part
-changed. refine shows each of them the diff, so re-signing is quick. For
-the same reason nobody signs while a HIGH or MEDIUM question is open, whoever
-owns it: sign-off happens once, on the final text.
+Refinements that came out of building it:
 
-Review added two rules to the script:
-
+- **Writes use `az rest`.** Writes to the agreement use it for the same reason
+  the claim does: a write must not overwrite someone else's edit.
+- **One hash.** It covers the whole signed text, so any change after sign-off
+  needs every role to sign again, not only the role whose part changed.
+  refine shows each of them the diff, so re-signing is quick. For the same
+  reason nobody signs while a HIGH or MEDIUM question is open, whoever owns
+  it: sign-off happens once, on the final text.
 - **The status follows its order.** A story a run holds, or has finished, is
   never set back to `draft` or `jidoka-ready` by hand (`--force` repairs one
   a crashed run left behind).
 - **One person signs several roles only as `solo`.** A second role signed
   any other way is refused before it is written.
+- **A sixth state, `jidoka-done`.** A run that merges locally has no pull
+  request to point at, so it ends there.
+- **Phase 3 is kept.** Rather than being deleted, it became the place where
+  the line settles open points against the agreement before anything is
+  designed. The ten phases keep their numbers.
+- **A story file travels with its branch.** Its Status, section 12 and stop
+  are written on the story's branch and reach the base with the merge. A
+  re-run claims the branch's copy, which refine answered and re-signed, not
+  the base's.
+- **No resume eval.** An eval run is one session, so a stop and its resume
+  cannot be chained. The unit tests cover `compare`, which the resume rests
+  on.
 
-## What each PR ships
+## What each PR shipped
 
 **PR 1:**
 
@@ -257,11 +286,19 @@ Review added two rules to the script:
 
 **PR 2:**
 
-- the unattended `line`: the readiness check, claim and `story.md`; the
-  removed questions; andon and the attempt limits; the decisions log; the
-  PR's tables;
-- the companion skills without `AskUserQuestion`;
-- the pick-up script;
-- eval cases for a refused story, a story changed after sign-off, the updated
-  minimal and greenfield stories, and a stop with its resume;
-- the CLAUDE.md and workflow diagram updates.
+- **The unattended `line`:**
+  - the claim, the snapshot and the worktree in Phase 1, and resume;
+  - Phase 3 settling against the agreement;
+  - andon and the three attempts;
+  - `09-decisions.md` and `10-summary.md`;
+- **`agreement.py claim`, `compare`, `record`, `comment` and `slug`**;
+- **`project-setup` reading the `Stack:` line**, whose questions refine asks;
+- **`raise-pr` ending at the agreement's exit**, with no menu;
+- **companion skills and agents that report instead of asking**;
+- **the scheduled pick-up:** `src/skills/line/scripts/pickup.py` and the
+  runner image in `src/skills/line/runner/`, with `scripts/test_pickup.py`;
+- **eval cases:**
+  - `line-not-ready`, `line-changed-after-signoff` and `line-andon-stop`;
+  - the minimal and greenfield cases rewritten around signed agreements, with
+    no stand-in;
+- **CLAUDE.md and the workflow diagram.**

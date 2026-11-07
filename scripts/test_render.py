@@ -441,6 +441,19 @@ class RealTreeTests(unittest.TestCase):
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
 
+    def test_only_the_skills_people_run_may_ask_anything(self):
+        # The line runs unattended from a signed agreement: nothing it
+        # invokes may stop to ask. Only `refine` (the BA, Dev Lead and QE's
+        # session) and `check` (the self-check) talk to a person.
+        talkers = {"refine", "check"}
+        for skill in render.load_skills():
+            text = (skill / "SKILL.md").read_text(encoding="utf-8")
+            if skill.name not in talkers:
+                self.assertNotIn("AskUserQuestion", text, skill.name)
+        for agent in render.load_agents(render.load_routing()):
+            path = render.SRC / "agents" / f"{agent.name}.md"
+            self.assertNotIn("AskUserQuestion", path.read_text(encoding="utf-8"), agent.name)
+
     def test_skill_and_agent_bodies_have_no_positional_placeholders(self):
         # Claude Code substitutes a skill's invocation arguments into its body:
         # $0, $1, ... become the words it was called with. A shell snippet that

@@ -2,7 +2,7 @@
 name: frontend-implementer
 description: Internal - TDD loop for one slice's frontend half, and whole-story mock-to-real integration. Invoked by impl-frontend.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Frontend Implementer
@@ -67,6 +67,9 @@ contract was not actually frozen; say which slice.
   patch them.
 - Follow the reference patterns; do not invent new ones.
 - Every user-visible AC the slice covers is exercised in the UI against the
-  mock. Ask (`AskUserQuestion`) when an AC is ambiguous instead of guessing.
+  mock, in a test that cites the AC's ID (`AC-2`) in its name. When an AC is
+  ambiguous, do not guess silently: build the reading the slice card and the
+  agreement support, and report it under "Flagged" with the other readings.
+  Nobody is there to ask; the orchestrator decides.
 
 Report per the calling agent's Return Report format.

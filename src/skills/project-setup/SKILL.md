@@ -1,8 +1,8 @@
 ---
 name: project-setup
-description: Internal - offers the stack options for a new project, freezes the skeleton contract and dispatches project-scaffolder to build it. Invoked by the orchestrator when the repo has no source code or a new project is asked for.
+description: Internal - reads a new project's stack from the agreement's Stack line, freezes the skeleton contract and dispatches project-scaffolder to build it. Invoked by the orchestrator when the repo has no source code or the Stack line names a missing layer. Its Step 2 also defines the questions /jidoka:refine asks for that line.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # Project Setup
@@ -10,12 +10,18 @@ allowed-tools: Read, Grep, Glob, Bash, AskUserQuestion
 **Announce at start:** "I'm using the project-setup skill to set up the project
 before any story runs."
 
-You take the decisions a new project needs from the user, and hand the build to
-`project-scaffolder`. The decisions stay here because only the orchestrator can
-ask the user. The build goes to the agent because its trail (two implementers'
-Return Reports, every gate, the end-to-end smoke, the project-context write-up)
-would otherwise fill the orchestrator's context, which may still have a story's
-ten phases ahead. What comes back is one short report.
+The decisions a new project needs were taken in `/jidoka:refine`, where the
+Dev Lead answered the questions in Step 2. They reach you as the `Stack:` line
+in section 6 of the story's agreement (`story.md`, whose path the orchestrator
+gives you). You read them, freeze the contract, and hand the build to
+`project-scaffolder`. Nobody is there to ask: this runs inside an unattended
+line run. The build goes to the agent because its trail (two implementers'
+Return Reports, every gate, the end-to-end smoke, the project-context
+write-up) would otherwise fill the orchestrator's context, which may still
+have a story's ten phases ahead. What comes back is one short report.
+
+Where this skill says **stop**, return to the orchestrator with the reason; it
+stops the line with that question for the Dev Lead.
 
 ## Stack catalog
 
@@ -46,50 +52,62 @@ The orchestrator invokes you when either holds:
 
   Docs, a backlog, a README and a `.gitignore` are not code.
 
-- **The user asked for a new project or a new layer** ("set up a new project",
-  "scaffold a React frontend for this API"), whatever the tree holds.
+- **The `Stack:` line names a layer the repository lacks** (a React frontend
+  for an existing API, say), whatever the tree holds.
 
 Never scaffold a layer that already exists. Judge each layer from its manifests
 (a `*.csproj` or other server project is a backend, a `package.json` depending
-on `react` is a frontend) and offer only the missing ones. If a layer's root
-directory from the catalog already exists and is not empty, ask for another
-root rather than writing into it. With nothing missing, say so and return.
+on `react` is a frontend) and build only the missing ones. If a layer's root
+directory from the catalog already exists and is not empty, stop rather than
+writing into it. With nothing missing, say so and return.
 
-## Step 2 - Ask once
+## Step 2 - The Stack line
 
-Every question here is independent, so ask them in **one** `AskUserQuestion`
-call, each with its recommended answer first. Take the project name from the
-request when it names one, else from the folder (`team-portal` gives
-`TeamPortal`: `TeamPortalApi` for .NET, `team-portal-web` for npm), and
-put it in the first question's text, so the user can rename it under Other.
+These are the questions `/jidoka:refine` puts to the Dev Lead when a story
+needs a new project or layer. Each answer is a key of one `Stack:` line in
+section 6 of the agreement, and the recommended answer is the default for a
+key the line leaves out:
 
-1. **What to set up.** Build the options from the catalog, leaving out layers
-   that already exist. While every layer has one option, ask a single question:
-   "Backend + frontend: {backend} + {frontend}", "Backend only: {backend}",
-   "Frontend only: {frontend}". Once a layer has two or more options, ask one
-   question per layer instead, listing its options plus "None". Recommend from
-   the story when there is one (a story with a UI needs the frontend);
-   otherwise recommend both.
-2. **How passwords are verified** - only when a backend is offered. The
-   backend's default auth needs this one input and must not invent it:
-   "Development stub now, decide later" (recommended: a validator registered
-   only in Development that accepts the seeded dev user; outside Development
-   startup fails until a real one is registered), "Local password hashes"
-   (ASP.NET Core `PasswordHasher` with a hash column on the user), "AD / LDAP
-   bind".
-3. **Look** - only when a frontend is offered: "Neutral Enterprise"
-   (recommended), "Dense Data" or "Friendly SaaS", the presets in
-   `react-frontend-scaffold`'s `antd-app-setup.md`. A brand colour given under
-   Other becomes the seed `colorPrimary` on the Neutral preset.
-4. **Git** - only when there is a choice to make. Not a repository:
-   "Initialise git on `main` and commit what is here" (recommended) or
-   "Initialise git and leave the existing files untracked". A repository with a
-   remote: "Merge the skeleton into {base} locally" (recommended) or "Leave it
-   on its branch; I'll open the PR". A local repository with no remote merges
-   without asking.
+```text
+Stack: backend .NET + frontend React; name TeamPortal; passwords dev-stub; look neutral; git merge
+```
 
-If an answer names a stack the catalog lacks, say it has no scaffold yet and
-offer to stop or to continue with no scaffold; never improvise a stack.
+1. **What to set up** (the part before the first `;`). The options come from
+   the catalog, leaving out layers that already exist. While every layer has
+   one option, there are three: `backend {option} + frontend {option}`,
+   `backend {option}`, `frontend {option}`. Once a layer has two or more
+   options, each layer is named with its option, or left out. Refine
+   recommends from the story (a story with a UI needs the frontend), and
+   otherwise both.
+2. **`name`** - the project name. The default is the folder's name:
+   `team-portal` gives `TeamPortal`, which is `TeamPortalApi` for .NET and
+   `team-portal-web` for npm.
+3. **`passwords`** - only with a backend. The backend's default auth needs
+   this one input and must not invent it:
+   - `dev-stub` (recommended): "development stub now, decide later". A
+     validator registered only in Development accepts the seeded dev user;
+     outside Development, startup fails until a real one is registered.
+   - `local-hash`: ASP.NET Core `PasswordHasher`, with a hash column on the
+     user.
+   - `ldap`: an AD or LDAP bind.
+4. **`look`** - only with a frontend: `neutral` (recommended), `dense` or
+   `friendly`. These are the presets in `react-frontend-scaffold`'s
+   `antd-app-setup.md`. `neutral #1f6feb` seeds a brand colour as
+   `colorPrimary` on the Neutral preset.
+5. **`git`** - only when there is a choice:
+   - Not a repository: `init` (recommended; initialise git on `main` and
+     commit what is here) or `init-untracked` (leave the existing files
+     untracked).
+   - A repository with a remote: `branch` (recommended: the line pushes the
+     skeleton's branch and opens a pull request for it) or `merge` (merge it
+     into `{base}`, and the line pushes `{base}`: only where the base branch
+     takes direct pushes).
+   - A local repository with no remote always merges.
+
+Read the line from `story.md`. Every key that is present binds. A missing key
+takes its recommended default, and the orchestrator records that as a line
+decision for the Dev Lead to confirm. A layer the catalog lacks, or a value
+not listed above, is a stop: never improvise a stack.
 
 ## Step 3 - Freeze the skeleton contract
 
@@ -135,8 +153,8 @@ lines.
 Dispatch `agent_type: "jidoka:project-scaffolder"` with:
 
 - the repo root, as an absolute path;
-- the Git answer from Step 2 ("no remote, merge locally" when there was no
-  question to ask);
+- the `git` answer from Step 2 ("no remote, merge locally" when there was no
+  choice);
 - the skeleton contract, verbatim;
 - one stack row per layer being set up, copied from the catalog: layer,
   scaffold skill, root, Verify commands.
@@ -174,7 +192,8 @@ discrepancy quoted verbatim, or fix it yourself and note the takeover.
 
 ## Step 6 - Report
 
-Relay the scaffolder's report to the user, trimmed to what they act on:
+Return the scaffolder's report to the orchestrator, trimmed to what a person
+acts on (the orchestrator also posts it on the story):
 
 ```text
 Project set up: {Name} ({layers}) - merged into {base} at {sha} | on branch project-skeleton
