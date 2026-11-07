@@ -33,9 +33,12 @@ Three roles take part: the **BA** (behaviour, scope, rules), the **Dev Lead**
 
 1. **Context.** It reads the story, its parent, siblings, links and
    discussion from the tracker. Then it grounds itself in the code: the
-   project knowledge graph plus one `code-explorer`, so every Dev Lead
-   question comes with a recommendation backed by the code. Facts are the
-   agent's job; only decisions go to people.
+   project knowledge graph plus its own trace of the closest similar
+   feature, so every Dev Lead question comes with a recommendation backed by
+   the code. Facts are the agent's job; only decisions go to people. It reads
+   the code itself, with no `code-explorer`: the session is short, later
+   rounds look things up again in what it read, and the line runs its own
+   explorers in Phase 2.
 2. **Gaps.** A generic checklist, plus the project's own
    `docs/project_context/refine-checklist.md` for domain rules. Each gap
    becomes an open question with a severity and the role that owns it.
@@ -60,10 +63,9 @@ decisions and sign-offs all live in the agreement, so the next pass, by
 another role or on another day, starts from the record.
 
 It is written to run on any harness: `AskUserQuestion` where it is offered,
-chat otherwise. Its exploration falls back to the session's own when no
-`code-explorer` agent exists, and its script needs only Python. BAs and QEs
-can therefore run it outside Claude Code, where the jidoka plugin is not
-installed.
+chat otherwise. It dispatches no agent, and its script needs only Python.
+BAs and QEs can therefore run it outside Claude Code, where the jidoka plugin
+is not installed.
 
 ## The agreement
 

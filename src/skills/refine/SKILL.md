@@ -102,11 +102,11 @@ alone, so settle it here.
      capabilities and entities the story touches, decisions that are
      superseded or in conflict, and open questions. Otherwise read
      `docs/project_context/00_index.md`.
-   - Trace the closest similar feature end to end. Use one `code-explorer`
-     agent (`agent_type: "jidoka:code-explorer"`) if the task tool offers
-     it, else do it yourself. Collect what the questions will need: the error
-     envelope, sibling endpoints and screens, conventions, test patterns, seed
-     users.
+   - Trace the closest similar feature end to end yourself, not through an
+     agent: later rounds look things up again, in code you have already read.
+     Collect what the questions will need: where the story and the code
+     disagree, the error envelope, sibling endpoints and screens,
+     conventions, test patterns, seed users.
    - No source code yet (`project-setup`'s Step 1 says what counts): the
      Dev Lead's questions include the stack. Use `project-setup`'s Step 2
      questions when that skill is installed. Otherwise ask in plain words for

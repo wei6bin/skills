@@ -3,7 +3,7 @@
 # /jidoka:line can build from. The workspace is the line-minimal-story repo
 # (a zero-dependency notes API, no remote) with USR-002 as raw text in
 # docs/stories/usr-002-edit-note.md, a Markdown file standing in for the
-# tracker. Shorter than a line run: no build, no agents beyond one explorer.
+# tracker. Shorter than a line run: no build, no agents.
 #
 # What it covers: the slash command expanding the user-only `refine` skill,
 # grounding in the code (facts the code answers are not asked), questions
@@ -33,7 +33,7 @@ execution:
   timeout_seconds: 1800
   # Bash, Write and Edit also need the operator grant: --allow-tools.
   allowed_tools:
-    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+    [Read, Glob, Grep, Skill, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
   # AskUserQuestion is not offered in a headless run, so refine asks each round
   # in chat. This stands in for the three people in the room: it answers from
   # their positions and lets the session take its own recommendation for
