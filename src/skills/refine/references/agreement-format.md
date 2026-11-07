@@ -137,7 +137,7 @@ None.
 | 7 | BA | What this story does not do, each with the story that does it when there is one. |
 | 8 | any | Questions, each with an owner, a severity and a status. |
 | 9 | any | Every decision taken in the session, with the alternatives turned down. |
-| 10 | Dev Lead | `Exit: pr` (open a pull request) or `Exit: merge` (merge locally: only a repository with no remote), then `Stop also on:` and any condition beyond the line's defaults that must stop it. |
+| 10 | Dev Lead | `Exit: pr` (open a pull request) or `Exit: merge` (merge locally: only a repository with no remote), then `Stop also on:` and any condition beyond the line's defaults that must stop it. A `Base:` line when the story lands on a branch other than the repository's default (see "The base" below). |
 | 11 | any | References for context, and the project skills the line should load. |
 | 12 | line | The line's own decisions, written by the line. `None.` until it runs. |
 | 13 | refine | One row per role, written by `agreement.py sign`. |
@@ -171,6 +171,14 @@ their own session, as themselves: their `az` login on Azure DevOps, their git
 identity for a story file) or `solo` (one person signed for several roles,
 each of them `solo`). Dates are `YYYY-MM-DD`. A table section with no rows holds
 `None.` instead.
+
+**The base.** The branch the line cuts the story from, builds it against
+and lands it on. Without a `Base:` line it is the repository's default
+branch. With one, it is the branch named, written bare: `Base: release/2.3`,
+not `origin/release/2.3` or `refs/heads/release/2.3`. Name a branch, never a
+release line: a scheduled run has no harness to look a line up in, and when a
+line moves to a new branch, a story signed for the old one must not move with
+it. The decisions log says which line the branch was chosen for.
 
 ## Writing it
 

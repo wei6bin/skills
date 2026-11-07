@@ -145,6 +145,18 @@ unagreed decisions in.
   re-sign, it returns to `jidoka-ready`. The claim is the same refused-on-
   conflict write, so of two runs racing for a story, one skips it. A story
   left `jidoka-running` with no activity is reported, never taken over.
+- **The base.** The branch a story is cut from and lands on is signed: an
+  optional `Base:` line in section 10, owned by the Dev Lead, else the
+  repository's default branch. Where a harness keeps release lines
+  (`lines.tsv`), refine offers them and writes the chosen line's branch, never
+  the line's name: a container run has no harness to look a line up in, and
+  a line that moves to a new branch must not move a signed story with it.
+- **The base is tested before the claim.** The story's worktree is checked
+  out detached at the base and the baseline runs there. A base that fails it
+  is a base stop, not an andon: the story is not at fault, so it gets no
+  claim, branch, pull request or question, and stays `jidoka-ready`. A
+  green base's worktree becomes the story's branch, so the baseline runs
+  once.
 - **No questions.**
   - Phase 3 is now "settle against the agreement": each open point is
     answered from the code, decided and recorded, or stops the line.
@@ -156,8 +168,8 @@ unagreed decisions in.
     `AskUserQuestion`.
   - QE's scenarios drive `05-test-plan.md`, tests cite AC IDs, and the walker
     reports evidence per AC.
-  - The worktree is created right after the claim, so `story.md` can be the
-    branch's first commit.
+  - The branch is made right after the claim, from the worktree the base
+    check left, so `story.md` can be its first commit.
 - **Andon.**
   - The line makes a choice itself, and records it, when the choice is
     reversible and stays inside the agreement.
@@ -170,8 +182,10 @@ unagreed decisions in.
   - A stop writes `andon.md`, records it in `07-progress.md`'s `## Andon`
     table, and pushes the branch with a draft PR. It posts the question on
     the story and marks it `jidoka-blocked`.
-- **Resuming.** From the pushed branch, so any machine can resume. The new
-  agreement is compared with `story.md` AC by AC:
+- **Resuming.** From the pushed branch, so any machine can resume. The base
+  is merged in first, never rebased, so a fix that landed on it while the
+  story waited is in the baseline; a re-signed agreement may not change the
+  base. The new agreement is compared with `story.md` AC by AC:
   - unchanged ACs keep their finished slices;
   - changed or new ACs have their slices re-planned and reviewed;
   - a change outside the ACs goes to the architect as a diff;
@@ -199,6 +213,10 @@ unagreed decisions in.
   - Pace: one story at a time per machine (an `flock` lock), oldest first.
     A story whose run failed there waits `--retry-hours` before it is tried
     again, and a run past `--max-hours` is stopped.
+  - A broken base: the run hands the base and its commit back through a
+    mounted folder, and every story on that base waits until the branch
+    moves (or `--retry-hours` passes), since each would stop the same way.
+    Stories on other bases go on.
   - Identity: a service account, or a person's account until one exists. The
     line's PRs carry a `jidoka` label and its comments say they came from
     `jidoka:line`.
@@ -246,7 +264,11 @@ unagreed decisions in.
 | 37 | This note records the design |
 | 38 | The boundary file is `story.md`, unnumbered |
 | 39 | The line's decisions go to `09-decisions.md`; `story.md` stays read-only |
-| 40 | The worktree is created right after the claim |
+| 40 | The worktree is created right after the claim (amended by 42) |
+| 41 | The base is signed in section 10; refine resolves a release line to its branch |
+| 42 | The base is tested before the claim; a broken base stops the run and leaves the story ready |
+| 43 | A resumed run merges its base in, never rebases |
+| 44 | The scheduled pick-up holds a broken base's stories until the base moves |
 
 Refinements that came out of building it:
 

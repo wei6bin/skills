@@ -131,7 +131,8 @@
     border: 1px solid var(--line);
     margin-top: 24px;
   }
-  @media (max-width: 1100px) { .phases { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  /* Ten columns need ~150px each, or "Implementation" overflows its cell. */
+  @media (max-width: 1600px) { .phases { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
   @media (max-width: 560px)  { .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .phases li {
     background: var(--surface);
@@ -344,7 +345,7 @@
 <text class="t" x="110.0" y="1602.0" text-anchor="middle">Done</text>
 <path class="ln" d="M110,1524.0 L110,1580" marker-end="url(#arr)"/>
 <rect class="nd" x="240" y="84" width="200" height="44" rx="3"/>
-<text class="t" x="340.0" y="102.5" text-anchor="middle">Claim if ready; worktree,</text>
+<text class="t" x="340.0" y="102.5" text-anchor="middle">Test the base, then claim;</text>
 <text class="t" x="340.0" y="117.5" text-anchor="middle">story.md first commit</text>
 <rect class="nd skill" x="480" y="84" width="170" height="44" rx="3"/>
 <text class="t skill" x="565.0" y="102.5" text-anchor="middle">project-setup</text>
@@ -565,8 +566,8 @@
           <td class="n">1</td>
           <td class="phase">Readiness, Claim &amp; Worktree</td>
           <td><code class="c c-sub">project-scaffolder</code>, which dispatches <code class="c c-sub">impl-backend</code> + <code class="c c-sub">impl-frontend</code> (parallel, scope <code>project scaffold</code>), only when the agreement's <code>Stack:</code> line sets up a new project or layer</td>
-          <td><code>agreement.py claim</code> (refuses unless <code>jidoka-ready</code> with every sign-off at the current hash; marks the story <code>jidoka-running</code>); <code class="c c-skill">project-setup</code> (reads the <code>Stack:</code> line, asks nothing, freezes the contract); <code class="c c-skill">git-worktrees</code> (branch named by the slug, or resume an existing one); the implementers run <code class="c c-skill">aspnet-backend-scaffold</code> / <code class="c c-skill">react-frontend-scaffold</code></td>
-          <td><code class="c c-art">story.md</code> as the branch's first commit, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase; on a new project, a verified walking skeleton and <code>docs/project_context/</code> on the base branch first. A refused story gets no branch</td>
+          <td><code class="c c-skill">git-worktrees</code> first tests the base (section 10's <code>Base:</code> branch, else the default branch) in the story's worktree, detached, before anything is claimed; <code>agreement.py claim</code> (refuses unless <code>jidoka-ready</code> with every sign-off at the current hash; marks the story <code>jidoka-running</code>); <code class="c c-skill">project-setup</code> (reads the <code>Stack:</code> line, asks nothing, freezes the contract); <code class="c c-skill">git-worktrees</code> (the checked worktree becomes the branch named by the slug, or it resumes an existing one with the base merged in); the implementers run <code class="c c-skill">aspnet-backend-scaffold</code> / <code class="c c-skill">react-frontend-scaffold</code></td>
+          <td><code class="c c-art">story.md</code> as the branch's first commit, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase; on a new project, a verified walking skeleton and <code>docs/project_context/</code> on the base branch first. A refused story gets no branch; a broken base gets no claim, no branch and no question, and the story stays <code>jidoka-ready</code></td>
         </tr>
         <tr>
           <td class="n">2</td>

@@ -29,6 +29,8 @@ The line's commands, which take a snapshot (the story.md that claim writes):
   agreement.py record FILE --decisions MD   the line's decisions, to section 12
   agreement.py comment FILE --file MD       a comment on the work item
   agreement.py slug FILE                    the story's branch and folder name
+  agreement.py base FILE                    the branch section 10 names, or
+                                            nothing for the default branch
 
 Exit status: 0 done, 1 problems found or a write refused, 2 bad usage or input.
 Needs Python 3.8+ and nothing else. Azure DevOps calls go through the az CLI
@@ -114,6 +116,9 @@ BOARD_URL = re.compile(
 )
 HASH = re.compile(r"^sha256:[0-9a-f]{16}$")
 EXIT = re.compile(r"^Exit: (pr|merge)$", re.M)
+BASE = re.compile(r"^Base:(.*)$", re.M)
+# A branch name git accepts, written bare: no remote prefix, no refs/heads/.
+BRANCH = re.compile(r"^(?!-|/|refs/|origin/)(?!.*(\.\.|//|@\{|\.lock$|/$|\.$))[A-Za-z0-9._/@+-]+$")
 STACK = re.compile(r"^(?:- )?Stack: \S", re.M)
 ADO_URL = re.compile(
     r"^(?P<org>https://dev\.azure\.com/[^/]+|https://[^/.]+\.visualstudio\.com)"
@@ -404,6 +409,15 @@ def check(agreement, ready=False, signoffs=True):
 
     if not EXIT.search(agreement.body(10)):
         problems.append("section 10: needs a line 'Exit: pr' or 'Exit: merge'")
+    bases = [b.strip() for b in BASE.findall(agreement.body(10))]
+    if len(bases) > 1:
+        problems.append("section 10: one 'Base:' line at most")
+    for base in bases:
+        if not BRANCH.match(base):
+            problems.append(
+                f"section 10: Base '{base}' must be one branch name, written bare "
+                "(develop, release/2.3: no origin/, no refs/heads/)"
+            )
 
     line_decisions = rows_of(agreement, 12, problems)
     check_ids(line_decisions, "AD", "section 12", problems)
@@ -1323,6 +1337,20 @@ def cmd_slug(args):
     return 0
 
 
+def base_of(agreement):
+    """The branch section 10's `Base:` line names, or None: the story lands on
+    the repository's default branch. The check has vetted the name."""
+    found = BASE.search(agreement.body(10))
+    return found.group(1).strip() if found else None
+
+
+def cmd_base(args):
+    base = base_of(load(args.file))
+    if base:
+        print(base)
+    return 0
+
+
 def cmd_sign(args):
     agreement = load(args.file)
     # Section 13's own rules are checked on the row being written, below, not
@@ -1451,6 +1479,10 @@ def main(argv=None):
     p = sub.add_parser("slug", help="print the story's branch and folder name")
     p.add_argument("file")
     p.set_defaults(run=cmd_slug)
+
+    p = sub.add_parser("base", help="print the branch the story lands on; nothing means the default branch")
+    p.add_argument("file")
+    p.set_defaults(run=cmd_base)
 
     args = parser.parse_args(argv)
     try:

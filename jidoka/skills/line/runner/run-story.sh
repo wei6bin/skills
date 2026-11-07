@@ -2,7 +2,9 @@
 # GENERATED copy of src/skills/line/runner/run-story.sh by scripts/render.py (just build). Edit the source.
 # Entrypoint of the jidoka runner image: one unattended /jidoka:line run on one
 # story, in a fresh clone. scripts/pickup.py starts it with JIDOKA_STORY,
-# JIDOKA_REPO, JIDOKA_SCHEDULED=1 and JIDOKA_HOST, plus its --env-file:
+# JIDOKA_REPO, JIDOKA_SCHEDULED=1, JIDOKA_HOST and JIDOKA_OUT (a mounted
+# folder: a run that finds the story's base broken writes base-red there),
+# plus its --env-file:
 #
 #   CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY   the Claude credential
 #   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID

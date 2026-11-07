@@ -1,0 +1,86 @@
+# End-to-end check of the base check before the claim: USR-001 is signed and
+# jidoka-ready, but `main` broke after the sign-off (its 404 test fails on the
+# base itself). The line must test the base before it claims anything, find
+# it broken, and stop without touching the story: no claim, no branch, no
+# worktree left, no andon, and the story file still jidoka-ready.
+schema_version: "1.1"
+name: line-base-broken
+description: /jidoka:line tests the story's base before the claim, and a broken base leaves the story untouched
+tags: [e2e, line, gate]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  The line tests main in a detached worktree, sees the 404 test fail, and
+  stops before the claim: no claim, no agent, no branch, no worktree left,
+  no andon.md, the story file still Status jidoka-ready, and a last message
+  naming main, the failing test, and that the story builds once main is
+  fixed.
+
+execution:
+  model: opus
+  max_turns: 60
+  timeout_seconds: 1200
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # No append_system_prompt: nobody stands in for anyone, and the line must
+  # ask nothing.
+  prompt: |
+    /jidoka:line docs/stories/usr-001-delete-note.md
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+  - name: base-checked
+    type: tool_used
+    tool: Skill
+    input_match: "git-worktrees"
+  # --- Stopped before the claim: nothing claimed, made or left behind ------
+  - name: never-claimed
+    type: tool_used
+    tool: Bash
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
+    min: 0
+    max: 0
+  - name: nothing-dispatched
+    type: tool_used
+    tool: Agent
+    min: 0
+    max: 0
+  - name: no-worktree-left
+    type: file_exists
+    path: ".worktrees/**"
+    exists: false
+  - name: no-story-branch
+    type: file_exists
+    path: ".git/refs/heads/usr-001-delete-a-note"
+    exists: false
+  - name: no-andon
+    type: file_exists
+    path: "docs/new-feature/**/andon.md"
+    exists: false
+  - name: story-still-ready
+    type: regex
+    target: { source: file, path: docs/stories/usr-001-delete-note.md }
+    pattern: "^Status: jidoka-ready$"
+    flags: m
+  - name: report-names-the-base
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of /jidoka:line run on story USR-001, whose
+      agreement is signed and jidoka-ready, in a repository whose `main`
+      branch fails its own test suite: GET /notes/:id answers an unknown id
+      with error code not_found where the test expects note_not_found.
+      PASS if it says the base (main) is broken, names the failing test or
+      the error-code mismatch, says the story was not claimed or stays
+      jidoka-ready, and says it builds once main is fixed.
+      FAIL if it claims, plans or builds the story, opens an andon or asks a
+      question and waits for an answer, or blames the story.

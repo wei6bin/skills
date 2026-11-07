@@ -129,6 +129,25 @@ The graders check that the claim ran and that nothing else did:
 
 Judged, the last message names the reason and points at `/jidoka:refine`.
 
+## line-base-broken
+
+The base check before the claim, a few minutes. The scaffold starts from the
+line-minimal-story repo, whose USR-001 is signed and `jidoka-ready`, then
+commits a regression on `main`: `GET /notes/:id` answers an unknown id with
+error code `not_found` where the suite expects `note_not_found`. The base
+fails its own tests in the error the story's AC-2 uses, so the line must stop
+before it claims anything.
+
+The graders check that the base was tested and that nothing else happened:
+
+- `git-worktrees` invoked, and `agreement.py claim` never run;
+- no agent dispatched;
+- no worktree left, no story branch, no `andon.md`;
+- the story file still at `Status: jidoka-ready`.
+
+Judged, the last message names `main`, the failing test, and that the story
+builds once `main` is fixed.
+
 ## line-andon-stop
 
 An andon stop. The scaffold adds `Stop also on: any change to the note

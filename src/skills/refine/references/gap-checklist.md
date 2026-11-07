@@ -22,6 +22,7 @@ otherwise have to guess; **LOW** is cosmetic or can safely wait.
 | No AC contradicts a sibling story, the current behaviour or a recorded decision | BA |
 | What is out of scope is said, with the story that covers it | BA |
 | Dependencies on other stories, teams or systems are named, with their state | Dev Lead |
+| With release lines (a `lines.tsv` above the repository) or other long-lived branches: the branch it lands on | Dev Lead |
 | Placeholders are gone ("TBD", "xxx", "documented separately") | BA |
 
 ## API

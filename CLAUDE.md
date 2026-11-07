@@ -124,12 +124,13 @@ and the knobs they take, and a knob goes between `just` and the recipe
   `.gitattributes` covering exactly the rendered paths, and determinism on the
   real tree. Also the refine skill's `agreement.py`
   (`scripts/test_agreement.py`): the round trip through the work item fields,
-  the hash, every format and ready rule, the line's claim, compare, record
-  and comment, and the Azure DevOps reads and writes against a fake `az` on
-  `PATH`. Also the line's scheduled pick-up (`scripts/test_pickup.py`): the
-  oldest story chosen, the container started and killed past its time, the
-  `flock` lock, the wait after a failed run, and the stale-claim report,
-  against a fake `az` and `docker`. And, on the real tree, that only
+  the hash, every format and ready rule, the `Base:` line, the line's claim,
+  compare, record and comment, and the Azure DevOps reads and writes against
+  a fake `az` on `PATH`. Also the line's scheduled pick-up
+  (`scripts/test_pickup.py`): the oldest story chosen, the container started
+  and killed past its time, the `flock` lock, the wait after a failed run,
+  the hold on a broken base until it moves, and the stale-claim report,
+  against a fake `az`, `docker` and `git`. And, on the real tree, that only
   `refine` and `check` mention `AskUserQuestion`: nothing the line runs may
   ask. CI runs it together with `just check`, `just lint` and
   `just test-hooks`.
@@ -159,7 +160,7 @@ and the knobs they take, and a knob goes between `just` and the recipe
 - `just eval-claude` - the end-to-end verifier: `claude plugin eval` runs each
   case under `jidoka/evals/` in a sandboxed headless session, inside a
   container built from `jidoka/evals/Dockerfile` (`just eval-image`;
-  `just HOST=1 eval-claude` runs on the host instead). Six cases. No line
+  `just HOST=1 eval-claude` runs on the host instead). Seven cases. No line
   case has anyone standing in for a developer: each story is a signed
   agreement file the scaffold builds and signs with `agreement.py`, so a
   question in the run is a failure.
@@ -175,7 +176,10 @@ and the knobs they take, and a knob goes between `just` and the recipe
   and no story phase run.
   `line-not-ready` (a draft story) and `line-changed-after-signoff` (an AC
   edited after the sign-offs) must be refused at the claim, before any agent,
-  worktree or branch; they take minutes.
+  worktree or branch; they take minutes. `line-base-broken` signs the story,
+  then breaks `main` (its 404 test fails), and grades the base check: the
+  base tested through `git-worktrees`, then no claim, agent, branch,
+  worktree or `andon.md`, and the story still `jidoka-ready`.
   `line-andon-stop` signs a stop condition the story must hit (any change to
   the note store) and grades the stop: no implementer, `andon.md` and an open
   Andon row on the branch, the story `jidoka-blocked` there, the worktree
@@ -243,14 +247,18 @@ Three component types:
   and `line` builds the story with nobody to ask. The split and the decisions
   behind it are in `docs/refine-and-autonomous-line.md`. `line` claims a
   `jidoka-ready` story through the same script, which snapshots it as
-  `story.md` on the story's branch. A gap the agreement leaves that it may
+  `story.md` on the story's branch. Before the claim it tests the story's
+  base (section 10's signed `Base:` branch, else the default branch) in a
+  detached worktree; a broken base stops the run without touching the story.
+  A gap the agreement leaves that it may
   close, it decides and records in `09-decisions.md` (`AD-n`, later confirmed
   by the owning role through `refine`). Anything else stops the line: andon,
   with `andon.md`, a draft PR, a question on the story and the story marked
   `jidoka-blocked`. Every gate gets three attempts. A timer can start it:
   `src/skills/line/scripts/pickup.py` picks the oldest `jidoka-ready` story
   and runs the line in a fresh container from `src/skills/line/runner/`, the
-  only place it skips permission prompts. The rest are companions `line`
+  only place it skips permission prompts, and holds the stories of a base a
+  run found broken until that branch moves. The rest are companions `line`
   invokes (`vertical-slicing`,
   `git-worktrees`, `raise-pr`, `backend-implementer`, `frontend-implementer`,
   `sweep-implementer`, `reuse-ladder`, `codebase-context-builder`,

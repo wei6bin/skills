@@ -322,6 +322,16 @@ class FormatCheckTests(unittest.TestCase):
             self.problems("Exit: merge", "Exit: ask"),
         )
 
+    def test_a_base_is_one_bare_branch_name(self):
+        self.assertEqual(self.problems("Exit: merge", "Exit: merge\nBase: release/2.3"), [])
+        for bad in ("origin/main", "refs/heads/main", "two words", "-x", "a..b", "lock.lock", ""):
+            found = self.problems("Exit: merge", f"Exit: merge\nBase: {bad}")
+            self.assertTrue(any(p.startswith(f"section 10: Base '{bad}'") for p in found), (bad, found))
+
+    def test_one_base_at_most(self):
+        found = self.problems("Exit: merge", "Exit: merge\nBase: develop\nBase: main")
+        self.assertIn("section 10: one 'Base:' line at most", found)
+
     def test_a_secret_is_refused(self):
         found = self.problems("Graph: CAP-01.", "Token ghp_" + "a" * 36)
         self.assertIn("looks like a GitHub token: point to where it is kept instead", found)
@@ -330,6 +340,30 @@ class FormatCheckTests(unittest.TestCase):
         found = self.problems("Tracker: file", f"Tracker: {URL}")
         self.assertIn("Tracker must be 'file' or 'ado <work item URL>'", found)
         self.assertEqual(self.problems("Tracker: file", f"Tracker: ado {URL}"), [])
+
+
+class BaseTests(unittest.TestCase):
+    def test_no_base_line_means_the_default_branch(self):
+        self.assertIsNone(A.base_of(A.parse(SAMPLE)))
+
+    def test_the_base_line_names_the_branch(self):
+        self.assertEqual(A.base_of(edited(SAMPLE, "Exit: merge", "Exit: merge\nBase: release/2.3")), "release/2.3")
+
+    def test_the_base_is_signed(self):
+        self.assertNotEqual(A.digest(A.parse(SAMPLE)),
+                            A.digest(edited(SAMPLE, "Exit: merge", "Exit: merge\nBase: develop")))
+
+    def test_the_base_survives_the_work_item_fields(self):
+        agreement = edited(SAMPLE, "Exit: merge", "Exit: merge\nBase: release/2.3")
+        self.assertEqual(A.base_of(A.from_work_item(work_item(agreement))), "release/2.3")
+
+    def test_the_command_prints_the_base_or_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "story.md")
+            Path(path).write_text(SAMPLE, encoding="utf-8")
+            self.assertEqual(run("base", path)[:2], (0, ""))
+            Path(path).write_text(SAMPLE.replace("Exit: merge", "Exit: merge\nBase: develop"), encoding="utf-8")
+            self.assertEqual(run("base", path)[:2], (0, "develop\n"))
 
 
 class ReadyCheckTests(unittest.TestCase):

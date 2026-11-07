@@ -113,7 +113,11 @@ Stop the line, and never guess, when going on would:
   lists as `deferred`;
 - need a fourth attempt at a gate; or
 - need something the run cannot fix: credentials, a broken environment, a
-  failing baseline in the code the story touches.
+  failing baseline in the code a resumed story touches.
+
+A new story's base is tested before the claim (Phase 1 step 2). A base that
+fails there is a base stop, not an andon: the story is not at fault, so it
+keeps its `jidoka-ready` and gets no branch, pull request or question.
 
 To stop:
 
@@ -160,10 +164,47 @@ is enough.
    file. Anything else is not something the line builds. That includes pasted
    story text and a request to set up a project with no agreement behind it.
    Say so in one message that points at `/jidoka:refine`, and stop.
-2. **Claim it.** With a remote, run `git fetch origin` first, so a branch an
+2. **Check the base, before the claim.** A base that does not build is not
+   the story's problem, so it must not cost the story its claim, a branch or a
+   question. With a remote, run `git fetch origin` first, so a branch an
    earlier run pushed is seen. Make a scratch directory outside the
-   repository (`mktemp -d`) and run
-   `agreement.py claim {story} -o {scratch}/story.md`.
+   repository (`mktemp -d`). Not a git repository yet, or one with no
+   commit (a new project, which step 4 starts): skip to step 3, since there
+   is no base to test.
+   1. **Read the story without claiming it:** for a work item,
+      `agreement.py pull --ado {story} -o {scratch}/peek.md`; a story file is
+      read where it is. If its Status is not `jidoka-ready`, or
+      `agreement.py check --ready` on it fails, skip to step 3: the claim
+      refuses it and says why.
+   2. **A branch an earlier run left** (`agreement.py slug` on it names the
+      branch; look for it locally and on the remote): skip to step 3. The
+      resume brings the base into that branch and runs its baseline there.
+   3. **The base:** what `agreement.py base` prints for it. Nothing printed
+      means the remote's default branch
+      (`git symbolic-ref --short refs/remotes/origin/HEAD`, without
+      `origin/`; run `git remote set-head origin --auto` first if it is
+      unset), or the current branch with no remote. A named base that is on
+      neither the remote nor, with no remote, the repository means the
+      agreement cannot be honoured: an andon stop before the worktree, run on
+      `{scratch}/peek.md` (or the story file) in place of the claim's
+      snapshot. The owner is the Dev Lead.
+   4. **Test it:** invoke `git-worktrees` to check the base, with the slug
+      and the base. It runs the baseline in the story's worktree, detached at
+      the base's commit.
+   5. **Read the baseline.** It is green, or its failures are outside
+      anything the story touches: keep the worktree for step 5, its baseline
+      the story's. Otherwise (the build fails, or a failing test covers code
+      the story changes) it is a **base stop**:
+      - `git-worktrees` drops the worktree. There is no claim, no branch, no
+        pull request and no question on the story, which stays
+        `jidoka-ready`.
+      - When `JIDOKA_OUT` is set (the scheduled pick-up), write one line,
+        `{base} {full commit}`, to `$JIDOKA_OUT/base-red`. The pick-up holds
+        every story on this base until it moves.
+      - The run's last message: the base and its commit, the build errors or
+        failing tests, and that the story builds once the base is fixed. Then
+        stop.
+3. **Claim it.** Run `agreement.py claim {story} -o {scratch}/story.md`.
    It refuses unless the story is `jidoka-ready`, its agreement passes the
    ready check and its hash matches every sign-off. It then marks the story
    `jidoka-running`, refused if anyone saved it since the read, and prints the
@@ -175,20 +216,23 @@ is enough.
      there, and the story's current copy, answered and re-signed, is on that
      branch. Claim the copy in that branch's worktree (`git-worktrees`
      resume) instead of the one on the base branch.
-   - **Refused:** relay its output verbatim and point at
-     `/jidoka:refine {story}`. When `JIDOKA_SCHEDULED=1` is set (a scheduled
-     pick-up), also post that on the work item: pull it with
+   - **Refused:** drop step 2's worktree if it kept one, relay the output
+     verbatim and point at `/jidoka:refine {story}`. When
+     `JIDOKA_SCHEDULED=1` is set (a scheduled pick-up), also post that on the
+     work item: pull it with
      `agreement.py pull --ado {story} -o {scratch}/story.md`, then
      `agreement.py comment` from that copy. Then stop. No branch, no worktree.
    - **`Exit: pr` and `git remote` prints nothing:** the agreement cannot be
-     honoured. This is an andon stop before the worktree; the owner is the
-     Dev Lead.
-3. **New project first.** When the folder has no source code
+     honoured. Drop step 2's worktree; this is an andon stop before the
+     worktree, and the owner is the Dev Lead.
+4. **New project first.** When the folder has no source code
    (`project-setup`'s Step 1 says what counts) and section 6 has a `Stack:`
    line, invoke `project-setup` with the snapshot's path. Do the same when
    the `Stack:` line names a layer the repository lacks. It reads every answer
    from that line, asks nothing, and has `project-scaffolder` land the
-   skeleton on the base branch with its `docs/project_context/`. Then:
+   skeleton on the base branch with its `docs/project_context/`. The base
+   has then moved past step 2's commit: drop that worktree, and step 5
+   creates the branch from the new base. Then:
    - **Make it last.** A scheduled run's container is thrown away, so with a
      remote the skeleton must leave the machine:
      - If it merged into the base, push the base (`git push origin {base}`).
@@ -210,15 +254,19 @@ is enough.
      sign-off: nothing signed changed.
    - **Otherwise** go on with the story on top of the skeleton. The auth the
      skeleton ships is done: do not plan it again.
-4. **Worktree.** The branch is the slug, and the plan folder is
-   `docs/new-feature/{slug}/`.
-   - **No branch of that name**, local or on the remote: invoke
-     `git-worktrees` with the slug. If no `Skill` tool is exposed, create it
-     via Bash with an **absolute** path
-     (`git worktree add -b {slug} {repo-root}/.worktrees/{slug} {base}`; a
-     relative path resolves against a CWD that may have drifted into another
-     worktree) and verify with `git worktree list`. Never silently proceed on
-     the current branch.
+5. **Worktree.** The branch is the slug, and the plan folder is
+   `docs/new-feature/{slug}/`. The base is step 2's; `07-progress.md` records
+   it as `Base:`.
+   - **Step 2 kept a worktree:** make it the branch
+     (`git -C {repo-root}/.worktrees/{slug} switch -c {slug}`). It starts at
+     the commit step 2 tested, and that baseline is the branch's.
+   - **No branch of that name**, local or on the remote, and no kept
+     worktree: invoke `git-worktrees` with the slug and the base. If no
+     `Skill` tool is exposed, create it via Bash with an **absolute** path
+     (`git worktree add -b {slug} {repo-root}/.worktrees/{slug} origin/{base}`,
+     or `{base}` with no remote; a relative path resolves against a CWD that
+     may have drifted into another worktree) and verify with
+     `git worktree list`. Never silently proceed on the current branch.
    - **The branch exists:** an earlier run of this story stopped. Resume it
      (see "Resume" below) instead of the rest of this step.
 
@@ -228,7 +276,7 @@ is enough.
    worktree's root, where the snapshot's `Source` path resolves, and include
    the story file in the commit. Then commit, the first commit on the branch:
    `docs({slug}): story {id} as signed ({hash})`.
-5. **Classify the story's shape** and record the tier in the todo list. It
+6. **Classify the story's shape** and record the tier in the todo list. It
    sizes every later phase, and Phase 4 writes it into `07-progress.md` as the
    `Tier:` line, so later steps read the classification instead of re-deriving
    it from the diff.
@@ -247,9 +295,23 @@ the tier", this table is what it means.
 
 ### Resume
 
-The branch is left from an earlier run that stopped. Have `git-worktrees`
-check it out (it has a resume mode for an existing branch), then read its
-`07-progress.md`, `andon.md` and `story.md`.
+The branch is left from an earlier run that stopped. Its base is the
+`Base:` line of the branch's `07-progress.md` (read it before the checkout
+with `git show {branch}:docs/new-feature/{slug}/07-progress.md`, from
+`origin/{branch}` when only the remote has it).
+
+- **The base must not change.** The new snapshot's base (Phase 1 step 2.3,
+  run on `{scratch}/story.md`) must be the ledger's. A merge cannot move a
+  branch from one base to another. If they differ, stop the line; the owner
+  is the Dev Lead, who either signs the old base again or has the branch
+  deleted so the next run starts the story from its new base.
+- **Bring the base in.** Have `git-worktrees` resume the branch with that
+  base. It merges the base into the branch, so whatever landed there while
+  the story waited (often the fix its stop asked for) is in the baseline.
+  A merge conflict is an andon stop; the owner is the Dev Lead. A failing
+  baseline in code the story touches is one too.
+
+Then read its `07-progress.md`, `andon.md` and `story.md`.
 
 1. Run `agreement.py compare {folder}/story.md {scratch}/story.md`. It lists
    each AC as unchanged, changed, evidence changed, added or removed, and

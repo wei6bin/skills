@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Unit tests for the line skill's scheduled pick-up, src/skills/line/scripts/pickup.py.
 
-It runs against a fake `az` (serving `az boards query` from a JSON file) and a
-fake `docker` (recording its arguments): which story it picks, the container
-it starts, the lock, and the stale-claim report.
+It runs against a fake `az` (serving `az boards query` and `work-item show`
+from a JSON file), a fake `docker` (recording its arguments, and writing what
+a run hands back) and a fake `git` (serving `ls-remote`): which story it
+picks, the container it starts, the lock, the stale-claim report, and the
+hold on a broken base.
 
 Run: just test (python3 -m unittest discover -s scripts -p 'test_*.py').
 """
@@ -22,6 +24,9 @@ ROOT = Path(__file__).resolve().parent.parent
 _spec = importlib.util.spec_from_file_location("pickup", ROOT / "src/skills/line/scripts/pickup.py")
 P = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(P)
+_aspec = importlib.util.spec_from_file_location("agreement", ROOT / "src/skills/refine/scripts/agreement.py")
+A = importlib.util.module_from_spec(_aspec)
+_aspec.loader.exec_module(A)
 
 ORG = "https://dev.azure.com/Contoso"
 
@@ -32,6 +37,13 @@ if state.get("az_garbage"):
     print("WARNING: not json")
     sys.exit(0)
 args = sys.argv[1:]
+if args[:2] == ["boards", "work-item"]:
+    shown = state.get("show", {{}}).get(args[args.index("--id") + 1])
+    if shown is None:
+        print("no such work item", file=sys.stderr)
+        sys.exit(1)
+    print(json.dumps(shown))
+    sys.exit(0)
 wiql = args[args.index("--wiql") + 1]
 tag = wiql.split("CONTAINS '")[1].split("'")[0]
 items = [i for i in state["items"] if tag in i["fields"].get("System.Tags", "")]
@@ -46,9 +58,41 @@ state.setdefault("docker", []).append(sys.argv[1:])
 json.dump(state, open(path, "w"))
 if sys.argv[1] == "run":
     print("line run output", flush=True)
+    out = sys.argv[sys.argv.index("-v") + 1].split(":")[0]
+    if state.get("base_red"):
+        open(os.path.join(out, "base-red"), "w").write(state["base_red"] + "\\n")
     time.sleep(state.get("sleep", 0))
 sys.exit(state.get("docker_exit", 0) if sys.argv[1] == "run" else 0)
 """
+
+
+FAKE_GIT = """#!{python}
+import json, os, sys
+state = json.load(open(os.environ["FAKE_STATE"]))
+if sys.argv[1] != "ls-remote" or state.get("git_fails"):
+    sys.exit(128)
+branch = sys.argv[3].split("refs/heads/", 1)[1]
+sha = state.get("heads", {{}}).get(branch)
+if sha:
+    print(sha + "\\trefs/heads/" + branch)
+"""
+
+SHA1, SHA2 = "1" * 40, "2" * 40
+
+
+def shown(story_id, base=None):
+    """An `az boards work-item show` reply holding a signed-looking agreement
+    whose section 10 names `base`, or no base."""
+    agreement = A.parse(A.render(A.skeleton(f"USR-{story_id}", "A story", "file")))
+    if base:
+        agreement.sections[10] = f"Exit: pr\n\nBase: {base}\n\nStop also on: nothing beyond the defaults."
+    description, acceptance = A.to_fields(agreement)
+    return {
+        "id": story_id, "rev": 3,
+        "_links": {"html": {"href": f"{ORG}/Book%20ings/_workitems/edit/{story_id}"}},
+        "fields": {"System.Title": "A story", "System.TeamProject": "Book ings",
+                   "System.Tags": "jidoka-ready", A.DESCRIPTION: description, A.ACCEPTANCE: acceptance},
+    }
 
 
 def item(story_id, tags, changed, title="A story"):
@@ -60,7 +104,7 @@ class PickupTests(unittest.TestCase):
         self.dir = tempfile.TemporaryDirectory()
         root = Path(self.dir.name)
         (root / "bin").mkdir()
-        for name, text in (("az", FAKE_AZ), ("docker", FAKE_DOCKER)):
+        for name, text in (("az", FAKE_AZ), ("docker", FAKE_DOCKER), ("git", FAKE_GIT)):
             path = root / "bin" / name
             path.write_text(text.format(python=sys.executable))
             path.chmod(0o755)
@@ -123,8 +167,12 @@ class PickupTests(unittest.TestCase):
         self.assertIn("JIDOKA_STORY=https://dev.azure.com/Contoso/Book%20ings/_workitems/edit/7", call)
         self.assertIn("JIDOKA_SCHEDULED=1", call)
         self.assertIn("JIDOKA_REPO=https://example.invalid/r.git", call)
+        self.assertIn("JIDOKA_OUT=/jidoka-out", call)
+        mount = call[call.index("-v") + 1]
+        self.assertTrue(mount.startswith(str(self.state_dir / "runs" / "7-")), mount)
+        self.assertTrue(mount.endswith(".out:/jidoka-out"), mount)
         self.assertEqual(call[-1], "jidoka-runner")
-        logs = list((self.state_dir / "runs").iterdir())
+        logs = list((self.state_dir / "runs").glob("*.log"))
         self.assertEqual(len(logs), 1)
         self.assertTrue(logs[0].name.startswith("7-"))
         self.assertIn("line run output", logs[0].read_text())
@@ -197,6 +245,52 @@ class PickupTests(unittest.TestCase):
         self.assertIn("would run 7 'Older': docker run --rm", out)
         self.assertEqual(self.docker_calls(), [])
         self.assertFalse(self.state_dir.exists())
+
+    def test_a_broken_base_holds_its_stories_until_it_moves(self):
+        stories = [item(7, "jidoka-ready", "2026-11-05T10:00:00Z", "On main"),
+                   item(8, "jidoka-ready", "2026-11-06T10:00:00Z", "Also on main"),
+                   item(9, "jidoka-ready", "2026-11-07T10:00:00Z", "On a release line")]
+        show = {"7": shown(7), "8": shown(8, base="main"), "9": shown(9, base="release/2.3")}
+        # 7's run stops on its base, before the claim: the story stays ready.
+        self.serve(stories, show=show, heads={"main": SHA1}, base_red=f"main {SHA1}")
+        code, out = self.run_pickup()
+        self.assertEqual(code, 0, out)
+        self.assertIn(f"base main is broken at {SHA1[:12]}", out)
+        # Not a failure: nothing in failures.json, so only the hold keeps 7 back.
+        self.assertEqual(json.loads((self.state_dir / "failures.json").read_text()), {})
+        # 7 (the default branch) and 8 (Base: main) wait; 9 is on another base.
+        self.serve(stories, show=show, heads={"main": SHA1})
+        code, out = self.run_pickup()
+        self.assertIn("held: base main", out)
+        self.assertIn("waiting until it moves: 7, 8", out)
+        [call] = self.docker_calls()
+        self.assertIn("edit/9", " ".join(call))
+        # Once main moves, its stories run again, oldest first.
+        self.serve(stories, show=show, heads={"main": SHA2})
+        code, out = self.run_pickup()
+        self.assertIn("base main moved", out)
+        self.assertIn("edit/7", " ".join(self.docker_calls()[-1]))
+        self.assertEqual(json.loads((self.state_dir / "holds.json").read_text()), {})
+
+    def test_a_hold_ends_after_retry_hours_when_the_remote_cannot_be_seen(self):
+        stories = [item(7, "jidoka-ready", "2026-11-05T10:00:00Z")]
+        self.serve(stories, show={"7": shown(7)}, base_red=f"main {SHA1}")
+        self.run_pickup()
+        self.serve(stories, show={"7": shown(7)}, git_fails=True)
+        code, out = self.run_pickup()
+        self.assertIn("nothing to do", out)
+        self.assertIn("or on a held base", out)
+        self.assertEqual(self.docker_calls(), [])
+        code, out = self.run_pickup("--retry-hours", "0")
+        self.assertIn("tried again", out)
+        self.assertEqual(len(self.docker_calls()), 1)
+
+    def test_a_hand_back_that_is_not_a_base_and_commit_is_ignored(self):
+        self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")], base_red="main not-a-commit")
+        code, out = self.run_pickup()
+        self.assertEqual(code, 0)
+        self.assertNotIn("is broken", out)
+        self.assertFalse((self.state_dir / "holds.json").exists())
 
     def test_a_stale_claim_is_reported_and_left_alone(self):
         self.serve([

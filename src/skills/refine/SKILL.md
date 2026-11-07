@@ -107,6 +107,14 @@ alone, so settle it here.
      Collect what the questions will need: where the story and the code
      disagree, the error envelope, sibling endpoints and screens,
      conventions, test patterns, seed users.
+   - Find the branches the story could land on, for the Dev Lead's base
+     question: the default branch
+     (`git symbolic-ref --short refs/remotes/origin/HEAD`), and the release
+     lines when a `lines.tsv` sits in a folder above the repository (an agent
+     harness). Its `# line env <repo>...` header names a column per
+     repository: this repository's is the one named like its folder, and a
+     cell's first branch is the line's. A line whose branch is missing from
+     the remote is not a choice; say so.
    - No source code yet (`project-setup`'s Step 1 says what counts): the
      Dev Lead's questions include the stack. Use `project-setup`'s Step 2
      questions when that skill is installed. Otherwise ask in plain words for
@@ -199,7 +207,9 @@ another day, starts from the record and not from your memory.
    writing rules. Those rules come from a handoff to an agent with no
    context: decisions, not discussion; behaviour, not procedure; no file
    paths; every rule written out, never only referenced; no secrets and no
-   real people's data.
+   real people's data. A story landing on a branch other than the default
+   gets a `Base:` line in section 10 naming that branch, never the release
+   line; the decisions log names the line it was chosen for.
 3. `agreement.py check {file}` until it prints `OK`.
 4. **`ado`:** `agreement.py push {working copy}`. After a push, the working
    copy holds what the work item reads back: that text is what the roles

@@ -7,9 +7,17 @@ Each call starts at most one run:
 
 1. It takes this machine's lock, so one machine runs one story at a time.
 2. It finds the stories tagged jidoka-ready in one Azure DevOps project,
-   oldest first, skipping any whose run failed here within --retry-hours.
+   oldest first, skipping any whose run failed here within --retry-hours,
+   and any whose base is held (below).
 3. It starts a fresh container that runs the line on the first of them, and
    kills it after --max-hours.
+
+A run that finds the story's base broken (the line's base stop, before the
+claim) writes the base and its commit to the folder mounted at
+$JIDOKA_OUT. The pick-up then holds every story on that base: each would
+stop the same way. A hold ends when the branch moves (git ls-remote on
+--repo), or after --retry-hours: the machine may not see the remote, and the
+failure may have been the environment's.
 
 The line claims the story itself, a write Azure DevOps refuses if anyone got
 there first, so two machines racing never build one story twice. A story left
@@ -23,7 +31,8 @@ over.
 The container is the runner image (runner/Dockerfile beside this script),
 which skips Claude Code's permission prompts; nothing else does. --env-file
 holds its credentials (see runner/run-story.sh). Each run's output goes to
-{state dir}/runs/{id}-{time}.log. Linux or macOS: the lock is flock(2).
+{state dir}/runs/{id}-{time}.log, and what it hands back to
+{state dir}/runs/{id}-{time}.out/. Linux or macOS: the lock is flock(2).
 
 Exit status: 0 nothing to do, another pick-up holds the lock, or the run ended
 0; 1 the run failed, ended non-zero or ran out of time; 2 bad usage, or az or
@@ -31,8 +40,10 @@ docker unusable.
 """
 
 import argparse
+import contextlib
 import datetime
 import fcntl
+import importlib.util
 import json
 import os
 import re
@@ -43,6 +54,10 @@ import sys
 from urllib.parse import quote
 
 READY, RUNNING = "jidoka-ready", "jidoka-running"
+OUT = "/jidoka-out"  # where a run's container sees its hand-back folder
+BASE_RED = re.compile(r"^(\S+) ([0-9a-f]{40})$")
+AGREEMENT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "..", "refine", "scripts", "agreement.py")
 WIQL = (
     "SELECT [System.Id], [System.Title], [System.Tags], [System.ChangedDate] FROM workitems "
     "WHERE [System.TeamProject] = @project AND [System.Tags] CONTAINS '{tag}' "
@@ -108,7 +123,7 @@ def take_lock(path):
     return handle
 
 
-def load_failures(path):
+def load_json(path):
     try:
         with open(path) as handle:
             return json.load(handle)
@@ -116,20 +131,82 @@ def load_failures(path):
         return {}
 
 
-def save_failures(path, failures):
+def save_json(path, data):
     with open(path + ".tmp", "w") as handle:
-        json.dump(failures, handle, indent=1)
+        json.dump(data, handle, indent=1)
     os.replace(path + ".tmp", path)
 
 
-def run_command(args, url, name):
+def run_command(args, url, name, out_dir):
     command = [args.docker, "run", "--rm", "--name", name]
     if args.env_file:
         command += ["--env-file", args.env_file]
     for key, value in (("JIDOKA_SCHEDULED", "1"), ("JIDOKA_STORY", url),
-                       ("JIDOKA_REPO", args.repo), ("JIDOKA_HOST", socket.gethostname())):
+                       ("JIDOKA_REPO", args.repo), ("JIDOKA_HOST", socket.gethostname()),
+                       ("JIDOKA_OUT", OUT)):
         command += ["-e", f"{key}={value}"]
-    return command + [args.image]
+    return command + ["-v", f"{out_dir}:{OUT}", args.image]
+
+
+def story_url(org, project, story_id):
+    return f"{org}/{quote(project)}/_workitems/edit/{story_id}"
+
+
+def agreement_module():
+    """refine's agreement.py, the one parser of the agreement."""
+    spec = importlib.util.spec_from_file_location("agreement", AGREEMENT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def story_base(agreement, url):
+    """The branch the story's section 10 names, or None for the default
+    branch. A story that cannot be read counts as on no held base: its run
+    checks the base itself."""
+    try:
+        return agreement.base_of(agreement.from_work_item(agreement.show(url))) or None
+    except Exception as err:  # az, or an agreement the parser rejects
+        print(f"could not read the base of {url} ({err}); not holding it")
+        return ""
+
+
+def remote_head(repo, branch):
+    """The branch's commit on the remote, None if it is gone, or "" when the
+    remote cannot be asked (no credentials here, no network)."""
+    try:
+        done = subprocess.run(["git", "ls-remote", repo, f"refs/heads/{branch}"],
+                              capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if done.returncode != 0:
+        return ""
+    line = done.stdout.split("\n", 1)[0]
+    return line.split("\t", 1)[0] if line else None
+
+
+def release_holds(args, holds, now):
+    """Drop the holds whose base moved, or that have waited --retry-hours."""
+    for base, hold in list(holds.items()):
+        head = remote_head(args.repo, base)
+        since = parse_time(hold.get("since", ""))
+        if head is None or (head and head != hold.get("sha")):
+            print(f"base {base} moved: its stories run again")
+        elif not since or (now - since).total_seconds() >= args.retry_hours * 3600:
+            print(f"base {base} has been held {args.retry_hours} hours: its stories are tried again")
+        else:
+            continue
+        del holds[base]
+
+
+def hand_back(out_dir):
+    """(base, commit) when the run stopped on a broken base, else None."""
+    try:
+        with open(os.path.join(out_dir, "base-red")) as handle:
+            found = BASE_RED.match(handle.readline().strip())
+    except OSError:
+        return None
+    return found.groups() if found else None
 
 
 def main(argv=None):
@@ -143,7 +220,8 @@ def main(argv=None):
     parser.add_argument("--stale-hours", type=float, default=6,
                         help="report a story jidoka-running this long without a change")
     parser.add_argument("--retry-hours", type=float, default=2,
-                        help="skip a story whose run failed here this recently")
+                        help="skip a story whose run failed here this recently, and hold a broken "
+                             "base at most this long")
     parser.add_argument("--max-hours", type=float, default=6,
                         help="kill a run that takes longer than this")
     parser.add_argument("--docker", default="docker", help="docker, or podman")
@@ -166,7 +244,9 @@ def main(argv=None):
 def pick_and_run(args, org):
     now = datetime.datetime.now(datetime.timezone.utc)
     failures_path = os.path.join(args.state_dir, "failures.json")
-    failures = load_failures(failures_path)
+    failures = load_json(failures_path)
+    holds_path = os.path.join(args.state_dir, "holds.json")
+    holds = load_json(holds_path)
     try:
         for story_id, title, changed in stories(org, args.project, RUNNING):
             when = parse_time(changed)
@@ -187,18 +267,48 @@ def pick_and_run(args, org):
     ready = [s for s in ready if s[0] not in waiting]
     if waiting:
         print(f"waiting after a failed run here: {', '.join(map(str, waiting))}")
-    if not ready:
-        print(f"nothing to do: no story is tagged {READY}" + (" that is not waiting" if waiting else ""))
+    if holds:
+        release_holds(args, holds, now)
+        if not args.dry_run:
+            save_json(holds_path, holds)
+    agreement = agreement_module() if holds and ready else None
+    pick, held = None, {}
+    for story_id, title, _ in ready:
+        url = story_url(org, args.project, story_id)
+        if agreement:
+            base = story_base(agreement, url)
+            if base is None:
+                # No Base: line: the default branch, held under the name the
+                # run that found it broken reported.
+                on = next((b for b, h in holds.items() if h.get("default")), None)
+            else:
+                on = base or None  # "": unreadable, so it holds nothing
+            if on in holds:
+                held.setdefault(on, []).append(story_id)
+                continue
+        pick = (story_id, title, url)
+        break
+    for base, ids in held.items():
+        print(f"held: base {base} was broken at {holds[base]['sha'][:12]}; "
+              f"waiting until it moves: {', '.join(map(str, ids))}")
+    if not pick:
+        reason = " that is not waiting" if waiting else ""
+        reason += " or on a held base" if held else ""
+        print(f"nothing to do: no story is tagged {READY}{reason}")
         return 0
-    story_id, title = ready[0][:2]
-    url = f"{org}/{quote(args.project)}/_workitems/edit/{story_id}"
+    story_id, title, url = pick
     stamp = now.strftime("%Y%m%dT%H%M%SZ")
     name = f"jidoka-{story_id}-{stamp.lower()}"
-    command = run_command(args, url, name)
+    out_dir = os.path.join(args.state_dir, "runs", f"{story_id}-{stamp}.out")
+    command = run_command(args, url, name, out_dir)
     if args.dry_run:
         print(f"would run {story_id} '{title}': {' '.join(command)}")
         return 0
     log = os.path.join(args.state_dir, "runs", f"{story_id}-{stamp}.log")
+    os.makedirs(out_dir, exist_ok=True)
+    os.chmod(out_dir, 0o777)  # the container's user need not be this one
+    with contextlib.suppress(FileNotFoundError):  # a run in the same second
+        os.remove(os.path.join(out_dir, "base-red"))
     print(f"running {story_id} '{title}', log {log}")
     try:
         with open(log, "w") as out:
@@ -216,7 +326,15 @@ def pick_and_run(args, org):
         failures.pop(str(story_id), None)
     else:
         failures[str(story_id)] = now.isoformat()
-    save_failures(failures_path, failures)
+    save_json(failures_path, failures)
+    red = hand_back(out_dir)
+    if red:
+        base, sha = red
+        agreement = agreement or agreement_module()
+        holds[base] = {"sha": sha, "since": now.isoformat(),
+                       "default": story_base(agreement, url) is None}
+        save_json(holds_path, holds)
+        print(f"base {base} is broken at {sha[:12]}: its stories wait until it moves")
     if code is None:
         print(f"{story_id} ran past {args.max_hours} hours and was stopped")
         return 1
