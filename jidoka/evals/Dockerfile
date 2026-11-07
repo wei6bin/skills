@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # Runner image for `just eval-claude`: Claude Code plus what its Linux Bash
 # sandbox needs (bubblewrap, socat) and what a story's checks reach for (git,
-# Node, curl, and the .NET SDK the greenfield scaffold builds with).
+# Node, curl, Python for the refine skill's agreement script, and the .NET SDK
+# the greenfield scaffold builds with).
 # Running the eval here keeps it off the host, so the host's Docker credential
 # store and any other machine state cannot block or leak into it.
 #
@@ -11,7 +12,7 @@
 FROM node:22-bookworm-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends bubblewrap socat git curl ca-certificates \
+ && apt-get install -y --no-install-recommends bubblewrap socat git curl ca-certificates python3 \
  && rm -rf /var/lib/apt/lists/*
 
 ARG CLAUDE_CODE_VERSION=latest

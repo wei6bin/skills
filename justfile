@@ -102,13 +102,13 @@ smoke-claude *args:
 
 # ---- eval ----------------------------------------------------------------------
 
-# every eval case end to end, a /jidoka:line run each: HOST, ARGS, EVAL_ENV, EXTRA_CA
+# every eval case end to end, a /jidoka:line or /jidoka:refine run each: HOST, ARGS, EVAL_ENV, EXTRA_CA
 [group('eval')]
 eval-claude *args: (_eval-image HOST)
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p jidoka/evals/results
-    # --ablation none: a no-plugin arm cannot run /jidoka:line, it would only
+    # --ablation none: a no-plugin arm cannot run a jidoka skill, it would only
     # double the cost. --scaffold and --trust-plugin: the fixtures and the plugin
     # are this repo's own. --allow-tools: the workflow edits files and runs git,
     # npm and dotnet, and fetches only from eval_domains.

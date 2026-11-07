@@ -397,10 +397,17 @@ def render_workers(out, agents):
         write_text(dest, render_worker(agent))
 
 
+def is_bytecode(path):
+    """Python's import cache, which `just test` leaves beside a skill script it
+    imports. Never source: rendering it would make `just check` fail whenever
+    the tests ran first, as they do in CI."""
+    return "__pycache__" in path.parts or path.suffix == ".pyc"
+
+
 def render_skills(out):
     skills_root = SRC / "skills"
     for src_file in sorted(skills_root.rglob("*")):
-        if src_file.is_dir():
+        if src_file.is_dir() or is_bytecode(src_file.relative_to(skills_root)):
             continue
         rel = src_file.relative_to(skills_root)
         dest = out / PLUGIN / "skills" / rel
@@ -511,7 +518,7 @@ def relative_files(base):
     return {
         p.relative_to(base).as_posix(): p.read_bytes()
         for p in sorted(base.rglob("*"))
-        if p.is_file()
+        if p.is_file() and not is_bytecode(p.relative_to(base))
     }
 
 
