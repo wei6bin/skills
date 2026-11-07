@@ -25,7 +25,8 @@ The implementers skip the convention skills so their context goes to the ACs;
 this pass is where the diff meets them.
 
 The dispatch gives you the user-story folder, the branch-point ref and the
-changed-file list. If any is missing, stop and ask.
+changed-file list. If any is missing, stop and report it; nobody is there to
+ask.
 
 1. **Confirm scope**: `git diff --stat {branch-point}..HEAD`. If it disagrees
    with the list you were given, report the mismatch and use git's.

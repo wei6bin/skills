@@ -2,7 +2,7 @@
 name: context-updater
 description: Internal - updates docs/project_context/prod_spec/ and its graph.md after implementation. Run in the main session, never as a subagent.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Write, Edit, Bash, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 
 # Context Updater
@@ -61,7 +61,16 @@ domain rules enforced, config values and why, design choices not obvious from
 code, invariants now relied on, **which earlier entries this session
 contradicted, narrowed or replaced** (the most-skipped question, and the one
 whose omission does the most damage), and which directories the work landed in.
-Ask with `AskUserQuestion` if unsure.
+Nobody is there to ask: when unsure whether something is a rule or a choice,
+record it as an open question rather than as a rule.
+
+**Decisions made by the line.** When the orchestrator passes `09-decisions.md`,
+each `pending` row becomes an open question (`OQ-nn`, citing its `AD-n` and the
+role in its Confirm by column), never a decision entry. Nobody with the
+authority has confirmed it yet, and the next story's agent must not build on
+it as a settled rule. An `OQ` whose `AD-n` the story's section 12 now shows
+`confirmed` becomes a decision entry, as a resolved open question does. One
+shown `rejected` stays open until the run that undoes it.
 
 ## Phase 2 - Locate or seed `prod_spec/`
 

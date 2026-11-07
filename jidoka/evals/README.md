@@ -38,37 +38,50 @@ as a private artifact unless you pass `--no-publish`.
 The smallest story that still crosses all ten phases. `scaffold.sh` turns the
 empty run workspace into a one-commit git repo of `fixture/` (an in-memory
 notes API on `node:http` with a `node:test` suite, no dependencies, no remote).
-The prompt types `/jidoka:line` with USR-001, "Delete a note", two acceptance
-criteria on one backend endpoint, so the story classifies as `one-layer`.
+The commit also holds `docs/stories/usr-001-delete-note.md`: USR-001, "Delete
+a note", as a signed, `jidoka-ready` agreement. It has two ACs on one backend
+endpoint (so it classifies as `one-layer`) and `Exit: merge`. The scaffold
+signs it with the refine skill's `agreement.py`, so its hashes are real. The
+prompt types `/jidoka:line` on that file, and nothing stands in for a
+developer: the agreement holds every decision, and a question in the run is a
+failure.
 
 The graders check three things:
 
-- **Dispatches**: every phase's agent or skill was called (context builder,
-  explorer, worktree, architect, plan reviewer, backend implementer, simplify,
-  code and security reviewers, context updater, walker, raise-pr), no frontend
-  implementer was, and they ran in the line's order.
-- **End state on `main`**: the plan documents `00`-`07` under
-  `docs/new-feature/usr-001-delete-note/` with an `ALL_GREEN` walkthrough and
-  a ledger with nothing pending, the endpoint and its tests, the project
-  context and product knowledge, `BACKLOG.md` closed with a commit, no
-  worktree left. These paths exist on `main` only after the local merge.
+- **Dispatches**: the claim (`agreement.py claim`), every phase's agent or
+  skill (context builder, explorer, worktree, architect, plan reviewer,
+  backend implementer, simplify, code and security reviewers, context updater,
+  walker, raise-pr), no frontend implementer, all in the line's order.
+- **End state on `main`**, under `docs/new-feature/usr-001-delete-a-note/` (the
+  slug the script derives from the title):
+  - `story.md` carrying its hash;
+  - the plan documents `00`-`07`, with an `ALL_GREEN` walkthrough and a
+    ledger with nothing pending;
+  - `09-decisions.md`;
+  - `10-summary.md`, with a row per AC.
+
+  Beyond the plan folder: the endpoint and tests citing `AC-1` and `AC-2`,
+  the project context and product knowledge, the story file at
+  `Status: jidoka-done`, `BACKLOG.md` closed with a commit, and no worktree
+  left. These paths exist on `main` only after the local merge.
 - **Judged**: the merged endpoint and tests meet both ACs, and the run ended
   finished rather than on a question.
 
 Not covered: the frontend half, whole-story integration and a Playwright
-walkthrough (the fixture has no UI), opening a PR on a real host, and the
-refactor tier.
+walkthrough (the fixture has no UI), opening a PR on a real host, Azure
+DevOps, and the refactor tier.
 
 ## line-greenfield-scaffold
 
-The new-project branch. `scaffold.sh` leaves an empty git repository on `main`
-with an identity and no commits, and the prompt asks `/jidoka:line` to set up
-a project with no story. The case's system prompt answers the setup questions
-(both layers, the development password stub, the Neutral look, merge locally).
-The run scaffolds a real .NET + React skeleton, so its Bash needs the npm and
-NuGet registries: the justfile grants them (`eval_domains`), since a run's Bash
-has no network beyond the domains the operator grants and a case cannot grant
-any itself.
+The new-project branch. `scaffold.sh` leaves a git repository on `main` with
+an identity, no remote and no source code. Its one commit is TN-000, "Set up
+TeamNotes": a signed setup agreement with no ACs and a `Stack:` line holding
+the Dev Lead's answers (both layers, the development password stub, the
+Neutral look, merge locally). The prompt types `/jidoka:line` on it, and
+`project-setup` reads those answers instead of asking. The run scaffolds a
+real .NET + React skeleton, so its Bash needs the npm and NuGet registries.
+The justfile grants them (`eval_domains`), since a run's Bash has no network
+beyond the domains the operator grants and a case cannot grant any itself.
 
 The graders check that the `project-setup` skill ran before it dispatched the
 `project-scaffolder` agent, and that the agent's own steps happened in order
@@ -79,7 +92,8 @@ state on `main` (solution, API with the session ticket store, CSRF middleware
 and an `InitialCreate` migration, the pinned dev port, the frontend's stack,
 gate scripts, dev proxy and CSRF-sending client, both test suites, the project
 context, a README naming the dev login, no worktree); and, judged, the sign-in
-page and a final message that reports the gates and the proxy smoke green.
+page and a final message that reports the gates and the proxy smoke green. The
+setup story ends at `Status: jidoka-done`.
 
 No grader runs a command, so the gates themselves are not re-run here; the
 orchestrator's own evidence check and smoke are what the last-message grader
@@ -96,6 +110,47 @@ The run's workspace root holds placeholder dotfiles the agent cannot read
 the worktree; the case's system prompt says to pass
 `-p:EnableSourceControlManagerQueries=false` there. Real repositories have no
 such files.
+
+## line-not-ready and line-changed-after-signoff
+
+The claim's two refusals, a few minutes each. Both start from the
+line-minimal-story repo (each scaffold calls that one) and make one commit:
+
+- `line-not-ready` puts USR-001 back to `Status: draft`, a story that never
+  went through refinement.
+- `line-changed-after-signoff` edits AC-1 after the three sign-offs, as an
+  edit made straight in the tracker would, so its hash no longer matches.
+
+The graders check that the claim ran and that nothing else did:
+
+- no agent dispatched;
+- no worktree and no story branch;
+- the story file untouched.
+
+Judged, the last message names the reason and points at `/jidoka:refine`.
+
+## line-andon-stop
+
+An andon stop. The scaffold adds `Stop also on: any change to the note
+store` to USR-001's autonomy policy and has all three roles sign again.
+Deleting a note needs such a change, since the store has no delete, so the
+line must stop before implementing.
+
+The graders check the stop:
+
+- no backend implementer dispatched;
+- `story.md`, `andon.md` (about the store) and an open row in the ledger's
+  `## Andon` table, all on the branch, in the kept worktree
+  `.worktrees/usr-001-delete-a-note/`;
+- the branch's copy of the story file at `Status: jidoka-blocked`;
+- the store untouched on the branch and on `main`.
+
+Judged, the last message names the question and its owner, and says to answer
+it with `/jidoka:refine`.
+
+Not covered: the resumed run. An eval run is one session, so answering the
+question and running the line again would need a second one;
+`scripts/test_agreement.py` covers `compare`, which the resume rests on.
 
 ## refine-three-roles
 
@@ -125,12 +180,10 @@ passes, a change after sign-off, and confirming a line run's decisions.
 
 ## Running it headless
 
-- `AskUserQuestion` is not offered in an eval run, so `line` would end its turn
-  at the first checkpoint, and `refine` would wait on its first round. The
-  line cases' `append_system_prompt` stands in for the developer: it
-  pre-answers the plan folder, the slice list and the exit action (merge
-  locally), and tells the session to take its own recommendation everywhere
-  else. `refine-three-roles` does the same for its three roles.
+- `AskUserQuestion` is not offered in an eval run. The line asks nothing, so
+  the line cases have no stand-in: their stories are signed agreements. Only
+  `refine-three-roles` needs one, and its `append_system_prompt` plays the
+  three people in the room.
 - `jidoka/` has no `plugin.json`, so the case sets `plugins: ["../.."]` to
   load it.
 - A Bash-granting eval refuses to start while the host's Docker credential
@@ -144,4 +197,5 @@ passes, a change after sign-off, and confirming a line run's decisions.
   `systempaths=unconfined`. The repo is mounted read-only; only `results/` is
   writable.
 - One run is a full workflow: up to an hour (the case's `timeout_seconds`) and
-  a few dollars across the orchestrator and nine subagents.
+  a few dollars across the orchestrator and nine subagents. The two refusal
+  cases take minutes.

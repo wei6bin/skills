@@ -1,0 +1,71 @@
+# End-to-end check of the line's hash gate: USR-001 is tagged jidoka-ready, but
+# AC-1 was edited after the three sign-offs, so its hash no longer matches.
+# The claim must refuse it before any branch, worktree or agent exists.
+schema_version: "1.1"
+name: line-changed-after-signoff
+description: /jidoka:line refuses a jidoka-ready story whose agreement changed after sign-off
+tags: [e2e, line, gate]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  No branch, worktree or agent dispatch; the story file is unchanged; the
+  last message says the agreement changed after it was signed and points at
+  /jidoka:refine.
+
+execution:
+  model: opus
+  max_turns: 30
+  timeout_seconds: 900
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # No append_system_prompt: nobody stands in for anyone, and the line must
+  # ask nothing.
+  prompt: |
+    /jidoka:line docs/stories/usr-001-delete-note.md
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+  - name: claim-attempted
+    type: tool_used
+    tool: Bash
+    input_match: "agreement.py claim"
+  # --- Refused before any work: no agent, no worktree, no branch ------------
+  - name: nothing-dispatched
+    type: tool_used
+    tool: Agent
+    min: 0
+    max: 0
+  - name: no-worktree
+    type: file_exists
+    path: ".worktrees/**"
+    exists: false
+  - name: no-story-branch
+    type: file_exists
+    path: ".git/refs/heads/usr-001-delete-a-note"
+    exists: false
+  - name: story-file-untouched
+    type: regex
+    target: { source: file, path: docs/stories/usr-001-delete-note.md }
+    pattern: "^Status: jidoka-ready$"
+    flags: m
+  - name: refusal-points-at-refine
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of /jidoka:line run on story USR-001, which
+      is tagged jidoka-ready but whose AC-1 was edited after BA, Dev Lead and
+      QE signed it.
+      PASS if it refuses to build it because the agreement changed after
+      sign-off (the hash no longer matches what was signed), and points at
+      /jidoka:refine for the roles to sign again.
+      FAIL if it builds or plans the story, treats the edit as signed, asks a
+      question and waits for an answer, or does not name /jidoka:refine.

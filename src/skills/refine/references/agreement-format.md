@@ -113,10 +113,14 @@ None.
 
 - **Tracker** - `file`, or `ado` followed by a space and the work item's web
   URL.
-- **Status** - `draft`, `jidoka-ready`, `jidoka-running`, `jidoka-pr` or
-  `jidoka-blocked`. On Azure DevOps it is the work item's one `jidoka-*` tag
-  (`pull` reads it, `status --set` writes it); in a file it is this line.
-  `refine` sets only `draft` and `jidoka-ready`; the other three are the line's.
+- **Status** - `draft`, `jidoka-ready`, `jidoka-running`, `jidoka-blocked`,
+  `jidoka-pr` or `jidoka-done`. On Azure DevOps it is the work item's one
+  `jidoka-*` tag (`pull` reads it, `status --set` writes it); in a file it is
+  this line. `refine` sets only `draft` and `jidoka-ready`; the rest are the
+  line's. A run claims `jidoka-ready` as `jidoka-running`, then ends at
+  `jidoka-pr` (a pull request opened), `jidoka-done` (merged) or
+  `jidoka-blocked` (stopped on a question, which refine answers before marking
+  the story ready again).
 - **Rev** - Azure DevOps only: the revision `pull` read. Every write sends it,
   and Azure DevOps refuses the write if anyone saved the work item since.
 
@@ -129,7 +133,7 @@ None.
 | 3 | BA | What happens after, from the user's side, edge cases included. Behaviour, not implementation. |
 | 4 | BA | Acceptance criteria, one row each (rules below). |
 | 5 | QE | For every active AC: a scenario, the evidence that proves it, the data it needs. Then the user roles and where test credentials are kept. |
-| 6 | Dev Lead | Contract decisions (paths, status codes, error shape), key interfaces, non-functional requirements, constraints, dependencies on other stories. For a new project, a `Stack:` line. |
+| 6 | Dev Lead | Contract decisions (paths, status codes, error shape), key interfaces, non-functional requirements, constraints, dependencies on other stories. For a new project or layer, one `Stack:` line, keyed as `project-setup`'s Step 2 defines. |
 | 7 | BA | What this story does not do, each with the story that does it when there is one. |
 | 8 | any | Questions, each with an owner, a severity and a status. |
 | 9 | any | Every decision taken in the session, with the alternatives turned down. |
@@ -202,6 +206,17 @@ sent, because the editor may rewrite the HTML.
 `agreement.py sign` writes a role's row at the current hash. Any later change
 to sections 1-11 changes the hash, and every role signs again; `check --ready`
 names each stale sign-off.
+
+## The line's snapshot
+
+`agreement.py claim` gives the line its copy of the agreement, `story.md`. It
+has the same text with three more metadata lines: `Source` (for a story file,
+its path in the repository), `Hash` (what was signed) and `Fetched` (when the
+copy was taken, in UTC). It is committed as the first commit on the story's
+branch and never edited. The line writes the story's status, its section 12
+and its comments through `agreement.py` with the snapshot as the handle. On a
+story file those writes go to the file at `Source`, on the branch; on Azure
+DevOps they go to the work item.
 
 ## Ready
 

@@ -19,6 +19,18 @@ same text.
   agreement.py check [--ready] FILE
   agreement.py html FILE                    the two fields push would write
 
+The line's commands, which take a snapshot (the story.md that claim writes):
+
+  agreement.py claim STORY -o FILE [--org ORG_URL]
+                                            a work item URL or id, or a story
+                                            file: refuse unless jidoka-ready,
+                                            mark it jidoka-running, write the
+                                            snapshot the line builds from
+  agreement.py compare OLD NEW              what changed, AC by AC
+  agreement.py record FILE --decisions MD   the line's decisions, to section 12
+  agreement.py comment FILE --file MD       a comment on the work item
+  agreement.py slug FILE                    the story's branch and folder name
+
 Exit status: 0 done, 1 problems found or a write refused, 2 bad usage or input.
 Needs Python 3.8+ and nothing else. Azure DevOps calls go through the az CLI
 (`az login`, with the azure-devops extension). Writes use `az rest`, because
@@ -62,8 +74,10 @@ AC_SECTION = 4
 SIGNED = range(1, 12)
 ROLES = ("BA", "Dev Lead", "QE")
 MODES = ("live", "own-account", "solo")
-STATES = ("draft", "jidoka-ready", "jidoka-running", "jidoka-pr", "jidoka-blocked")
-META_KEYS = ("Tracker", "Status", "Rev")
+STATES = ("draft", "jidoka-ready", "jidoka-running", "jidoka-pr", "jidoka-blocked", "jidoka-done")
+# Source, Hash and Fetched appear only in a snapshot: the copy `claim` writes
+# for the line, which names where the story lives and what was signed.
+META_KEYS = ("Tracker", "Status", "Rev", "Source", "Hash", "Fetched")
 TABLES = {
     4: ("ID", "Given", "When", "Then"),
     5: ("AC", "Scenario", "Evidence", "Data"),
@@ -90,7 +104,7 @@ SECRETS = (
 )
 
 HEADING = re.compile(r"^## (\d+)\. (.+?)\s*$")
-META = re.compile(r"^(Tracker|Status|Rev): *(.*)$")
+META = re.compile(r"^(Tracker|Status|Rev|Source|Hash|Fetched): *(.*)$")
 SEP_CELL = re.compile(r"^:?-{3,}:?$")
 FENCE = re.compile(r"^```")
 AC_ID = re.compile(r"^AC-(\d+)( \(removed\))?$")
@@ -888,13 +902,46 @@ def require_ready(agreement, state):
         raise Refused("not marked jidoka-ready: fix the problems above first")
 
 
+def is_snapshot(agreement):
+    return "Hash" in agreement.meta
+
+
+def story_file(agreement, path):
+    """The file that holds a file-tracker story: the snapshot's Source, or the
+    file itself. A snapshot is read-only; writes go to the story."""
+    if is_snapshot(agreement):
+        source = agreement.meta.get("Source", "")
+        if not source:
+            raise UsageError(f"{path} is a snapshot with no Source line")
+        return source
+    return path
+
+
+def set_tag(item, state):
+    """Swap the work item's one jidoka-* tag for state; refused on conflict."""
+    fields = item.get("fields", {})
+    org, story_id = work_item_target(from_work_item(item))
+    rev = int(item.get("rev") or fields.get("System.Rev", 0))
+    tags = [t.strip() for t in (fields.get("System.Tags") or "").split(";") if t.strip()]
+    tags = [t for t in tags if not t.lower().startswith("jidoka-")]
+    if state != "draft":
+        tags.append(state)
+    patch(org, story_id, [
+        {"op": "test", "path": "/rev", "value": rev},
+        {"op": "add", "path": "/fields/System.Tags", "value": "; ".join(tags)},
+    ])
+    return show(story_id, org)
+
+
 def cmd_status(args):
     agreement = load(args.file)
     if agreement.meta.get("Tracker") == "file":
-        require_ready(agreement, args.set)
-        agreement.meta["Status"] = args.set
-        save(agreement, args.file)
-        print(f"Status: {args.set}")
+        path = story_file(agreement, args.file)
+        story = load(path) if path != args.file else agreement
+        require_ready(story, args.set)
+        story.meta["Status"] = args.set
+        save(story, path)
+        print(f"Status: {args.set} ({path})")
         return 0
     # On a work item the gate reads the work item itself, not the local file:
     # a local edit that was never pushed is not what the roles signed. The
@@ -902,17 +949,231 @@ def cmd_status(args):
     org, story_id = work_item_target(agreement)
     item = show(story_id, org)
     require_ready(from_work_item(item), args.set)
-    rev = int(item.get("rev") or item.get("fields", {}).get("System.Rev", 0))
-    tags = [t.strip() for t in (item.get("fields", {}).get("System.Tags") or "").split(";") if t.strip()]
-    tags = [t for t in tags if not t.lower().startswith("jidoka-")]
-    if args.set != "draft":
-        tags.append(args.set)
-    patch(org, story_id, [
-        {"op": "test", "path": "/rev", "value": rev},
-        {"op": "add", "path": "/fields/System.Tags", "value": "; ".join(tags)},
-    ])
-    save(from_work_item(show(story_id, org)), args.file)
+    back = set_tag(item, args.set)
+    if not is_snapshot(agreement):
+        save(from_work_item(back), args.file)
     print(f"Status: {args.set}")
+    return 0
+
+
+def slug(agreement):
+    """The story's branch and plan-folder name, from its title: 'USR-001 -
+    Delete a note' is usr-001-delete-a-note. Every run derives the same one, so
+    a resumed run finds the branch an earlier run left."""
+    name = re.sub(r"[^a-z0-9]+", "-", agreement.title.lower()).strip("-")
+    if len(name) > 50:
+        name = name[:50].rsplit("-", 1)[0]
+    return name
+
+
+NOT_READY = {
+    "draft": "it has not been through refinement: run /jidoka:refine on it",
+    "jidoka-running": "another run holds it",
+    "jidoka-blocked": "a run stopped on a question; answer it through /jidoka:refine, which marks it ready again",
+    "jidoka-pr": "a run already opened its pull request",
+    "jidoka-done": "it is built and merged",
+}
+
+
+def refuse_unless_ready(agreement):
+    status = agreement.meta.get("Status", "")
+    if status != "jidoka-ready":
+        reason = NOT_READY.get(status, "its Status is not one the line knows")
+        raise Refused(f"not claimed: Status is '{status}', not jidoka-ready - {reason}")
+    problems = check(agreement, ready=True)
+    if problems:
+        report(problems, "")
+        raise Refused("not claimed: it is tagged jidoka-ready, but the agreement fails the ready check above")
+
+
+def repo_path(path):
+    """path relative to the root of the repository holding it, so the line's
+    later writes find the story from any worktree of that repository."""
+    folder = os.path.dirname(os.path.abspath(path))
+    try:
+        done = subprocess.run(["git", "-C", folder, "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True)
+        root = done.stdout.strip() if done.returncode == 0 else ""
+    except OSError:
+        root = ""
+    relative = os.path.relpath(os.path.abspath(path), root or os.getcwd())
+    return relative.replace(os.sep, "/")
+
+
+def cmd_claim(args):
+    fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+    story = args.story
+    if not ADO_URL.match(story) and not story.isdigit():
+        # A story file: nothing else can run it, so there is no claim to
+        # win; its Status changes on the story's branch as the run goes.
+        agreement = load(story)
+        if agreement.meta.get("Tracker") != "file":
+            raise UsageError(f"{story} is a copy of a work item: pass the work item URL instead")
+        refuse_unless_ready(agreement)
+        snapshot = parse(render(agreement))
+        snapshot.meta["Source"] = repo_path(story)
+    else:
+        item = show(story, args.org)
+        agreement = from_work_item(item)
+        refuse_unless_ready(agreement)
+        # The tag swap is refused if anyone saved the work item after the
+        # read above, so of two runs racing for one story, one loses here.
+        snapshot = from_work_item(set_tag(item, "jidoka-running"))
+        if digest(snapshot) != digest(agreement):
+            raise Refused("the agreement changed while it was being claimed: run again")
+    snapshot.meta["Status"] = "jidoka-running"
+    snapshot.meta["Hash"] = digest(snapshot)
+    snapshot.meta["Fetched"] = fetched
+    save(snapshot, args.output)
+    print(f"claimed {snapshot.title} at {snapshot.meta['Hash']}; slug {slug(snapshot)}; snapshot in {args.output}")
+    return 0
+
+
+def ac_map(agreement):
+    """{AC number: (active, its row, the section 5 rows that name it)}."""
+    evidence = rows_of(agreement, 5, [])
+    found = {}
+    for row in rows_of(agreement, 4, []):
+        match = AC_ID.match(row["ID"])
+        if match:
+            number = int(match.group(1))
+            named = [tuple(e.values()) for e in evidence if number in map(int, re.findall(r"AC-(\d+)", e["AC"]))]
+            found[number] = (not match.group(2), tuple(row.values())[1:], tuple(named))
+    return found
+
+
+def compare(old, new):
+    lines = []
+    if old.title != new.title:
+        lines.append(f"title changed: '{old.title}' -> '{new.title}'")
+    before, after = ac_map(old), ac_map(new)
+    for number in sorted(set(before) | set(after)):
+        was, now = before.get(number), after.get(number)
+        if was is None:
+            state = "added" if now[0] else "added as removed"
+        elif now is None:
+            state = "missing: AC ids are never dropped, so the agreement is broken"
+        elif was[0] and not now[0]:
+            state = "removed"
+        elif not was[0] and now[0]:
+            state = "restored"
+        elif was[1] != now[1]:
+            state = "changed"
+        elif was[2] != now[2]:
+            state = "evidence changed"
+        else:
+            state = "unchanged"
+        lines.append(f"AC-{number} {state}")
+    for number in SIGNED:
+        if number not in (4, 5) and old.body(number) != new.body(number):
+            lines.append(f"section {number} ({SECTIONS[number - 1]}) changed")
+    lines.append(f"hash {digest(old)} -> {digest(new)}")
+    return lines
+
+
+def cmd_compare(args):
+    print("\n".join(compare(load(args.old), load(args.new))))
+    return 0
+
+
+def read_line_decisions(path):
+    """The rows of the first table in path with section 12's columns."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = normalise(handle.read())
+    except OSError as err:
+        raise UsageError(f"cannot read {path}: {err.strerror}") from err
+    want = TABLES[12]
+    header = table_line(want)
+    lines = text.split("\n")
+    table = []
+    if header in lines:
+        for line in lines[lines.index(header):]:
+            if not line.startswith("|"):
+                break
+            table.append(line)
+    holder = Agreement(sections={12: "\n".join(table)})
+    problems = []
+    rows = rows_of(holder, 12, problems) if holder.body(12) else []
+    check_ids(rows, "AD", path, problems)
+    check_enum(rows, "Confirm by", ROLES, path, problems)
+    check_enum(rows, "Status", ("pending", "confirmed", "rejected"), path, problems)
+    if problems:
+        report(problems, "")
+        raise UsageError(f"{path}: fix the decisions table (columns {' | '.join(want)})")
+    return rows
+
+
+def merge_decisions(existing, new):
+    """New rows replace pending ones with the same ID and are appended
+    otherwise; a row a role already confirmed or rejected is kept as it is."""
+    rows = {row["ID"]: row for row in existing}
+    for row in new:
+        if rows.get(row["ID"], {}).get("Status", "pending") == "pending":
+            rows[row["ID"]] = row
+    ordered = sorted(rows.values(), key=lambda r: int(r["ID"].split("-")[1]))
+    if not ordered:
+        return NONE
+    lines = [table_line(TABLES[12]), table_line(["---"] * len(TABLES[12]))]
+    return "\n".join(lines + [table_line([row[c] for c in TABLES[12]]) for row in ordered])
+
+
+def cmd_record(args):
+    agreement = load(args.file)
+    new = read_line_decisions(args.decisions)
+    if agreement.meta.get("Tracker") == "file":
+        path = story_file(agreement, args.file)
+        story = load(path)
+        story.sections[12] = merge_decisions(rows_of(story, 12, []), new)
+        save(story, path)
+        print(f"section 12 of {path} holds {len(new)} decision(s) from this run")
+        return 0
+    org, story_id = work_item_target(agreement)
+    # Section 12 is outside the hash, so the merge is mechanical; on a
+    # conflict, read the work item again and redo it.
+    for attempt in range(3):
+        current = from_work_item(show(story_id, org))
+        current.sections[12] = merge_decisions(rows_of(current, 12, []), new)
+        problems = check(current)
+        if problems:
+            report(problems, "")
+            raise Refused("not recorded: the work item's agreement no longer passes the format check")
+        description, _ = to_fields(current)
+        try:
+            patch(org, story_id, [
+                {"op": "test", "path": "/rev", "value": int(current.meta["Rev"])},
+                {"op": "add", "path": f"/fields/{DESCRIPTION}", "value": description},
+            ])
+            break
+        except Refused:
+            if attempt == 2:
+                raise
+    print(f"section 12 of work item {story_id} holds {len(new)} decision(s) from this run")
+    return 0
+
+
+COMMENT_MARK = "<p><em>Written by jidoka:line.</em></p>"
+
+
+def cmd_comment(args):
+    agreement = load(args.file)
+    if agreement.meta.get("Tracker") == "file":
+        print("a story file has no discussion: the pull request or the run's report carries this")
+        return 0
+    try:
+        with open(args.text, encoding="utf-8") as handle:
+            text = handle.read()
+    except OSError as err:
+        raise UsageError(f"cannot read {args.text}: {err.strerror}") from err
+    org, story_id = work_item_target(agreement)
+    az("boards", "work-item", "update", "--id", story_id, "--org", org,
+       "--discussion", COMMENT_MARK + md_to_html(normalise(text).strip("\n")), "-o", "none")
+    print(f"commented on work item {story_id}")
+    return 0
+
+
+def cmd_slug(args):
+    print(slug(load(args.file)))
     return 0
 
 
@@ -1005,6 +1266,31 @@ def main(argv=None):
     p = sub.add_parser("html", help="print the two fields push would write")
     p.add_argument("file")
     p.set_defaults(run=cmd_html)
+
+    p = sub.add_parser("claim", help="the line's start: refuse unless ready, mark running, snapshot")
+    p.add_argument("story", help="work item URL, id with --org, or a story file")
+    p.add_argument("--org", help="organization URL, when the story is a bare id")
+    p.add_argument("-o", "--output", required=True)
+    p.set_defaults(run=cmd_claim)
+
+    p = sub.add_parser("compare", help="what changed between two agreements, AC by AC")
+    p.add_argument("old")
+    p.add_argument("new")
+    p.set_defaults(run=cmd_compare)
+
+    p = sub.add_parser("record", help="write the line's decisions into the story's section 12")
+    p.add_argument("file", help="the snapshot (or the story)")
+    p.add_argument("--decisions", required=True, help="a file with a section 12 table")
+    p.set_defaults(run=cmd_record)
+
+    p = sub.add_parser("comment", help="post a comment on the story's work item")
+    p.add_argument("file", help="the snapshot (or the story)")
+    p.add_argument("--file", dest="text", required=True, help="the comment, in Markdown")
+    p.set_defaults(run=cmd_comment)
+
+    p = sub.add_parser("slug", help="print the story's branch and folder name")
+    p.add_argument("file")
+    p.set_defaults(run=cmd_slug)
 
     args = parser.parse_args(argv)
     try:

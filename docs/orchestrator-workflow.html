@@ -236,7 +236,7 @@
   <div>
     <p class="eyebrow">jidoka plugin · docs/orchestrator-workflow.html</p>
     <h1>Orchestrator workflow</h1>
-    <p class="lede">The <code>line</code> skill drives a feature from a user story to a merged PR through 10 phases. Each phase dispatches helper subagents or invokes companion skills as needed. The diagram below maps phase → components → artifacts.</p>
+    <p class="lede">The <code>line</code> skill builds one signed story to a PR through 10 phases, unattended. The story's agreement comes from <code>/jidoka:refine</code>, where the BA, Dev Lead and QE settle every decision; nothing in the line asks a person. A gap it may close, it decides and records as a line decision (<code>AD-n</code>); anything else stops the line (andon) with a question on the story. Each phase dispatches helper subagents or invokes companion skills as needed. The diagram below maps phase → components → artifacts.</p>
   </div>
   <div class="legend">
     <span class="legend-title">Node colours</span>
@@ -249,9 +249,9 @@
 </header>
 
 <ol class="phases" aria-label="The 10 phases in order">
-  <li><b>01</b>Discovery</li>
+  <li><b>01</b>Readiness &amp; Claim</li>
   <li><b>02</b>Codebase Exploration</li>
-  <li><b>03</b>Clarifying Questions</li>
+  <li><b>03</b>Settle Against the Agreement</li>
   <li><b>04</b>Architecture &amp; Documents</li>
   <li><b>05</b>Finalize Documents</li>
   <li><b>06</b>Quality Review</li>
@@ -281,10 +281,11 @@
 <line class="lane" x1="0" y1="1454" x2="1500" y2="1454"/>
 <line class="lane" x1="0" y1="1564" x2="1500" y2="1564"/>
 <rect class="nd" x="20" y="8" width="180" height="36" rx="18.0"/>
-<text class="t" x="110.0" y="30.0" text-anchor="middle">Story, ticket or new project</text>
+<text class="t" x="110.0" y="30.0" text-anchor="middle">jidoka-ready story</text>
 <rect class="ph" x="20" y="82.0" width="180" height="48" rx="3"/>
 <text class="ph-n" x="34" y="112">01</text>
-<text class="ph-t" x="70" y="110.5">Discovery</text>
+<text class="ph-t" x="70" y="103.0">Readiness</text>
+<text class="ph-t" x="70" y="118.0">&amp; Claim</text>
 <path class="ln" d="M110,44 L110,82.0" marker-end="url(#arr)"/>
 <path class="ln" d="M200,106 L240,106" marker-end="url(#arr)"/>
 <rect class="ph" x="20" y="174.0" width="180" height="48" rx="3"/>
@@ -295,8 +296,8 @@
 <path class="ln" d="M200,198 L240,198" marker-end="url(#arr)"/>
 <rect class="ph" x="20" y="334.0" width="180" height="48" rx="3"/>
 <text class="ph-n" x="34" y="364">03</text>
-<text class="ph-t" x="70" y="355.0">Clarifying</text>
-<text class="ph-t" x="70" y="370.0">Questions</text>
+<text class="ph-t" x="70" y="355.0">Settle against</text>
+<text class="ph-t" x="70" y="370.0">the agreement</text>
 <path class="ln" d="M110,222.0 L110,334.0" marker-end="url(#arr)"/>
 <path class="ln" d="M200,358 L240,358" marker-end="url(#arr)"/>
 <rect class="ph" x="20" y="426.0" width="180" height="48" rx="3"/>
@@ -343,11 +344,11 @@
 <text class="t" x="110.0" y="1602.0" text-anchor="middle">Done</text>
 <path class="ln" d="M110,1524.0 L110,1580" marker-end="url(#arr)"/>
 <rect class="nd" x="240" y="84" width="200" height="44" rx="3"/>
-<text class="t" x="340.0" y="102.5" text-anchor="middle">Capture title, ACs,</text>
-<text class="t" x="340.0" y="117.5" text-anchor="middle">priority, ticket ID</text>
+<text class="t" x="340.0" y="102.5" text-anchor="middle">Claim if ready; worktree,</text>
+<text class="t" x="340.0" y="117.5" text-anchor="middle">story.md first commit</text>
 <rect class="nd skill" x="480" y="84" width="170" height="44" rx="3"/>
 <text class="t skill" x="565.0" y="102.5" text-anchor="middle">project-setup</text>
-<text class="t skill" x="565.0" y="117.5" text-anchor="middle">skill, if no code yet</text>
+<text class="t skill" x="565.0" y="117.5" text-anchor="middle">skill, reads Stack line</text>
 <path class="ln dot" d="M440,106 L480,106" marker-end="url(#arr)"/>
 <rect class="nd sub" x="690" y="84" width="190" height="44" rx="3"/>
 <text class="t sub" x="785.0" y="102.5" text-anchor="middle">project-scaffolder</text>
@@ -374,17 +375,17 @@
 <rect class="lb" x="349.0" y="226" width="69.4" height="16" rx="2"/>
 <text class="lt" x="353" y="238" text-anchor="start">bootstrap</text>
 <rect class="nd" x="240" y="336" width="220" height="44" rx="3"/>
-<text class="t" x="350.0" y="354.5" text-anchor="middle">Batch independent questions</text>
-<text class="t" x="350.0" y="369.5" text-anchor="middle">with recommended answer</text>
-<rect class="nd skill" x="240" y="428" width="190" height="44" rx="3"/>
-<text class="t skill" x="335.0" y="446.5" text-anchor="middle">git-worktrees skill</text>
-<text class="t skill" x="335.0" y="461.5" text-anchor="middle">isolate branch FIRST</text>
+<text class="t" x="350.0" y="354.5" text-anchor="middle">Decide and record (AD-n),</text>
+<text class="t" x="350.0" y="369.5" text-anchor="middle">or stop the line (andon)</text>
+<rect class="nd art" x="240" y="428" width="190" height="44" rx="3"/>
+<text class="t art" x="335.0" y="446.5" text-anchor="middle">story.md (Phase 1)</text>
+<text class="t art" x="335.0" y="461.5" text-anchor="middle">the signed agreement</text>
 <rect class="nd sub" x="470" y="428" width="250" height="44" rx="3"/>
 <text class="t sub" x="595.0" y="446.5" text-anchor="middle">1× code-architect</text>
 <text class="t sub" x="595.0" y="461.5" text-anchor="middle">designs AND writes the 6 docs</text>
 <path class="ln" d="M430,450 L470,450" marker-end="url(#arr)"/>
 <rect class="nd art" x="760" y="428" width="200" height="44" rx="3"/>
-<text class="t art" x="860.0" y="454.0" text-anchor="middle">docs/new-feature/{id}/</text>
+<text class="t art" x="860.0" y="454.0" text-anchor="middle">docs/new-feature/{slug}/</text>
 <path class="ln" d="M720,450 L760,450" marker-end="url(#arr)"/>
 <path class="ln" d="M960,450 L1000,450"/>
 <path class="ln" d="M1000,440 L1000,580"/>
@@ -419,8 +420,8 @@
 <text class="t sub" x="335.0" y="750.5" text-anchor="middle">2× plan-reviewer</text>
 <text class="t sub" x="335.0" y="765.5" text-anchor="middle">parallel subagents</text>
 <rect class="nd" x="240" y="824" width="180" height="44" rx="3"/>
-<text class="t" x="330.0" y="842.5" text-anchor="middle">Decisions, risks,</text>
-<text class="t" x="330.0" y="857.5" text-anchor="middle">next steps</text>
+<text class="t" x="330.0" y="842.5" text-anchor="middle">Log in chat,</text>
+<text class="t" x="330.0" y="857.5" text-anchor="middle">nobody waits</text>
 <rect class="grp" x="240" y="928" width="360" height="206" rx="4"/>
 <text class="mono" x="254" y="946">STEP 1 · IMPLEMENT ONLY</text>
 <text class="t" x="254" y="963">parallel-safe slices concurrent, one worktree each;</text>
@@ -504,18 +505,18 @@
 <text class="t" x="525.0" y="1504.0" text-anchor="middle">Run full test suite</text>
 <path class="ln" d="M400,1500 L440,1500" marker-end="url(#arr)"/>
 <polygon class="nd" points="730.0,1468 810,1500.0 730.0,1532 650,1500.0"/>
-<text class="t" x="730.0" y="1496.5" text-anchor="middle">Merge / PR /</text>
-<text class="t" x="730.0" y="1511.5" text-anchor="middle">keep / discard</text>
+<text class="t" x="730.0" y="1496.5" text-anchor="middle">Exit: PR</text>
+<text class="t" x="730.0" y="1511.5" text-anchor="middle">or merge</text>
 <path class="ln" d="M610,1500 L650,1500" marker-end="url(#arr)"/>
 <rect class="nd" x="850" y="1472" width="240" height="56" rx="3"/>
-<text class="t" x="970.0" y="1496.5" text-anchor="middle">Embed walkthrough</text>
-<text class="t" x="970.0" y="1511.5" text-anchor="middle">+ screenshots in PR body</text>
+<text class="t" x="970.0" y="1496.5" text-anchor="middle">10-summary.md: AC coverage,</text>
+<text class="t" x="970.0" y="1511.5" text-anchor="middle">line decisions, evidence</text>
 <path class="ln" d="M810,1500 L850,1500" marker-end="url(#arr)"/>
 <rect class="nd" x="1130" y="1478" width="170" height="44" rx="3"/>
-<text class="t" x="1215.0" y="1504.0" text-anchor="middle">Clean up worktree</text>
+<text class="t" x="1215.0" y="1504.0" text-anchor="middle">Clean up, close story</text>
 <path class="ln" d="M1090,1500 L1130,1500" marker-end="url(#arr)"/>
 </svg>
-    <figcaption>Phase → components → artifacts for one user story. Blue nodes are subagents dispatched via the task tool, orange nodes are skills invoked in the main session, purple nodes are files written to <code>docs/new-feature/{id}-{summary}/</code>.</figcaption>
+    <figcaption>Phase → components → artifacts for one user story. Blue nodes are subagents dispatched via the task tool, orange nodes are skills invoked in the main session, purple nodes are files written to <code>docs/new-feature/{slug}/</code>. At any gate, a fourth attempt or anything only a role can decide is an andon stop: <code>andon.md</code>, a draft PR, a question on the story, and the story marked <code>jidoka-blocked</code> until <code>/jidoka:refine</code> answers it.</figcaption>
   </figure>
 </section>
 
@@ -541,8 +542,8 @@
         </tr>
         <tr>
           <td><span class="type type-art"><i></i>Artifact <small>purple</small></span></td>
-          <td>The 6 plan files written by <code class="c c-sub">code-architect</code> in Phase 4, plus <code class="c c-art">06-walkthrough.md</code> + <code class="c c-art">screenshots/</code> from Phase 9 and the <code class="c c-art">07-progress.md</code> ledger created at Phase 4 confirmation and driven through Phase 8</td>
-          <td><code>docs/new-feature/{id}-{summary}/</code></td>
+          <td><code class="c c-art">story.md</code> (the signed agreement, Phase 1), the 6 plan files written by <code class="c c-sub">code-architect</code> in Phase 4, <code class="c c-art">09-decisions.md</code> (the line's own decisions), <code class="c c-art">06-walkthrough.md</code> + <code class="c c-art">screenshots/</code> from Phase 9, <code class="c c-art">10-summary.md</code> (the PR body) from Phase 10, and the <code class="c c-art">07-progress.md</code> ledger written in Phase 4 and driven through Phase 8</td>
+          <td><code>docs/new-feature/{slug}/</code></td>
         </tr>
       </tbody>
     </table>
@@ -562,10 +563,10 @@
       <tbody>
         <tr>
           <td class="n">1</td>
-          <td class="phase">Discovery</td>
-          <td><code class="c c-sub">project-scaffolder</code>, which dispatches <code class="c c-sub">impl-backend</code> + <code class="c c-sub">impl-frontend</code> (parallel, scope <code>project scaffold</code>), only when the folder has no source code or the user asks for a new project</td>
-          <td><code class="c c-skill">project-setup</code> (if no code yet: asks the stack options, freezes the contract); the implementers run <code class="c c-skill">aspnet-backend-scaffold</code> / <code class="c c-skill">react-frontend-scaffold</code></td>
-          <td>Captured ACs, ticket metadata, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase; on a new project, a verified walking skeleton and <code>docs/project_context/</code> on the base branch first</td>
+          <td class="phase">Readiness, Claim &amp; Worktree</td>
+          <td><code class="c c-sub">project-scaffolder</code>, which dispatches <code class="c c-sub">impl-backend</code> + <code class="c c-sub">impl-frontend</code> (parallel, scope <code>project scaffold</code>), only when the agreement's <code>Stack:</code> line sets up a new project or layer</td>
+          <td><code>agreement.py claim</code> (refuses unless <code>jidoka-ready</code> with every sign-off at the current hash; marks the story <code>jidoka-running</code>); <code class="c c-skill">project-setup</code> (reads the <code>Stack:</code> line, asks nothing, freezes the contract); <code class="c c-skill">git-worktrees</code> (branch named by the slug, or resume an existing one); the implementers run <code class="c c-skill">aspnet-backend-scaffold</code> / <code class="c c-skill">react-frontend-scaffold</code></td>
+          <td><code class="c c-art">story.md</code> as the branch's first commit, and the tier (<code>full-stack</code> / <code>one-layer</code> / <code>refactor</code>) that sizes every later phase; on a new project, a verified walking skeleton and <code>docs/project_context/</code> on the base branch first. A refused story gets no branch</td>
         </tr>
         <tr>
           <td class="n">2</td>
@@ -576,17 +577,17 @@
         </tr>
         <tr>
           <td class="n">3</td>
-          <td class="phase">Clarifying Questions</td>
+          <td class="phase">Settle Against the Agreement</td>
           <td class="none">-</td>
           <td class="none">-</td>
-          <td>Resolved decisions</td>
+          <td>Facts from the code, line decisions in <code class="c c-art">09-decisions.md</code>, or an andon stop</td>
         </tr>
         <tr>
           <td class="n">4</td>
           <td class="phase">Architecture Design &amp; Documents</td>
           <td>1× <code class="c c-sub">code-architect</code> (designs <strong>and writes</strong> the 6 docs directly - no orchestrator transcription, closing the old ~20-min gap)</td>
-          <td><code class="c c-skill">git-worktrees</code> (isolate, <strong>first</strong>), <code class="c c-skill">vertical-slicing</code> (slice shape + frozen per-slice contracts + the machine-readable dependency DAG), <code class="c c-skill">restful-api-design</code> (API-surface rules for any new or changed endpoint, applied while freezing the contract)</td>
-          <td>6 plan files in <code>docs/new-feature/{id}/</code>; slice list + frozen contracts + a <code>## Dependency graph</code> block in <code class="c c-art">04-task-plan.md</code> (authoritative edge table + waves + critical path)</td>
+          <td><code class="c c-skill">vertical-slicing</code> (slice shape + frozen per-slice contracts + the machine-readable dependency DAG), <code class="c c-skill">restful-api-design</code> (API-surface rules for any new or changed endpoint, applied while freezing the contract)</td>
+          <td>6 plan files in <code>docs/new-feature/{slug}/</code>, every AC covered by ID; slice list + frozen contracts + a <code>## Dependency graph</code> block in <code class="c c-art">04-task-plan.md</code> (authoritative edge table + waves + critical path)</td>
         </tr>
         <tr>
           <td class="n">5</td>
@@ -600,14 +601,14 @@
           <td class="phase">Quality Review</td>
           <td>2× <code class="c c-sub">plan-reviewer</code> (parallel); 1 for a one-layer feature; none for the refactor tier</td>
           <td class="none">-</td>
-          <td>Review findings, doc fixes</td>
+          <td>Review findings, doc fixes; the reviewers' verdict is the plan's only gate</td>
         </tr>
         <tr>
           <td class="n">7</td>
           <td class="phase">Summary</td>
           <td class="none">-</td>
           <td class="none">-</td>
-          <td>Hand-off briefing</td>
+          <td>A log in chat; nobody is waiting for it</td>
         </tr>
         <tr>
           <td class="n">8</td>
@@ -632,7 +633,7 @@
           <td class="phase">Branch Completion</td>
           <td class="none">-</td>
           <td><code class="c c-skill">raise-pr</code></td>
-          <td>PR (walkthrough + screenshots embedded) or merge + worktree cleanup</td>
+          <td><code class="c c-art">10-summary.md</code> (AC coverage by ID, the line's decisions, evidence) as the PR body or merge message; the story's section 12, a comment and <code>jidoka-pr</code> / <code>jidoka-done</code>; worktree cleanup</td>
         </tr>
       </tbody>
     </table>

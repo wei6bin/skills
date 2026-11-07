@@ -2,7 +2,7 @@
 name: frontend-styling-standard
 description: Internal - frontend styling standard (Ant Design, tokens, Biome). Invoked by impl-frontend.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Frontend styling standard
@@ -29,9 +29,13 @@ Tailwind actually installed (`@tailwind` / `tailwind.config`); what lints today;
 does CI actually run lint/tests on PRs (a standard nobody enforces is a
 suggestion).
 
-Reconcile the user's premise with reality before acting; "we use Tailwind" often
-means it is not installed. Use `AskUserQuestion` for the load-bearing forks:
-adopt Tailwind vs codify what exists; lint-only vs also replace the formatter.
+Reconcile the request's premise with reality before acting; "we use Tailwind"
+often means it is not installed. The load-bearing forks are adopting Tailwind
+or codifying what exists, and lint-only or also replacing the formatter. Take
+them from the story's agreement (the Dev Lead's section) or the project's own
+docs. When neither settles them, codify what exists and keep the formatter,
+the reversible choice, and report it under "Flagged" as a decision someone
+should confirm.
 
 ## Phase 1 - Write the standard
 

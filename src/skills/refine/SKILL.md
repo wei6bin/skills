@@ -94,7 +94,8 @@ alone, so settle it here.
    - No source code yet (`project-setup`'s Step 1 says what counts): the
      Dev Lead's questions include the stack. Use `project-setup`'s Step 2
      questions when that skill is installed, otherwise ask in plain words,
-     and record the answers on a `Stack:` line in section 6.
+     and record the answers on one `Stack:` line in section 6, in the form
+     that Step 2 shows. The line builds the skeleton from that line alone.
 
    Without a checkout, say so once. Mark any recommendation that would need
    the code "not checked against the code".

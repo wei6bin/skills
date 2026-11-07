@@ -14,8 +14,10 @@ against the running stack, and report. Spec-first: write the spec from the
 concrete demo steps and let Playwright drive; `agent-browser` is only a fallback
 for recovering a locator.
 
-The dispatch gives you: user-story folder, branch, app URL, and where demo
-credentials live. If anything is missing, stop and ask.
+The dispatch gives you: user-story folder, branch, app URL, the story's
+`story.md` (the evidence each AC needs, in section 5), and where demo
+credentials live. If anything is missing, stop and return `PARTIAL` naming it;
+this runs unattended, and nobody is there to ask.
 
 **Invoke `jidoka:test-plan-walkthrough` and follow it verbatim.** It covers
 locating the e2e suite, verifying the stack, authoring and running the specs,

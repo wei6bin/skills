@@ -23,10 +23,26 @@ the story's own Verification section instead of a walker.
 
 ## Inputs
 
-Feature description and ACs, Phase 3 answers, code-explorer findings (reference
-implementation, conventions, reusables, key files with cited line ranges),
-relevant `docs/project_context/` files, the tier and worktree-slot count, and
-the absolute path of the user-story folder `docs/new-feature/{id}-{summary}/`.
+- **The story's agreement, `story.md`**: what BA, Dev Lead and QE signed. It
+  is your source for scope and the binding decisions:
+  - ACs by permanent ID (section 4);
+  - QE's scenarios, evidence and data (section 5);
+  - the Dev Lead's contract decisions and constraints (section 6);
+  - what is out of scope (section 7);
+  - the decisions log (section 9).
+- The orchestrator's Phase 3 summary and `09-decisions.md`, the decisions the
+  line already made where the agreement was silent.
+- The code-explorer findings: reference implementation, conventions,
+  reusables, and key files with cited line ranges.
+- The relevant `docs/project_context/` files.
+- The tier and the worktree-slot count.
+- The absolute path of the user-story folder `docs/new-feature/{slug}/`.
+
+Nobody can be asked, and the agreement is not yours to change. A plan that
+needs an AC changed, added or dropped, or that goes against a Dev Lead
+decision, is not a plan: say so in the manifest instead of designing around
+it. Where the agreement is silent, decide, and list the decision in the
+manifest so the orchestrator can record it.
 
 ## Design
 
@@ -81,11 +97,11 @@ implementer reads only these files, so never defer detail to "see codebase".
 | File                        | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `00-overview.md`            | Goal, scope, constraints, success criteria                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `01-business-plan.md`       | Problem statement, ACs verbatim, stakeholders, out-of-scope                                                                                                                                                                                                                                                                                                                                                                                         |
+| `01-business-plan.md`       | Problem statement, the agreement's ACs verbatim with their IDs, stakeholders, out-of-scope                                                                                                                                                                                                                                                                                                                                                          |
 | `02-technical-plan.md`      | Architecture decisions, affected layers, per-slice frozen contracts, data changes, security, NFRs, and a **Dev/Demo Data Recovery** section when the feature seeds data, mutates auth secrets or uses bootstrap accounts: seeded accounts and their non-destructive reset, reversible vs irreversible mutations, a recovery recipe that does not wipe data, and the exact confirmation prompt for when `docker compose down -v` is the right answer |
 | `03-implementation-plan.md` | Master change-site map (every touched file × owning slice), then per slice: reference patterns, change sites (anchor + target snippet + non-obvious wiring), data/contract notes                                                                                                                                                                                                                                                                    |
 | `04-task-plan.md`           | `## Dependency graph` first, then one card per slice with every field from step 5. No per-file task tables                                                                                                                                                                                                                                                                                                                                          |
-| `05-test-plan.md`           | Test cases per AC grouped by slice (type, steps, expected, rollback), plus one end-to-end demo per slice written concretely enough - roles, exact labels, expected on-screen text - that the Phase 9 walker can turn it into Playwright locators without guessing                                                                                                                                                                                   |
+| `05-test-plan.md`           | Test cases per AC ID grouped by slice (type, steps, expected, rollback), built from QE's scenarios, evidence and data in the agreement's section 5, plus one end-to-end demo per slice written concretely enough - roles, exact labels, expected on-screen text - that the Phase 9 walker can turn it into Playwright locators without guessing                                                                                                     |
 
 Change-site block, one per file per slice:
 
@@ -101,8 +117,8 @@ Change-site block, one per file per slice:
 
 ## Manifest (your final message)
 
-The orchestrator shows this at the confirm gate and does not re-transcribe
-anything. Return:
+The orchestrator checks the plan documents against the agreement from this,
+and does not re-transcribe anything; nobody confirms the plan. Return:
 
 - One-line summary of the feature and how it fits the architecture.
 - Slice table: ID · behaviour · ACs · Layers · Contract (one line, or
@@ -111,3 +127,5 @@ anything. Return:
   critical path S1→S3 = 8 pts").
 - The six paths written.
 - Key risks.
+- Decisions the agreement did not settle and you took (one line each: what,
+  which choice, why), or "none".
