@@ -28,6 +28,9 @@ ORG = "https://dev.azure.com/Contoso"
 FAKE_AZ = """#!{python}
 import json, os, sys
 state = json.load(open(os.environ["FAKE_STATE"]))
+if state.get("az_garbage"):
+    print("WARNING: not json")
+    sys.exit(0)
 args = sys.argv[1:]
 wiql = args[args.index("--wiql") + 1]
 tag = wiql.split("CONTAINS '")[1].split("'")[0]
@@ -36,13 +39,15 @@ print(json.dumps(items))
 """
 
 FAKE_DOCKER = """#!{python}
-import json, os, sys
+import json, os, sys, time
 path = os.environ["FAKE_STATE"]
 state = json.load(open(path))
 state.setdefault("docker", []).append(sys.argv[1:])
 json.dump(state, open(path, "w"))
-print("line run output")
-sys.exit(state.get("docker_exit", 0))
+if sys.argv[1] == "run":
+    print("line run output", flush=True)
+    time.sleep(state.get("sleep", 0))
+sys.exit(state.get("docker_exit", 0) if sys.argv[1] == "run" else 0)
 """
 
 
@@ -73,8 +78,17 @@ class PickupTests(unittest.TestCase):
                 os.environ[key] = value
         self.dir.cleanup()
 
-    def serve(self, items, docker_exit=0):
-        self.state.write_text(json.dumps({"items": items, "docker_exit": docker_exit}))
+    def serve(self, items, docker_exit=0, **extra):
+        self.state.write_text(json.dumps({"items": items, "docker_exit": docker_exit, **extra}))
+
+    def lock_is_free(self):
+        import fcntl
+        with open(self.state_dir / "pickup.lock") as handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return False
+            return True
 
     def run_pickup(self, *extra):
         out = io.StringIO()
@@ -103,7 +117,9 @@ class PickupTests(unittest.TestCase):
         code, out = self.run_pickup()
         self.assertEqual(code, 0, out)
         [call] = self.docker_calls()
-        self.assertEqual(call[:4], ["run", "--rm", "--env-file", "/etc/jidoka/runner.env"])
+        self.assertEqual(call[:3], ["run", "--rm", "--name"])
+        self.assertTrue(call[3].startswith("jidoka-7-"))
+        self.assertEqual(call[4:6], ["--env-file", "/etc/jidoka/runner.env"])
         self.assertIn("JIDOKA_STORY=https://dev.azure.com/Contoso/Book%20ings/_workitems/edit/7", call)
         self.assertIn("JIDOKA_SCHEDULED=1", call)
         self.assertIn("JIDOKA_REPO=https://example.invalid/r.git", call)
@@ -112,32 +128,67 @@ class PickupTests(unittest.TestCase):
         self.assertEqual(len(logs), 1)
         self.assertTrue(logs[0].name.startswith("7-"))
         self.assertIn("line run output", logs[0].read_text())
-        self.assertFalse((self.state_dir / "pickup.lock").exists())
+        self.assertTrue(self.lock_is_free())
 
     def test_a_failed_run_exits_1_and_releases_the_lock(self):
         self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")], docker_exit=3)
         code, out = self.run_pickup()
         self.assertEqual(code, 1)
         self.assertIn("ended with exit 3", out)
-        self.assertFalse((self.state_dir / "pickup.lock").exists())
+        self.assertTrue(self.lock_is_free())
 
-    def test_a_live_lock_means_another_run_is_going(self):
+    def test_a_held_lock_means_another_run_is_going(self):
+        import fcntl
         self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")])
         self.state_dir.mkdir(parents=True)
-        (self.state_dir / "pickup.lock").write_text(str(os.getpid()))
-        code, out = self.run_pickup()
+        with open(self.state_dir / "pickup.lock", "w") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            code, out = self.run_pickup()
         self.assertEqual(code, 0)
         self.assertIn("another pick-up", out)
         self.assertEqual(self.docker_calls(), [])
-        self.assertTrue((self.state_dir / "pickup.lock").exists())
 
-    def test_a_dead_owner_s_lock_is_taken_over(self):
+    def test_a_lock_file_nobody_holds_does_not_block(self):
+        # What a crashed pick-up leaves: the file, but no lock on it.
         self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")])
         self.state_dir.mkdir(parents=True)
         (self.state_dir / "pickup.lock").write_text("999999999")
         code, _ = self.run_pickup()
         self.assertEqual(code, 0)
         self.assertEqual(len(self.docker_calls()), 1)
+
+    def test_a_failed_story_waits_and_the_next_one_runs(self):
+        stories = [item(7, "jidoka-ready", "2026-11-05T10:00:00Z", "Older"),
+                   item(8, "jidoka-ready", "2026-11-06T10:00:00Z", "Newer")]
+        self.serve(stories, docker_exit=1)
+        self.assertEqual(self.run_pickup()[0], 1)
+        self.serve(stories)
+        code, out = self.run_pickup()
+        self.assertEqual(code, 0)
+        self.assertIn("waiting after a failed run here: 7", out)
+        self.assertIn("JIDOKA_STORY=https://dev.azure.com/Contoso/Book%20ings/_workitems/edit/8",
+                      self.docker_calls()[0])
+        # Once --retry-hours has passed, it is tried again.
+        code, out = self.run_pickup("--retry-hours", "0")
+        self.assertIn("edit/7", " ".join(self.docker_calls()[-1]))
+
+    def test_a_run_past_its_time_is_killed(self):
+        self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")], sleep=30)
+        code, out = self.run_pickup("--max-hours", str(1 / 3600))
+        self.assertEqual(code, 1)
+        self.assertIn("was stopped", out)
+        calls = self.docker_calls()
+        self.assertEqual(calls[-1][:1], ["kill"])
+        self.assertEqual(calls[-1][1], calls[0][3])  # the container it named
+        self.assertTrue(self.lock_is_free())
+
+    def test_no_docker_is_exit_2(self):
+        self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z")])
+        self.assertEqual(self.run_pickup("--docker", "no-such-docker")[0], 2)
+
+    def test_az_output_that_is_not_json_is_exit_2(self):
+        self.serve([], az_garbage=True)
+        self.assertEqual(self.run_pickup()[0], 2)
 
     def test_dry_run_says_what_it_would_run(self):
         self.serve([item(7, "jidoka-ready", "2026-11-05T10:00:00Z", "Older")])

@@ -173,7 +173,7 @@ update it now, before the merge or the push carries it:
 Commit the summary, and the story file if it changed:
 `docs({slug}): summary and story close-out`.
 
-## Step 5: Execute, then clean up
+## Step 5: Execute
 
 **1. Merge locally.** In the main worktree, merge the feature branch and
 re-run the CI gate on the merged result. The main worktree is the first
@@ -191,17 +191,34 @@ the host from `git remote get-url origin`. The title is
 `{id}: {short verb-phrase}`, under 70 characters, and the body is
 `10-summary.md`. The `jidoka` label marks the pull requests the line opened.
 
+A run that resumes after an andon stop already has a **draft** pull request
+on this branch. Update that one instead of opening another: its title, its
+body, the label, and mark it ready.
+
 - `github.com`:
 
   ```bash
   gh label create jidoka --description "Opened by jidoka:line" --force
+  gh pr view {slug} --json number,isDraft     # an earlier run's PR, if any
+  # none:
   gh pr create --base {base} --title "{title}" --body-file docs/new-feature/{folder}/10-summary.md --label jidoka
+  # one: update it, and take it out of draft
+  gh pr edit {number} --title "{title}" --body-file docs/new-feature/{folder}/10-summary.md --add-label jidoka
+  gh pr ready {number}
   ```
 
-- `dev.azure.com` or `*.visualstudio.com`:
+- `dev.azure.com` or `*.visualstudio.com`: Azure DevOps keeps at most 4000
+  characters of a pull request's description. When `10-summary.md` is longer
+  (`wc -m`), the description is the summary up to the end of its
+  `## Decisions made by the line` section, then a link to the whole file on
+  the branch.
 
   ```bash
-  az repos pr create --target-branch {base} --title "{title}" --labels jidoka --description "$(cat docs/new-feature/{folder}/10-summary.md)"
+  az repos pr list --source-branch {slug} --status active --query "[0].pullRequestId" -o tsv
+  # none:
+  az repos pr create --target-branch {base} --title "{title}" --labels jidoka --description "$(cat {description})"
+  # one: update it, and take it out of draft
+  az repos pr update --id {id} --title "{title}" --description "$(cat {description})" --draft false
   ```
 
 - **Any other host:** stop.
@@ -209,13 +226,11 @@ the host from `git remote get-url origin`. The title is
 If the head branch is deleted after merge, switch the links to the merge commit
 SHA or `{base}`.
 
-**Clean up** from the main worktree; removing the worktree you are standing in
-strands the shell. Run `git worktree remove <path>` (find it with
-`git worktree list`). For a merge, then `git branch -d {slug}`; a pull request
-keeps its branch. Remove the worktree first: git refuses to delete a branch a
-worktree still has checked out.
-
 ## Step 6: Close out the story and the backlog tracker
+
+Run this from the feature worktree, before Step 7 removes it: the plan folder,
+`story.md` and `09-decisions.md` are there, and on a pull request the base
+branch has none of them.
 
 Everything written so far (`07-progress.md`, the plan folder,
 `docs/new-feature/README.md`) describes _this_ story. The story and the
@@ -255,3 +270,11 @@ pick-up read. If they are not updated here, they never are.
 5. **Status in more than one file:** update none of them. Name the copies in
    the summary's Follow-ups and in the final report, and recommend collapsing
    them to one record. It is the team's backlog to consolidate, not this run's.
+
+## Step 7: Clean up
+
+From the main worktree; removing the worktree you are standing in strands the
+shell. Run `git worktree remove <path>` (find it with `git worktree list`).
+For a merge, then `git branch -d {slug}`; a pull request keeps its branch.
+Remove the worktree first: git refuses to delete a branch a worktree still has
+checked out.

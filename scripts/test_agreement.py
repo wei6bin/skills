@@ -656,8 +656,17 @@ class AzureDevOpsTests(unittest.TestCase):
         (code, out, err), _ = self.claim()
         self.assertEqual(code, 1)
         self.assertIn("it changed after sign-off", out)
-        self.assertIn("fails the ready check", err)
-        self.assertEqual(self.served()["bodies"], [])
+        self.assertIn("marked draft until BA, Dev Lead and QE sign it again", err)
+        # Demoted, so neither the scheduled pick-up nor a person retries it.
+        self.assertEqual(self.served()["item"]["fields"]["System.Tags"], "api")
+
+    def test_claim_builds_the_snapshot_from_the_text_it_checked(self):
+        self.serve(self.ready_item())
+        (code, _, err), snapshot = self.claim()
+        self.assertEqual(code, 0, err)
+        calls = [c[0] if c[0] == "rest" else c[2] for c in self.served()["calls"]]
+        self.assertEqual(calls, ["show", "rest"])  # no second read after the claim
+        self.assertEqual(A.parse(Path(snapshot).read_text()).meta["Rev"], "19")
 
     def test_claim_loses_a_race(self):
         self.serve(self.ready_item(), refuse=True)
@@ -766,6 +775,50 @@ class LineFileTrackerTests(unittest.TestCase):
         code, out, err = run("claim", os.path.abspath("wt/docs/stories/x.md"), "-o", "story.md")
         self.assertEqual(code, 0, err + out)
         self.assertEqual(A.parse(Path("story.md").read_text()).meta["Source"], "docs/stories/x.md")
+
+    def test_status_from_another_checkout_writes_the_branch_copy(self):
+        # The snapshot lives in the story's worktree; the command runs from
+        # the main checkout, whose own copy of the story must stay untouched.
+        import subprocess
+        for repo in ("main", "wt"):
+            subprocess.run(["git", "init", "-q", repo], check=True)
+            os.makedirs(f"{repo}/docs/stories")
+            Path(f"{repo}/{self.story}").write_text(Path(self.story).read_text())
+        os.makedirs("wt/plan")
+        run("claim", f"wt/{self.story}", "-o", "wt/plan/story.md")
+        os.chdir("main")
+        try:
+            self.assertEqual(run("status", "../wt/plan/story.md", "--set", "jidoka-running")[0], 0)
+        finally:
+            os.chdir("..")
+        self.assertIn("Status: jidoka-running", Path(f"wt/{self.story}").read_text())
+        self.assertIn("Status: jidoka-ready", Path(f"main/{self.story}").read_text())
+
+    def test_slug_finds_the_earlier_run_s_branch_after_a_title_edit(self):
+        import subprocess
+        def git(*args):
+            subprocess.run(["git", *args], check=True, capture_output=True)
+        git("init", "-q", "-b", "main", ".")
+        git("-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "--allow-empty", "-m", "x")
+        git("branch", "usr-002-edit-a-note")
+        git("branch", "usr-0020-another-story")
+        renamed = Path(self.story).read_text().replace("# USR-002 - Edit a note", "# USR-002 - Edit notes")
+        Path(self.story).write_text(renamed)
+        self.assertEqual(run("slug", self.story)[1].strip(), "usr-002-edit-a-note")
+
+    def test_record_refuses_to_overwrite_a_decided_row(self):
+        run("claim", self.story, "-o", "story.md")
+        Path("09-decisions.md").write_text(DECISIONS)
+        self.assertEqual(run("record", "story.md", "--decisions", "09-decisions.md")[0], 0)
+        story = A.parse(Path(self.story).read_text())
+        story.sections[12] = story.sections[12].replace("| Drop the trim | pending |", "| Drop the trim | confirmed |")
+        Path(self.story).write_text(A.render(story))
+        # The same row again is fine; a different decision under AD-1 is not.
+        self.assertEqual(run("record", "story.md", "--decisions", "09-decisions.md")[0], 0)
+        Path("09-decisions.md").write_text(DECISIONS.replace("Trim, then validate", "Reject it"))
+        code, _, err = run("record", "story.md", "--decisions", "09-decisions.md")
+        self.assertEqual(code, 2)
+        self.assertIn("AD-1 (confirmed) already decided", err)
 
     def test_claim_refuses_a_draft_and_names_refine(self):
         Path(self.story).write_text(Path(self.story).read_text().replace("Status: jidoka-ready", "Status: draft"))

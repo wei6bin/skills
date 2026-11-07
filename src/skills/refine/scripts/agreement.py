@@ -1057,14 +1057,31 @@ def same_text(one, other):
     return (one.title, one.preamble, one.sections) == (other.title, other.preamble, other.sections)
 
 
-def slug(agreement):
-    """The story's branch and plan-folder name, from its title: 'USR-001 -
-    Delete a note' is usr-001-delete-a-note. Every run derives the same one, so
-    a resumed run finds the branch an earlier run left."""
-    name = re.sub(r"[^a-z0-9]+", "-", agreement.title.lower()).strip("-")
+def slugify(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def slug(agreement, folder=None):
+    """The story's branch and plan-folder name. The first run derives it from
+    the title: 'USR-001 - Delete a note' is usr-001-delete-a-note. A later run
+    takes the branch an earlier run left, found by the story's id, so a title
+    edited after an andon stop does not orphan the branch. folder is a
+    directory in the repository to look in (default: the current one)."""
+    name = slugify(agreement.title)
     if len(name) > 50:
         name = name[:50].rsplit("-", 1)[0]
-    return name
+    prefix = slugify(agreement.title.split(" - ", 1)[0]) + "-"
+    found = []
+    for refs, strip in (("refs/heads", 2), ("refs/remotes", 3)):
+        try:
+            done = subprocess.run(
+                ["git", "-C", folder or os.getcwd(), "for-each-ref", f"--format=%(refname:lstrip={strip})", refs],
+                capture_output=True, text=True)
+        except OSError:
+            break
+        if done.returncode == 0:
+            found += [b for b in done.stdout.split() if b.startswith(prefix) and b not in found]
+    return found[0] if found else name
 
 
 NOT_READY = {
@@ -1090,21 +1107,33 @@ def refuse_unless_ready(agreement):
 def repo_path(path):
     """path relative to the root of the repository holding it, so the line's
     later writes find the story from any worktree of that repository."""
-    folder = os.path.dirname(os.path.abspath(path))
-    try:
-        done = subprocess.run(["git", "-C", folder, "rev-parse", "--show-toplevel"],
-                              capture_output=True, text=True)
-        root = done.stdout.strip() if done.returncode == 0 else ""
-    except OSError:
-        root = ""
+    root = git_toplevel(os.path.dirname(os.path.abspath(path)))
     relative = os.path.relpath(os.path.abspath(path), root or os.getcwd())
     return relative.replace(os.sep, "/")
+
+
+def demote_if_not_ready(item, agreement):
+    """A work item tagged jidoka-ready whose agreement fails the ready check
+    (edited after sign-off, say) is not ready: tag it draft, so neither the
+    scheduled pick-up nor a person retries it until the roles sign again."""
+    if agreement.meta.get("Status") != "jidoka-ready":
+        return
+    problems = check(agreement, ready=True)
+    if not problems:
+        return
+    report(problems, "")
+    try:
+        set_tag(item, "draft")
+        note = "it is marked draft until BA, Dev Lead and QE sign it again in /jidoka:refine"
+    except Refused as err:
+        note = f"marking it draft failed too ({err})"
+    raise Refused(f"not claimed: it is tagged jidoka-ready, but the agreement fails the ready check above; {note}")
 
 
 def cmd_claim(args):
     fetched = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
     story = args.story
-    if not ADO_URL.match(story) and not story.isdigit():
+    if not (ADO_URL.match(story) or BOARD_URL.match(story) or story.isdigit()):
         # A story file: nothing else can run it, so there is no claim to
         # win; its Status changes on the story's branch as the run goes.
         agreement = load(story)
@@ -1113,20 +1142,25 @@ def cmd_claim(args):
         refuse_unless_ready(agreement)
         snapshot = parse(render(agreement))
         snapshot.meta["Source"] = repo_path(story)
+        folder = os.path.dirname(os.path.abspath(story))
     else:
         item = show(story, args.org)
         agreement = from_work_item(item)
+        demote_if_not_ready(item, agreement)
         refuse_unless_ready(agreement)
         # The tag swap is refused if anyone saved the work item after the
         # read above, so of two runs racing for one story, one loses here.
-        snapshot = from_work_item(set_tag(item, "jidoka-running"))
-        if digest(snapshot) != digest(agreement):
-            raise Refused("the agreement changed while it was being claimed: run again")
+        # The snapshot is the text that was checked; only its Rev moves on.
+        claimed = set_tag(item, "jidoka-running")
+        snapshot = parse(render(agreement))
+        snapshot.meta["Rev"] = str(claimed.get("rev") or snapshot.meta.get("Rev", ""))
+        folder = None
     snapshot.meta["Status"] = "jidoka-running"
     snapshot.meta["Hash"] = digest(snapshot)
     snapshot.meta["Fetched"] = fetched
     save(snapshot, args.output)
-    print(f"claimed {snapshot.title} at {snapshot.meta['Hash']}; slug {slug(snapshot)}; snapshot in {args.output}")
+    print(f"claimed {snapshot.title} at {snapshot.meta['Hash']}; slug {slug(snapshot, folder)}; "
+          f"snapshot in {args.output}")
     return 0
 
 
@@ -1207,11 +1241,22 @@ def read_line_decisions(path):
 
 def merge_decisions(existing, new):
     """New rows replace pending ones with the same ID and are appended
-    otherwise; a row a role already confirmed or rejected is kept as it is."""
+    otherwise. A row a role already confirmed or rejected is kept as it is,
+    and a new row that differs from it under the same ID is an error: the
+    run numbered its decisions from the wrong place."""
     rows = {row["ID"]: row for row in existing}
+    clashes = []
     for row in new:
-        if rows.get(row["ID"], {}).get("Status", "pending") == "pending":
+        held = rows.get(row["ID"])
+        if held is None or held["Status"] == "pending":
             rows[row["ID"]] = row
+        elif any(held[c] != row[c] for c in TABLES[12] if c != "Status"):
+            clashes.append(f"{row['ID']} ({held['Status']})")
+    if clashes:
+        raise UsageError(
+            f"{', '.join(clashes)} already decided on the story: number this run's decisions "
+            "after the highest AD-n in story.md's section 12"
+        )
     ordered = sorted(rows.values(), key=lambda r: int(r["ID"].split("-")[1]))
     if not ordered:
         return NONE
@@ -1274,7 +1319,7 @@ def cmd_comment(args):
 
 
 def cmd_slug(args):
-    print(slug(load(args.file)))
+    print(slug(load(args.file), os.path.dirname(os.path.abspath(args.file))))
     return 0
 
 

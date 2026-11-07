@@ -35,13 +35,14 @@ if ! az account show --output none 2>/dev/null; then
   exit 2
 fi
 
-# Git over HTTPS: gh for GitHub, an Entra token for Azure Repos.
+# Git over HTTPS: gh for GitHub, and for Azure Repos a credential helper that
+# asks az for a fresh Entra token each time git needs one. A token fixed at the
+# start would expire within the hour, and a long run's final push would fail.
 if [ -n "${GH_TOKEN:-}" ]; then
   gh auth setup-git
 fi
-ado_token=$(az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-  --query accessToken --output tsv)
-git config --global http.https://dev.azure.com/.extraheader "AUTHORIZATION: bearer $ado_token"
+git config --global credential.https://dev.azure.com.helper \
+  '!f() { [ "$1" = get ] || exit 0; echo username=jidoka; echo "password=$(az account get-access-token --resource 499b84ac-1321-427f-aa17-267ca6975798 --query accessToken --output tsv)"; }; f'
 git config --global user.name "${JIDOKA_GIT_NAME:-jidoka line}"
 git config --global user.email "${JIDOKA_GIT_EMAIL:-jidoka-line@users.noreply.invalid}"
 

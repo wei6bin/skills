@@ -146,8 +146,12 @@ To stop:
    with: "Answer it with `/jidoka:refine {story}`, which marks the story ready
    again; `/jidoka:line {story}` then resumes."
 
-A stop in Phase 1, before the worktree exists, skips steps 1 to 3. It reports
-and comments from a scratch copy, and leaves no branch.
+**A stop in Phase 1, before the worktree exists**, such as `Exit: pr` in a
+repository with no remote, leaves no branch. Skip steps 1 to 3. Write the
+question to `{scratch}/andon.md`, and run step 4 on the claim's snapshot,
+`{scratch}/story.md`: the comment, then `--set jidoka-blocked`, which
+releases the claim. A story file has no claim to release, so the report alone
+is enough.
 
 ## Phase 1 - Readiness, claim and worktree
 
@@ -156,12 +160,16 @@ and comments from a scratch copy, and leaves no branch.
    file. Anything else is not something the line builds. That includes pasted
    story text and a request to set up a project with no agreement behind it.
    Say so in one message that points at `/jidoka:refine`, and stop.
-2. **Claim it.** Make a scratch directory outside the repository
-   (`mktemp -d`) and run `agreement.py claim {story} -o {scratch}/story.md`.
+2. **Claim it.** With a remote, run `git fetch origin` first, so a branch an
+   earlier run pushed is seen. Make a scratch directory outside the
+   repository (`mktemp -d`) and run
+   `agreement.py claim {story} -o {scratch}/story.md`.
    It refuses unless the story is `jidoka-ready`, its agreement passes the
    ready check and its hash matches every sign-off. It then marks the story
    `jidoka-running`, refused if anyone saved it since the read, and prints the
-   story's **slug**.
+   story's **slug**. The slug is the branch an earlier run of the story left,
+   found by the story's id, so an edited title keeps its branch. If there is
+   no such branch, the slug comes from the title.
    - **A story file travels with its branch.** If a branch named by its slug
      (`agreement.py slug {file}`) already exists, an earlier run stopped
      there, and the story's current copy, answered and re-signed, is on that
@@ -181,12 +189,25 @@ and comments from a scratch copy, and leaves no branch.
    the `Stack:` line names a layer the repository lacks. It reads every answer
    from that line, asks nothing, and has `project-scaffolder` land the
    skeleton on the base branch with its `docs/project_context/`. Then:
+   - **Make it last.** A scheduled run's container is thrown away, so with a
+     remote the skeleton must leave the machine:
+     - If it merged into the base, push the base (`git push origin {base}`).
+     - If it was left on its branch, push that branch and open a pull request
+       for it, with the setup report as its body and the `jidoka` label, as
+       `raise-pr` Step 5 does.
+
+     A push that is refused is an andon stop; the owner is the Dev Lead.
    - **No active AC** (the agreement was only the setup): run
      `agreement.py status {scratch}/story.md --set jidoka-done`, or
-     `jidoka-pr` when the skeleton was left on its branch. Then comment the
+     `jidoka-pr` when the skeleton waits in a pull request. Then comment the
      setup report on the story. A story file's Status change is committed on
      the base branch as `docs(stories): {id} set up`. The report is the run's
      last message. Stop.
+   - **ACs, and the skeleton waits in a pull request:** the story cannot be
+     built on a base that lacks it. Stop the line. The question is to merge
+     the skeleton's pull request, and the owner is the Dev Lead. Once it has
+     merged, `/jidoka:refine` marks the story ready again, with no new
+     sign-off: nothing signed changed.
    - **Otherwise** go on with the story on top of the skeleton. The auth the
      skeleton ships is done: do not plan it again.
 4. **Worktree.** The branch is the slug, and the plan folder is
@@ -243,6 +264,9 @@ check it out (it has a resume mode for an existing branch), then read its
      ACs. Then run Phase 6 on the amended documents.
    - **Another section changed:** give the architect the comparison. It names
      the slices the change touches, and those go back to ⬜.
+   - **An AC reported `missing`:** AC IDs are never dropped, so the agreement
+     is broken. Stop the line; the owner is the BA. An AC `restored` counts as
+     added, and one `added as removed` needs nothing.
    - **Always:** every row of the final QA round goes back to ⬜, because its
      results covered the old diff.
 4. Continue from the first ⬜ row, in the phase it belongs to. Phases 2 and 3
@@ -733,11 +757,12 @@ Invoke `raise-pr`. It does the following, in order:
    coverage table (each AC by ID, its tests, the result and its evidence) and
    the decisions table from `09-decisions.md`, and states which revision of
    the agreement it built against.
-3. Executes the `Exit:` action recorded in `07-progress.md`, then cleans up
-   the worktree.
+3. Executes the `Exit:` action recorded in `07-progress.md`. A draft pull
+   request an andon stop opened becomes the real one.
 4. In its Step 6, tells the story what shipped through `agreement.py`:
    section 12, the comment, and `jidoka-pr` or `jidoka-done`. It also closes
    out the project's **backlog tracker**.
+5. Removes the worktree, last.
 
 Do not treat that last step as optional: everything before it writes only
 inside `docs/new-feature/`, and a shipped story still reading `jidoka-running`

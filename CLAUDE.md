@@ -127,8 +127,9 @@ and the knobs they take, and a knob goes between `just` and the recipe
   the hash, every format and ready rule, the line's claim, compare, record
   and comment, and the Azure DevOps reads and writes against a fake `az` on
   `PATH`. Also the line's scheduled pick-up (`scripts/test_pickup.py`): the
-  oldest story chosen, the container started, the lock and the stale-claim
-  report, against a fake `az` and `docker`. And, on the real tree, that only
+  oldest story chosen, the container started and killed past its time, the
+  `flock` lock, the wait after a failed run, and the stale-claim report,
+  against a fake `az` and `docker`. And, on the real tree, that only
   `refine` and `check` mention `AskUserQuestion`: nothing the line runs may
   ask. CI runs it together with `just check`, `just lint` and
   `just test-hooks`.

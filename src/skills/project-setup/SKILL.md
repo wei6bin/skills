@@ -98,9 +98,10 @@ Stack: backend .NET + frontend React; name TeamPortal; passwords dev-stub; look 
    - Not a repository: `init` (recommended; initialise git on `main` and
      commit what is here) or `init-untracked` (leave the existing files
      untracked).
-   - A repository with a remote: `merge` (recommended; merge the skeleton into
-     `{base}` locally) or `branch` (leave it on its branch for a pull
-     request).
+   - A repository with a remote: `branch` (recommended: the line pushes the
+     skeleton's branch and opens a pull request for it) or `merge` (merge it
+     into `{base}`, and the line pushes `{base}`: only where the base branch
+     takes direct pushes).
    - A local repository with no remote always merges.
 
 Read the line from `story.md`. Every key that is present binds. A missing key

@@ -7,8 +7,9 @@ Each call starts at most one run:
 
 1. It takes this machine's lock, so one machine runs one story at a time.
 2. It finds the stories tagged jidoka-ready in one Azure DevOps project,
-   oldest first.
-3. It starts a fresh container that runs the line on the first of them.
+   oldest first, skipping any whose run failed here within --retry-hours.
+3. It starts a fresh container that runs the line on the first of them, and
+   kills it after --max-hours.
 
 The line claims the story itself, a write Azure DevOps refuses if anyone got
 there first, so two machines racing never build one story twice. A story left
@@ -17,19 +18,21 @@ over.
 
   pickup.py --org ORG_URL --project NAME --repo GIT_URL [--image IMAGE]
             [--env-file FILE] [--state-dir DIR] [--stale-hours N]
-            [--docker CMD] [--dry-run]
+            [--retry-hours N] [--max-hours N] [--docker CMD] [--dry-run]
 
 The container is the runner image (runner/Dockerfile beside this script),
 which skips Claude Code's permission prompts; nothing else does. --env-file
 holds its credentials (see runner/run-story.sh). Each run's output goes to
-{state dir}/runs/{id}-{time}.log.
+{state dir}/runs/{id}-{time}.log. Linux or macOS: the lock is flock(2).
 
 Exit status: 0 nothing to do, another pick-up holds the lock, or the run ended
-0; 1 the run failed or ended non-zero; 2 bad usage or no az.
+0; 1 the run failed, ended non-zero or ran out of time; 2 bad usage, or az or
+docker unusable.
 """
 
 import argparse
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -58,7 +61,10 @@ def az(*args):
     done = subprocess.run([exe, *args], capture_output=True, text=True)
     if done.returncode != 0:
         raise Usage((done.stderr or done.stdout).strip() or "az failed")
-    return json.loads(done.stdout or "[]")
+    try:
+        return json.loads(done.stdout or "[]")
+    except ValueError as err:
+        raise Usage(f"az printed something that is not JSON: {done.stdout[:200]!r}") from err
 
 
 def stories(org, project, tag):
@@ -68,7 +74,7 @@ def stories(org, project, tag):
     found = []
     for item in items:
         fields = item.get("fields", {})
-        tags = [t.strip() for t in (fields.get("System.Tags") or "").split(";")]
+        tags = [t.strip().lower() for t in (fields.get("System.Tags") or "").split(";")]
         if tag not in tags:  # CONTAINS also matches a longer tag
             continue
         found.append((item["id"], fields.get("System.Title", ""), fields.get("System.ChangedDate", "")))
@@ -86,40 +92,38 @@ def parse_time(value):
 
 
 def take_lock(path):
-    """True if this process now holds the lock. O_EXCL, not mkdir: some
-    coreutils let two racing mkdir calls both succeed."""
-    for _ in range(2):
-        try:
-            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-        except FileExistsError:
-            try:
-                with open(path) as held:
-                    pid = int(held.read().strip() or 0)
-            except (OSError, ValueError):
-                pid = 0
-            if pid and alive(pid):
-                print(f"another pick-up (pid {pid}) is running; nothing to do")
-                return False
-            os.unlink(path)  # its owner died without releasing it
-            continue
-        with os.fdopen(fd, "w") as handle:
-            handle.write(str(os.getpid()))
-        return True
-    return False
-
-
-def alive(pid):
+    """An open file holding this machine's lock, or None if another pick-up
+    holds it. flock(2): the kernel drops the lock when its holder exits, however
+    it exits, so there is no stale lock to clear and no window to race in."""
+    handle = open(path, "a+")
     try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        return None
+    handle.seek(0)
+    handle.truncate()
+    handle.write(str(os.getpid()))
+    handle.flush()
+    return handle
 
 
-def run_command(args, url):
-    command = [args.docker, "run", "--rm"]
+def load_failures(path):
+    try:
+        with open(path) as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_failures(path, failures):
+    with open(path + ".tmp", "w") as handle:
+        json.dump(failures, handle, indent=1)
+    os.replace(path + ".tmp", path)
+
+
+def run_command(args, url, name):
+    command = [args.docker, "run", "--rm", "--name", name]
     if args.env_file:
         command += ["--env-file", args.env_file]
     for key, value in (("JIDOKA_SCHEDULED", "1"), ("JIDOKA_STORY", url),
@@ -136,26 +140,34 @@ def main(argv=None):
     parser.add_argument("--image", default="jidoka-runner")
     parser.add_argument("--env-file", help="the runner's credentials")
     parser.add_argument("--state-dir", default=os.path.expanduser("~/.local/state/jidoka/pickup"))
-    parser.add_argument("--stale-hours", type=float, default=6)
+    parser.add_argument("--stale-hours", type=float, default=6,
+                        help="report a story jidoka-running this long without a change")
+    parser.add_argument("--retry-hours", type=float, default=2,
+                        help="skip a story whose run failed here this recently")
+    parser.add_argument("--max-hours", type=float, default=6,
+                        help="kill a run that takes longer than this")
     parser.add_argument("--docker", default="docker", help="docker, or podman")
     parser.add_argument("--dry-run", action="store_true", help="say what would run; run nothing")
     args = parser.parse_args(argv)
     org = args.org.rstrip("/")
-    lock = os.path.join(args.state_dir, "pickup.lock")
     if not args.dry_run:
         os.makedirs(os.path.join(args.state_dir, "runs"), exist_ok=True)
-        if not take_lock(lock):
+        lock = take_lock(os.path.join(args.state_dir, "pickup.lock"))
+        if lock is None:
+            print("another pick-up is running on this machine; nothing to do")
             return 0
     try:
         return pick_and_run(args, org)
     finally:
         if not args.dry_run:
-            os.unlink(lock)
+            lock.close()
 
 
 def pick_and_run(args, org):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    failures_path = os.path.join(args.state_dir, "failures.json")
+    failures = load_failures(failures_path)
     try:
-        now = datetime.datetime.now(datetime.timezone.utc)
         for story_id, title, changed in stories(org, args.project, RUNNING):
             when = parse_time(changed)
             if when and (now - when).total_seconds() > args.stale_hours * 3600:
@@ -165,20 +177,49 @@ def pick_and_run(args, org):
     except Usage as err:
         print(f"pickup.py: {err}", file=sys.stderr)
         return 2
+    # A story whose run failed here recently waits: retrying it every tick
+    # would starve the stories behind it and repeat whatever it posted.
+    waiting = []
+    for story_id, title, _ in ready:
+        failed = parse_time(failures.get(str(story_id), ""))
+        if failed and (now - failed).total_seconds() < args.retry_hours * 3600:
+            waiting.append(story_id)
+    ready = [s for s in ready if s[0] not in waiting]
+    if waiting:
+        print(f"waiting after a failed run here: {', '.join(map(str, waiting))}")
     if not ready:
-        print(f"nothing to do: no story is tagged {READY}")
+        print(f"nothing to do: no story is tagged {READY}" + (" that is not waiting" if waiting else ""))
         return 0
     story_id, title = ready[0][:2]
     url = f"{org}/{quote(args.project)}/_workitems/edit/{story_id}"
-    command = run_command(args, url)
+    stamp = now.strftime("%Y%m%dT%H%M%SZ")
+    name = f"jidoka-{story_id}-{stamp.lower()}"
+    command = run_command(args, url, name)
     if args.dry_run:
         print(f"would run {story_id} '{title}': {' '.join(command)}")
         return 0
-    stamp = now.strftime("%Y%m%dT%H%M%SZ")
     log = os.path.join(args.state_dir, "runs", f"{story_id}-{stamp}.log")
     print(f"running {story_id} '{title}', log {log}")
-    with open(log, "w") as out:
-        code = subprocess.run(command, stdout=out, stderr=subprocess.STDOUT).returncode
+    try:
+        with open(log, "w") as out:
+            code = subprocess.run(command, stdout=out, stderr=subprocess.STDOUT,
+                                  timeout=args.max_hours * 3600).returncode
+    except FileNotFoundError:
+        print(f"pickup.py: {args.docker} is not installed", file=sys.stderr)
+        return 2
+    except subprocess.TimeoutExpired:
+        # The client is gone; the container is not. Stop it, so it neither
+        # holds the machine nor goes on writing to the story.
+        subprocess.run([args.docker, "kill", name], capture_output=True)
+        code = None
+    if code == 0:
+        failures.pop(str(story_id), None)
+    else:
+        failures[str(story_id)] = now.isoformat()
+    save_failures(failures_path, failures)
+    if code is None:
+        print(f"{story_id} ran past {args.max_hours} hours and was stopped")
+        return 1
     print(f"{story_id} ended with exit {code}")
     return 0 if code == 0 else 1
 

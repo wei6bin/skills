@@ -108,7 +108,9 @@ that the story is ready, claims it, runs the same converter and writes the
 snapshot. The line moves the snapshot into the plan folder
 (`docs/new-feature/{slug}/`) as `story.md`, the first commit on the story's
 branch. The slug comes from the title (`USR-001 - Delete a note` is
-`usr-001-delete-a-note`), so every run finds the same branch. The snapshot is
+`usr-001-delete-a-note`). A later run instead takes the branch an earlier run
+of the story left, found by the story's id, so a title edited after a stop
+keeps its branch. The snapshot is
 the agreement plus three metadata lines: `Source` (a story file's path in the
 repository), `Hash` and `Fetched`. No LLM touches this step, so what the line
 builds against is byte for byte what was signed.
@@ -130,9 +132,11 @@ unagreed decisions in.
 - **Starting.** By hand (`/jidoka:line <story>`), or a scheduled job picks up
   stories tagged `jidoka-ready`. A story counts as ready only when the tag is
   present, the format check passes and the hash matches the sign-offs. A
-  story edited after sign-off is refused with "changed after sign-off". A
-  refused story gets one message pointing at `/jidoka:refine` (also posted on
-  the story for a scheduled run), and no branch.
+  story edited after sign-off is refused with "changed after sign-off", and
+  on Azure DevOps it is set back to `draft`, so nothing retries it until the
+  roles sign again. A refused story gets one message pointing at
+  `/jidoka:refine` (also posted on the story for a scheduled run), and no
+  branch.
 - **Claiming.** A story carries one `jidoka-*` tag at a time:
   `jidoka-ready` becomes `jidoka-running`, then `jidoka-pr` or
   `jidoka-blocked`. Once refine answers a blocked story and the roles
@@ -190,7 +194,9 @@ unagreed decisions in.
     pick-up script.
   - What they run in: each story gets a fresh container, like the eval image.
     Permission prompts are skipped only inside it.
-  - Pace: one story at a time, oldest first.
+  - Pace: one story at a time per machine (an `flock` lock), oldest first.
+    A story whose run failed there waits `--retry-hours` before it is tried
+    again, and a run past `--max-hours` is stopped.
   - Identity: a service account, or a person's account until one exists. The
     line's PRs carry a `jidoka` label and its comments say they came from
     `jidoka:line`.
