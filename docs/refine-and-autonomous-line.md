@@ -232,7 +232,17 @@ Two refinements came out of building PR 1. Writes to the agreement use `az
 rest` for the same reason the claim does: a write must not overwrite someone
 else's edit. And because one hash covers the whole signed text, any change
 after sign-off needs every role to sign again, not only the role whose part
-changed. refine shows each of them the diff, so re-signing is quick.
+changed. refine shows each of them the diff, so re-signing is quick. For
+the same reason nobody signs while a HIGH or MEDIUM question is open, whoever
+owns it: sign-off happens once, on the final text.
+
+Review added two rules to the script:
+
+- **The status follows its order.** A story a run holds, or has finished, is
+  never set back to `draft` or `jidoka-ready` by hand (`--force` repairs one
+  a crashed run left behind).
+- **One person signs several roles only as `solo`.** A second role signed
+  any other way is refused before it is written.
 
 ## What each PR ships
 

@@ -30,7 +30,8 @@ alone, so settle it here.
   agreement. Change only that story's Description, Acceptance Criteria and
   jidoka tag, and only through `agreement.py`. Never its title, state or
   assignee, and never another work item: inconsistencies in siblings go in the
-  report as follow-ups.
+  report as follow-ups. The one other write is Step 3's update of the
+  project's `graph.md`, a file in the repository, not the tracker.
 
 ## Step 1 - Source and mode
 
@@ -59,9 +60,10 @@ alone, so settle it here.
    - `ado`: run `agreement.py pull --ado {url} -o {working copy}`. Then read
      its parent, siblings and linked items
      (`az boards work-item show --id {n} --org {org}`) and its discussion,
-     through `az devops invoke` (area `wit`, resource `comments`). If the
+     through `az devops invoke --area wit --resource comments
+     --route-parameters project={project} workItemId={id} --org {org}`. If the
      discussion cannot be read, say so and go on.
-   - `file`: read the file and the items it links to.
+   - `file`: read the file, or the pasted text, and the items it links to.
 
    Write the context map:
 
@@ -72,12 +74,26 @@ alone, so settle it here.
    Linked:   {id} - {title} (why it is linked)
    ```
 
-2. **Pick up where it stands.** If the text already follows the agreement
-   format, run `agreement.py check` and continue from it. Its section 8 holds
-   the questions earlier passes left open, and section 13 holds who has
-   signed. If section 12 lists line decisions with Status `pending`, do Step
-   3 first. Raw story text is the input to Step 6, which rewrites it into the
-   format.
+2. **Pick up where it stands.** Its Status decides what this session may do:
+   - **`jidoka-running`:** a line run is building it. Change nothing; say the
+     change waits until the run ends, and stop.
+   - **`jidoka-pr`, or later:** it is built. A change now is a new story, or
+     a change to the open pull request. Say so, and stop.
+   - **`jidoka-blocked`:** a line run stopped on a question, which is in the
+     story's comments (or the branch's `andon.md` for a story file). That
+     question is this session's first round. The story stays blocked until
+     Step 7 marks it ready again.
+   - **`jidoka-ready`:** every role signed it, and any change means every role
+     signs again. Before you change anything, run
+     `agreement.py status {file} --set draft`, so no line run builds it
+     meanwhile.
+   - **`draft`:** go on.
+
+   If the text already follows the agreement format, run
+   `agreement.py check {file}` and continue from it. Its section 8 holds the
+   questions earlier passes left open, and section 13 holds who has signed. If
+   section 12 lists line decisions with Status `pending`, do Step 3 first. Raw
+   story text is the input to Step 6, which rewrites it into the format.
 3. **Ground it in the code.** Answering facts is your job; deciding is the
    roles'. Never ask a person something the code, the tracker or the project
    context already answers. Record it with its source instead. In a checkout
@@ -93,8 +109,10 @@ alone, so settle it here.
      users.
    - No source code yet (`project-setup`'s Step 1 says what counts): the
      Dev Lead's questions include the stack. Use `project-setup`'s Step 2
-     questions when that skill is installed, otherwise ask in plain words,
-     and record the answers on a `Stack:` line in section 6.
+     questions when that skill is installed. Otherwise ask in plain words for
+     the layers and their technology, the project name, how passwords are
+     verified, the look, and whether the skeleton merges or waits on its own
+     branch. Record the answers on a `Stack:` line in section 6.
 
    Without a checkout, say so once. Mark any recommendation that would need
    the code "not checked against the code".
@@ -113,8 +131,10 @@ in one round:
 Either way the signed text changes, so the story goes back through Step 7.
 In a checkout, also record the outcome in
 `docs/project_context/prod_spec/graph.md`. A confirmed decision's open
-question becomes a decision entry, in the format the `context-updater` skill
-uses. A rejected one stays an open question until the next run resolves it.
+question becomes a decision entry: use the format the `context-updater` skill
+uses when it is installed, else a dated entry with the decision, its
+rationale and the `AD-n` it came from. A rejected one stays an open question
+until the next run resolves it.
 
 ## Step 4 - Gaps, then rounds
 
@@ -151,11 +171,14 @@ uses. A rejected one stays an open question until the next run resolves it.
    ask only that role's frontier. Once no HIGH or MEDIUM question is open,
    ask once whether any LOW one should be settled now. Those left stay open
    or `deferred`: the line stops if it meets a deferred one.
-3. **Someone missing.** If a role cannot be in the room and will not run a
-   `--role` pass, offer a questionnaire: `{temp dir}/refine-{id}-{role}.md`,
+3. **Someone missing.** Their questions stay `open` in section 8, which is
+   how they reach that role: through their own `--role` pass. If they will
+   not run one, offer a questionnaire, a convenience for whoever is present to
+   send them. Write it to `{temp dir}/jidoka-refine/{id}-{role}-questions.md`,
    with that role's open questions, most important first, each with its
-   context, why it matters and an answer stub. Their answers come back
-   through a later session.
+   context, why it matters and an answer stub. Their answers are entered
+   later, by them in a `--role` pass, or by anyone pasting them into a
+   session, which records them as Step 4.2 does.
 
 ## Step 5 - Persist before you stop
 
@@ -176,41 +199,69 @@ another day, starts from the record and not from your memory.
    paths; every rule written out, never only referenced; no secrets and no
    real people's data.
 3. `agreement.py check {file}` until it prints `OK`.
-4. **`ado`:** `agreement.py push {working copy}`. It refuses if anyone saved
-   the work item since your pull. Then pull again, merge your text into theirs
-   by hand, check and push. After a push, the working copy holds what the work
-   item reads back: that text is what the roles sign. **`file`:** the file is
-   written; it is the record.
+4. **`ado`:** `agreement.py push {working copy}`. After a push, the working
+   copy holds what the work item reads back: that text is what the roles
+   sign. **`file`:** the file is written; it is the record.
+
+   The push is refused if anyone saved the work item since your pull. Then do
+   not pull over your working copy, which holds your unpushed changes:
+   1. Pull to a second file, `agreement.py pull --ado {url} -o {temp
+      dir}/jidoka-refine/{id}.theirs.md`. It holds their edit and the new
+      Rev.
+   2. Carry your changes into it.
+   3. Check it and push it.
+   4. Use it as the working copy from then on.
 
 ## Step 7 - Sign-off
 
-1. `agreement.py check --ready {file}` may list only missing sign-offs. Any
-   other problem goes back to Step 4 or 6.
+Sign-off happens once, at the end, on the final text. Every answer changes
+the text, and a changed text needs every signature again, so nobody signs
+while a question is still open.
+
+1. Run `agreement.py check --ready {file}`. It may list only missing
+   sign-offs; any other problem goes back to Step 4 or 6. **If a HIGH or
+   MEDIUM question is still open**, whoever owns it, nobody signs this
+   session. That covers another role's question in a `--role` pass, and a role
+   missing from a live one. Leave the story `draft`, and report who must
+   answer what. The pass that closes the last such question starts the
+   sign-off, and every role then signs the final text.
 2. Show the agreement as it now reads: the working copy after the push, or
-   the file. On a later pass, show the diff against what was last signed. Each
-   role signs that text, not your summary of it.
+   the file. Each role signs that text, not your summary of it. On a pass that
+   changed a signed agreement, also show what changed: each section this
+   session edited, before and after (for a story file, `git diff`). The
+   agreement keeps only a hash of what was signed, not the text.
 3. Ask each role present to sign off by name, and sign each one who agrees:
 
    ```bash
    agreement.py sign {file} --role "Dev Lead" --name "{name}" --mode live
    ```
 
-   Use `--mode live` in a live session, `own-account` for a `--role` pass
-   (the name from `az account show --query user.name -o tsv`, or `git config
-   user.name` for a file), and `solo` with `--solo`. A role that declines
-   names what must change; go back to Step 4.
-4. `ado`: push again, so the sign-offs are on the work item.
-5. With every role signed, run `agreement.py status {file} --set
-   jidoka-ready`. It re-checks the work item itself, or the file, and refuses
-   unless every rule in the format's Ready section holds. Any later change to
-   the agreement means every role signs again. Then run `--set draft` until
-   they have.
+   - **`live`:** signed in this session.
+   - **`own-account`:** signed in their own `--role` session. The name comes
+     from `az account show --query user.name -o tsv`, or `git config
+     user.name` for a story file.
+   - **`solo`:** one person signing more than one role. They sign every one
+     of their roles `solo`, in a live session or with `--solo`, and the
+     script refuses a second role signed any other way.
+
+   A role that declines names what must change; go back to Step 4.
+4. **`ado`:** push again, so the sign-offs are on the work item. The push
+   prints the hash the read-back text has. If it differs from the hash the
+   roles signed, the round trip changed the text: show them the read-back,
+   and they sign again.
+5. With every role signed, run
+   `agreement.py status {file} --set jidoka-ready`. It re-checks the work
+   item itself, or the file, and refuses unless every rule in the format's
+   Ready section holds. From then on, any change to the agreement means every
+   role signs again, which is why Step 2.2 sets a ready story back to
+   `draft` first.
 
 ## Step 8 - Report
 
 The story and its Status. Who signed, with the hash. The number of questions
 asked and answered, and those left open or deferred, with their owners. The
-decisions logged. Follow-ups for other stories. Then the next step:
-`/jidoka:line {story}` builds it once it is `jidoka-ready`. A `file` agreement
+decisions logged. Follow-ups for other stories. Then the next step: once it
+is `jidoka-ready`, `/jidoka:line {story}` builds it. Until the unattended line
+ships, that run still asks its own questions as well. A `file` agreement
 must reach the base branch before a run elsewhere can read it. Say so, and
 commit it only if asked.

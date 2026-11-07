@@ -94,6 +94,10 @@ SEP_CELL = re.compile(r"^:?-{3,}:?$")
 FENCE = re.compile(r"^```")
 AC_ID = re.compile(r"^AC-(\d+)( \(removed\))?$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+BOARD_URL = re.compile(
+    r"^(?P<org>https://dev\.azure\.com/[^/]+|https://[^/.]+\.visualstudio\.com)"
+    r"/[^?#]*[?&]workitem=(?P<id>\d+)"
+)
 HASH = re.compile(r"^sha256:[0-9a-f]{16}$")
 EXIT = re.compile(r"^Exit: (pr|merge)$", re.M)
 STACK = re.compile(r"^(?:- )?Stack: \S", re.M)
@@ -494,6 +498,10 @@ def list_html(items):
     return "".join(out)
 
 
+def starts_block(line):
+    return bool(FENCE.match(line) or line.startswith("|") or SUBHEADING.match(line))
+
+
 def md_to_html(body):
     """The Markdown subset the agreement uses: paragraphs (each line kept as a
     line), lists, pipe tables, ### headings, fenced code and inline marks."""
@@ -526,16 +534,23 @@ def md_to_html(body):
             i += 1
         elif LIST_ITEM.match(line):
             items = []
-            while i < len(lines) and LIST_ITEM.match(lines[i]):
-                indent, marker, text = LIST_ITEM.match(lines[i]).groups()
-                items.append((len(indent), "ol" if marker[0].isdigit() else "ul", text))
+            while i < len(lines):
+                item = LIST_ITEM.match(lines[i])
+                if item:
+                    indent, marker, text = item.groups()
+                    items.append([len(indent), "ol" if marker[0].isdigit() else "ul", text])
+                elif lines[i].strip() and not starts_block(lines[i]):
+                    # A wrapped item: the line continues the item above it,
+                    # indented or not, as Markdown reads it.
+                    items[-1][2] += " " + lines[i].strip()
+                else:
+                    break
                 i += 1
             out.append(list_html(items))
         else:
             para = []
             while i < len(lines) and lines[i].strip() and not (
-                FENCE.match(lines[i]) or lines[i].startswith("|")
-                or SUBHEADING.match(lines[i]) or LIST_ITEM.match(lines[i])
+                starts_block(lines[i]) or LIST_ITEM.match(lines[i])
             ):
                 para.append(inline_html(lines[i].strip()))
                 i += 1
@@ -668,6 +683,10 @@ class _HtmlToMarkdown(HTMLParser):
             self.flush()
             if self.lists:
                 self.lists.pop()
+            if not self.lists:
+                # A blank line after a whole list, so a list that follows
+                # (an <ol> after a <ul>) reads back as a list of its own.
+                self.blocks.append(("break", ""))
         elif tag in self.MARKS or tag in ("code", "a"):
             self.close_mark(tag)
 
@@ -703,11 +722,15 @@ class _HtmlToMarkdown(HTMLParser):
 
     def markdown(self):
         self.flush()
-        out = []
+        out, broken = [], False
         for kind, text in self.blocks:
-            if out and not (kind == "item" and out[-1][0] == "item"):
+            if kind == "break":
+                broken = True
+                continue
+            if out and (broken or not (kind == "item" and out[-1][0] == "item")):
                 out.append(("gap", ""))
             out.append((kind, text))
+            broken = False
         return "\n".join(text for _, text in out)
 
 
@@ -730,7 +753,8 @@ def from_work_item(item):
             raise UsageError("the work item names no organization and project; pass a work item URL")
         link = f"{api.group(1)}/{quote(project)}/_workitems/edit/{story_id}"
     tags = [t.strip() for t in (fields.get("System.Tags") or "").split(";") if t.strip()]
-    states = [t for t in tags if t.lower().startswith("jidoka-")]
+    # Read case-blind: a tag typed by hand as Jidoka-Ready is still the state.
+    states = [t.lower() for t in tags if t.lower().startswith("jidoka-")]
     meta = {
         "Tracker": f"ado {link}",
         "Status": ", ".join(states) if states else "draft",
@@ -766,9 +790,14 @@ def work_item_target(agreement):
 
 
 def show(story, org=None):
-    match = ADO_URL.match(story)
+    match = ADO_URL.match(story) or BOARD_URL.match(story)
     if match:
         org, story = match.group("org"), match.group("id")
+    elif not story.isdigit():
+        raise UsageError(
+            f"{story} is not a work item: pass its URL (.../_workitems/edit/123, or a board link "
+            "with ?workitem=123) or its id with --org"
+        )
     args = ["boards", "work-item", "show", "--id", story, "--expand", "all", "-o", "json"]
     if org:
         args += ["--org", org]
@@ -820,9 +849,27 @@ def save(agreement, path):
         return
     directory = os.path.dirname(os.path.abspath(path))
     os.makedirs(directory, exist_ok=True)
+    if os.path.exists(path):
+        mode = os.stat(path).st_mode & 0o777
+    else:
+        umask = os.umask(0)
+        os.umask(umask)
+        mode = 0o666 & ~umask
+    # Write beside the target and rename over it, so a reader never sees half a
+    # file; keep the target's mode, since a temp file is created 0600.
     with tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8", newline="\n") as tmp:
-        tmp.write(text)
-    os.replace(tmp.name, path)
+        try:
+            tmp.write(text)
+        except BaseException:
+            tmp.close()
+            os.unlink(tmp.name)
+            raise
+    try:
+        os.chmod(tmp.name, mode)
+        os.replace(tmp.name, path)
+    finally:
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
 
 
 def report(problems, success):
@@ -887,9 +934,32 @@ def require_ready(agreement, state):
         raise Refused("not marked jidoka-ready: fix the problems above first")
 
 
+# Which state each target may be set from. refine moves a story between draft
+# and jidoka-ready; a story a run holds, or has finished, is never reopened by
+# hand, so a line run cannot lose its claim and a merged story stays shut.
+# --force is for a person repairing a story a crashed run left behind.
+FROM = {
+    "draft": {"draft", "jidoka-ready", "jidoka-blocked"},
+    "jidoka-ready": {"draft", "jidoka-blocked", "jidoka-ready"},
+    "jidoka-running": {"jidoka-ready"},
+    "jidoka-blocked": {"jidoka-running", "jidoka-ready"},
+    "jidoka-pr": {"jidoka-running", "jidoka-ready"},
+}
+
+
+def require_transition(current, state, force):
+    if force or current in FROM.get(state, ()):
+        return
+    raise Refused(
+        f"not changed: the story is '{current}', and {state} is set only from "
+        f"{', '.join(sorted(FROM.get(state, ())))} (--force overrides, for a story a crashed run left behind)"
+    )
+
+
 def cmd_status(args):
     agreement = load(args.file)
     if agreement.meta.get("Tracker") == "file":
+        require_transition(agreement.meta.get("Status", ""), args.set, args.force)
         require_ready(agreement, args.set)
         agreement.meta["Status"] = args.set
         save(agreement, args.file)
@@ -900,7 +970,9 @@ def cmd_status(args):
     # test on /rev then makes the tag land on exactly the revision checked.
     org, story_id = work_item_target(agreement)
     item = show(story_id, org)
-    require_ready(from_work_item(item), args.set)
+    current = from_work_item(item)
+    require_transition(current.meta.get("Status", ""), args.set, args.force)
+    require_ready(current, args.set)
     rev = int(item.get("rev") or item.get("fields", {}).get("System.Rev", 0))
     tags = [t.strip() for t in (item.get("fields", {}).get("System.Tags") or "").split(";") if t.strip()]
     tags = [t for t in tags if not t.lower().startswith("jidoka-")]
@@ -910,28 +982,53 @@ def cmd_status(args):
         {"op": "test", "path": "/rev", "value": rev},
         {"op": "add", "path": "/fields/System.Tags", "value": "; ".join(tags)},
     ])
-    save(from_work_item(show(story_id, org)), args.file)
-    print(f"Status: {args.set}")
+    back = from_work_item(show(story_id, org))
+    if same_text(agreement, current):
+        save(back, args.file)
+        print(f"Status: {args.set}")
+    else:
+        # The copy has edits the work item does not: keep them. Its Rev stays
+        # the one they were based on, so their push is refused until pulled
+        # and merged, rather than overwriting what changed meanwhile.
+        print(f"Status: {args.set}. {args.file} has changes the work item does not, so it was "
+              "left as it is; pull again before you push them.")
     return 0
+
+
+def same_text(one, other):
+    """The same agreement text, metadata aside."""
+    return (one.title, one.preamble, one.sections) == (other.title, other.preamble, other.sections)
 
 
 def cmd_sign(args):
     agreement = load(args.file)
-    problems = check(agreement, ready=True, signoffs=False)
+    # Section 13's own rules are checked on the row being written, below, not
+    # on the rows already there: a sign-off that fixes a bad row must not be
+    # refused because of that row.
+    problems = [p for p in check(agreement, ready=True, signoffs=False) if not p.startswith("section 13:")]
     if problems:
         report(problems, "")
         raise Refused("not signed: the agreement is not ready to sign")
     date = args.date or datetime.date.today().isoformat()
     if not DATE.match(date):
         raise UsageError(f"--date {date} must be YYYY-MM-DD")
-    rows = {row["Role"]: row for row in rows_of(agreement, 13, [])}
-    rows[args.role] = {"Role": args.role, "Name": args.name.strip(), "Date": date,
+    name = args.name.strip()
+    if not name or "|" in name:
+        raise UsageError("--name must be a person's name, not empty and without '|'")
+    rows = {row["Role"]: row for row in rows_of(agreement, 13, []) if row["Role"] in ROLES}
+    others = [row for role, row in rows.items() if role != args.role and row["Name"] == name]
+    if others and args.mode != "solo":
+        raise Refused(
+            f"not signed: {name} already signed as {', '.join(r['Role'] for r in others)}; one person "
+            "signing more than one role signs each with --mode solo"
+        )
+    rows[args.role] = {"Role": args.role, "Name": name, "Date": date,
                        "Mode": args.mode, "Hash": digest(agreement)}
     lines = [table_line(TABLES[13]), table_line(["---"] * len(TABLES[13]))]
     lines += [table_line([rows[r][c] for c in TABLES[13]]) for r in ROLES if r in rows]
     agreement.sections[13] = "\n".join(lines)
     save(agreement, args.file)
-    print(f"{args.role} signed by {args.name.strip()} ({args.mode}) at {digest(agreement)}")
+    print(f"{args.role} signed by {name} ({args.mode}) at {digest(agreement)}")
     return 0
 
 
@@ -982,6 +1079,8 @@ def main(argv=None):
     p = sub.add_parser("status", help="set the jidoka-* tag (ADO) or the Status line (file)")
     p.add_argument("file")
     p.add_argument("--set", required=True, choices=STATES)
+    p.add_argument("--force", action="store_true",
+                   help="skip the check of the current state (repairing a stuck story)")
     p.set_defaults(run=cmd_status)
 
     p = sub.add_parser("sign", help="record one role's sign-off at the current hash")
