@@ -40,7 +40,7 @@ it: the story's tag or Status line, its section 12 and its comments.
 **Model routing.** Every agent's frontmatter already carries the model its role
 resolves to (reasoning, verification, implementation, exploration; the table is
 `src/models.yaml` in the plugin repo), so dispatch without a `model` by default.
-Two exceptions pass the Task call's `model` parameter, which overrides
+Three exceptions pass the Task call's `model` parameter, which overrides
 frontmatter:
 
 - `Tier: refactor` stories dispatch `code-reviewer` with `model: "sonnet"`; a
@@ -49,6 +49,10 @@ frontmatter:
   walker, or after a Return Report that failed your evidence check, goes one
   tier up: `model: "opus"`. The first attempt already failed at the standard
   tier; retrying it there is the expensive path.
+- The architect re-dispatched to amend a plan after plan review runs on
+  `model: "opus"`: the findings already say what to change, and the next
+  review round checks the result. A redesign, where the slices change, keeps
+  the default.
 
 Never pass `model` otherwise.
 
@@ -148,7 +152,8 @@ To stop:
 5. **End the run.** Leave the worktree in place. The last message is the
    andon report: the question, its owner, and the draft PR or branch. It ends
    with: "Answer it with `/jidoka:refine {story}`, which marks the story ready
-   again; `/jidoka:line {story}` then resumes."
+   again; then `/clear` and `/jidoka:line {story}` to resume. A resume in this
+   session carries everything above into every call it makes."
 
 **A stop in Phase 1, before the worktree exists**, such as `Exit: pr` in a
 repository with no remote, leaves no branch. Skip steps 1 to 3. Write the
@@ -482,8 +487,10 @@ is the gate:
 - One reviews slice completeness, dependency edges, test coverage and sizing.
 - A one-layer feature gets only the first.
 
-Fix every Critical and Important issue in the docs, then re-dispatch the
-reviewers that raised them on the amended docs, until they raise none. A
+Fix every Critical and Important issue: re-dispatch the architect with the
+review reports' paths to amend the documents, or make a one-line fix
+yourself. Then re-dispatch the reviewers that raised them on the amended docs,
+until they raise none. A
 finding that only a role can settle is an andon stop. **Refactor tier:
 skip.** Your Phase 5 consistency check is the review.
 
@@ -534,7 +541,7 @@ Exit: {pr | merge}
 | Code review (full diff, branch point → HEAD) | ⬜ |
 | Security review (full diff, branch point → HEAD) | ⬜ |
 | Smoke (every slice's smoke sequence) | ⬜ |
-| Test suite / regression (whole diff, one run - also the coverage gate and the "after" result files) | ⬜ |
+| Test suite / regression (whole diff, one run - also the coverage gate, the "after" result files and the CI checks) | ⬜ |
 | Context capture | ⬜ |
 | Checkpoint commit | ⬜ |
 
@@ -697,18 +704,22 @@ sweep waits on another.
    suite (unit, integration, component, pre-existing e2e) over the whole diff
    **once**, through the project's target that also measures coverage and
    keeps the test-result files (usually a Makefile target taking a results
-   directory). That single run serves four purposes:
+   directory). That single run serves five purposes:
    - the regression gate;
    - the coverage gate;
    - the container-budget pin;
-   - the "after" half of any before/after diff the story requires.
+   - the "after" half of any before/after diff the story requires;
+   - `raise-pr`'s CI gate: run CI's other checks (build, typecheck, lint,
+     format-check) in the same pass, from CI's working directories and in
+     CI's order, as its Step 1 describes.
 
    Its passing count must be at least the baseline `git-worktrees` reported at
    worktree creation plus the story's new tests. A lower total is a lost
    test, whatever the sweep reports said. Do not run a bare suite first for
    the result files and the coverage suite again for the threshold; that is
-   the same suite twice. Fix failures before marking ✅. Do not write or run
-   the story's new browser e2e here; that is Phase 9.
+   the same suite twice. Commit before the run, fix failures before marking
+   ✅, and write the commit it passed at in the row: `✅ at 1a2b3c4`. Do not
+   write or run the story's new browser e2e here; that is Phase 9.
 
    **Gates run strictly one at a time.** Never launch one detached while another
    runs in the foreground: a coverage-instrumented container suite starved by a

@@ -17,6 +17,12 @@ the orchestrator uses.
 
 ## Step 1: Verify the CI gate
 
+If the regression row in `docs/new-feature/{folder}/07-progress.md` names a
+commit (`✅ at 1a2b3c4`) and `git diff --name-only {commit} HEAD` shows only
+files under `docs/` and the files the walkthrough committed, which Phase 9
+just ran, that run is the gate: cite its commit and go on to Step 1.5.
+Anything else changed: run the gate.
+
 A green test suite is not a green pipeline: format and lint checks usually run
 after tests, so a branch can pass every test and still turn CI red on
 whitespace, and that red then lands on the base branch.

@@ -1,7 +1,7 @@
 ---
 name: code-architect
 role: reasoning
-tools: "Read, Grep, Glob, Write, Skill"
+tools: "Read, Grep, Glob, Write, Edit, Skill"
 claude-model: fable
 claude-effort: high
 copilot-model: claude-opus-4.8
@@ -129,6 +129,14 @@ Change-site block, one per file per slice:
   ```
 - Wiring: imports / DI / route (only if non-obvious)
 ````
+
+## Amending the plan
+
+When the documents already exist (the brief sends plan-review findings or a
+changed agreement), change them with Edit: the sections the findings name,
+nothing else. Never rewrite a document to change part of it. A rewrite costs
+what the first draft cost, and it moves text no reviewer asked about. The
+manifest lists each finding and what changed for it.
 
 ## Manifest (your final message)
 

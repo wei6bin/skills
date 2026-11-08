@@ -101,9 +101,10 @@ layers, in order of how often they change:
    tier's model, then `just build`. Pin a single agent with its `model:` map
    only when it must deviate (impl-simplify's Copilot worker runs on the
    economy model, since it does the cleanup from its own rules).
-2. **Run time** - `line` passes `model` on a Task call for two exceptions:
-   refactor-tier stories review on `sonnet`, and an implementer re-dispatched
-   after `FIXES_NEEDED` or a failed evidence check goes up to `opus`. The Task
+2. **Run time** - `line` passes `model` on a Task call for three exceptions:
+   refactor-tier stories review on `sonnet`, an implementer re-dispatched
+   after `FIXES_NEEDED` or a failed evidence check goes up to `opus`, and the
+   architect amending a plan after plan review runs on `opus`. The Task
    `model` beats frontmatter. In herdr mode it becomes `crew.sh dispatch
    --model`, for Claude workers only.
 3. **Environment, no plugin edit** - the agents carry aliases (`fable`, `opus`,

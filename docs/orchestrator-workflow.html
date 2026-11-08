@@ -596,7 +596,7 @@
           <td class="phase">Quality Review</td>
           <td>2× <code class="c c-sub">plan-reviewer</code> (parallel); 1 for a one-layer feature; none for the refactor tier</td>
           <td class="none">-</td>
-          <td>Review findings, doc fixes; the reviewers' verdict is the plan's only gate</td>
+          <td>Review findings, which the architect amends in place on <code>opus</code>; the reviewers' verdict is the plan's only gate</td>
         </tr>
         <tr>
           <td class="n">7</td>
@@ -610,7 +610,7 @@
           <td class="phase">Slice-by-slice Impl</td>
           <td>
             <p><strong>Step 1</strong> (implement only, <strong>no per-slice integration</strong>): the ready-frontier and critical path are computed from <code class="c c-art">04-task-plan.md</code>'s <code>## Dependency graph</code> block (critical-path-first when worktree slots are scarce); parallel-safe slices run concurrently in worktrees; within each, <code class="c c-sub">impl-backend</code> and <code class="c c-sub">impl-frontend</code> in parallel against the frozen contract - BE implements <em>and conformance-tests</em> it, FE stays on a mock.</p>
-            <p><strong>Step 2</strong> (once, whole story): one <code class="c c-sub">impl-frontend</code> <strong>whole-story integration</strong> → <code class="c c-sub">impl-simplify</code> (isolated context, wraps the built-in <code>simplify</code> skill, then applies the house conventions the implementers skip; runs first so reviewers read the diff that ships) → <code class="c c-sub">code-reviewer</code> and <code class="c c-sub">security-reviewer</code> in parallel → smoke → regression (one run that is also the coverage gate) → <code class="c c-skill">context-updater</code> (review loops back on <code>FIXES_NEEDED</code>).</p>
+            <p><strong>Step 2</strong> (once, whole story): one <code class="c c-sub">impl-frontend</code> <strong>whole-story integration</strong> → <code class="c c-sub">impl-simplify</code> (isolated context, wraps the built-in <code>simplify</code> skill, then applies the house conventions the implementers skip; runs first so reviewers read the diff that ships) → <code class="c c-sub">code-reviewer</code> and <code class="c c-sub">security-reviewer</code> in parallel → smoke → regression (one run that is also the coverage gate and the CI checks, so <code class="c c-skill">raise-pr</code> re-runs nothing when only docs and the walkthrough changed since) → <code class="c c-skill">context-updater</code> (review loops back on <code>FIXES_NEEDED</code>).</p>
             <p><code>Kind: sweep</code> slices gate on the build only and run concurrently; the refactor tier (set in Phase 1) drops explorers, plan review, the security reviewer and the walker.</p>
           </td>
           <td><div class="chips"><code class="c c-skill">vertical-slicing</code> <code class="c c-skill">backend-implementer</code> <code class="c c-skill">frontend-implementer</code> <code class="c c-skill">sweep-implementer</code> <span class="none">(<code>kind: sweep</code> slices)</span> <code class="c c-skill">frontend-styling-standard</code> <span class="none">(styling-standard work only)</span> <code>simplify</code> <code class="c c-skill">react-best-practices</code> <code class="c c-skill">restful-api-design</code> <span class="none">(all three via <code class="c c-sub">impl-simplify</code>; <code>simplify</code> is built-in)</span> <code class="c c-skill">context-updater</code></div></td>

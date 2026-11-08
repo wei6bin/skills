@@ -270,6 +270,7 @@ unagreed decisions in.
 | 43 | A resumed run merges its base in, never rebases |
 | 44 | The scheduled pick-up holds a broken base's stories until the base moves |
 | 45 | The plan is four documents (`02`-`05`), one for a refactor; the agreement is its business half |
+| 46 | A plan amendment is an edit on `opus`; the regression run carries CI's checks; a resume starts in a fresh session |
 
 Refinements that came out of building it:
 
@@ -306,6 +307,17 @@ Refinements that came out of building it:
   lines of code in its change sites, on the architect's model, which the
   implementer then writes again; a snippet now locks a shape, twelve lines at
   most.
+- **What usr-008 spent, and three cuts.** The resumed run took 2h 28m and
+  about $50 at API prices; planning was 40% of the time and 59% of the cost.
+  The architect had no Edit tool, so its fix round after plan review rewrote
+  all five documents, as much text as the first draft, on the frontier model,
+  from a brief that already said what to change: $9.78 and 20 minutes.
+  Amendments are now edits, on `opus`. The PR step then re-ran CI's checks
+  for 6.5 minutes on code the regression run had passed twelve minutes
+  earlier, with only docs and the walkthrough's specs changed since; that run
+  now carries the CI checks and records its commit. And the resume began with
+  165k tokens of the stopped run's context, so the andon report now says to
+  `/clear` first.
 
 ## What each PR shipped
 
