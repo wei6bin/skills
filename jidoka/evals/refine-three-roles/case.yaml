@@ -1,0 +1,180 @@
+# End-to-end verifier for /jidoka:refine: a live session with a BA, a Dev Lead
+# and a QE takes a vague two-line story to a signed agreement that
+# /jidoka:line can build from. The workspace is the line-minimal-story repo
+# (a zero-dependency notes API, no remote) with USR-002 as raw text in
+# docs/stories/usr-002-edit-note.md, a Markdown file standing in for the
+# tracker. Shorter than a line run: no build, no agents.
+#
+# What it covers: the slash command expanding the user-only `refine` skill,
+# grounding in the code (facts the code answers are not asked), questions
+# tagged by the role that owns them, the agreement written in the fixed format
+# with permanent AC ids and no file paths, three live sign-offs at one hash
+# through agreement.py, and the jidoka-ready gate. Not covered: Azure DevOps
+# (pull, push and the tag; scripts/test_agreement.py covers them against a
+# fake az), --role and --solo passes, and confirming a line run's decisions.
+schema_version: "1.1"
+name: refine-three-roles
+description: /jidoka:refine takes a vague story through a live BA, Dev Lead and QE session to a jidoka-ready agreement
+tags: [e2e, refine]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  docs/stories/usr-002-edit-note.md rewritten as an agreement in the fixed
+  thirteen-section format: PATCH /notes/:id editing title and body, 200 with
+  the note, 404 note_not_found, 422 validation_failed for an empty or
+  over-200-character title, evidence per AC, Exit: merge, signed live by the
+  BA, the Dev Lead and the QE at one hash, and Status: jidoka-ready.
+
+execution:
+  model: opus
+  max_turns: 120
+  timeout_seconds: 1800
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # AskUserQuestion is not offered in a headless run, so refine asks each round
+  # in chat. This stands in for the three people in the room: it answers from
+  # their positions and lets the session take its own recommendation for
+  # anything they do not cover. It names facts only as a role would; what the
+  # code holds (the error codes) the session must find itself.
+  append_system_prompt: |
+    This session is an unattended evaluation run of the jidoka refine skill.
+    There is no AskUserQuestion tool, and no human will read anything until
+    the run ends. Three people are in this live refinement session. For each
+    round, first write the questions exactly as the skill says, then write
+    each owner's answer in their own voice from the positions below, then
+    continue in the same turn. Where a position does not cover a question, its
+    owner takes your recommended answer.
+
+    - Ana Lim, BA: a client may change a note's title, its body, or both, in
+      one request; a field not sent stays as it is. A title must not be empty
+      after trimming, and is at most 200 characters. The body has no limit
+      beyond the request size the API already enforces.
+    - Ben Tan, Dev Lead: the method is PATCH on the note's own path, replying
+      200 with the full updated note. An invalid title gets the same status
+      and error code the API already uses for one. No new dependencies. The
+      repository has no remote, so a finished story merges into main locally.
+    - Chen Ng, QE: the evidence for every AC is the HTTP status and response
+      body asserted in the automated test suite; each test creates its own
+      notes through POST. Cover the 200-character boundary: 200 characters
+      accepted, 201 refused.
+
+    When the agreement is ready to sign, all three read it and sign off, each
+    as themselves, in this live session. Do not end your turn until the story
+    is marked jidoka-ready, or you are blocked by something you cannot fix.
+  prompt: |
+    /jidoka:refine docs/stories/usr-002-edit-note.md
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  # --- The entry point fired ------------------------------------------------
+  - name: refine-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:refine skill"
+
+  # --- Questions went to the role that owns them ------------------------------
+  - name: a-question-for-the-ba
+    type: regex
+    target: trace
+    pattern: "\\[BA\\]"
+  - name: method-asked-of-the-dev-lead
+    type: regex
+    target: trace
+    pattern: "\\[Dev Lead\\][\\s\\S]{0,400}?\\b(PATCH|PUT)\\b"
+  - name: evidence-asked-of-the-qe
+    type: regex
+    target: trace
+    pattern: "\\[QE\\][\\s\\S]{0,400}?\\b(evidence|prove|proves|proof)\\b"
+    flags: i
+
+  # --- The script did the mechanical parts -------------------------------------
+  - name: format-checked
+    type: tool_used
+    tool: Bash
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+check\b'
+  # One Bash call may sign all three roles, so this counts calls, not
+  # sign-offs; three-live-sign-offs-at-one-hash below checks the three.
+  - name: signed-through-the-script
+    type: tool_used
+    tool: Bash
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+sign\b'
+  - name: marked-ready-through-the-script
+    type: tool_used
+    tool: Bash
+    input_match: "--set jidoka-ready"
+
+  # --- The agreement on disk ---------------------------------------------------
+  - name: status-ready
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "^Status: jidoka-ready$"
+    flags: m
+  - name: all-thirteen-sections
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "^## 1\\. Statement$[\\s\\S]*^## 4\\. Acceptance criteria$[\\s\\S]*^## 5\\. QE: scenarios and evidence$[\\s\\S]*^## 10\\. Autonomy policy$[\\s\\S]*^## 13\\. Sign-off$"
+    flags: m
+  - name: three-live-sign-offs-at-one-hash
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "^\\| BA \\| [^|\\n]+ \\| \\d{4}-\\d{2}-\\d{2} \\| live \\| (sha256:[0-9a-f]{16}) \\|$[\\s\\S]*^\\| Dev Lead \\| [^|\\n]+ \\| \\d{4}-\\d{2}-\\d{2} \\| live \\| \\1 \\|$[\\s\\S]*^\\| QE \\| [^|\\n]+ \\| \\d{4}-\\d{2}-\\d{2} \\| live \\| \\1 \\|$"
+    flags: m
+  - name: acs-carry-permanent-ids
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "^\\| AC-1 \\|[\\s\\S]*^\\| AC-2 \\|"
+    flags: m
+  - name: exit-merge-for-a-repo-with-no-remote
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "^Exit: merge$"
+    flags: m
+  - name: no-open-high-or-medium-question
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "\\| (HIGH|MEDIUM) \\| open \\|"
+    match: not_contains
+  - name: no-file-paths
+    type: regex
+    target: { source: file, path: docs/stories/usr-002-edit-note.md }
+    pattern: "src/app\\.js|src/store\\.js|test/notes\\.test\\.js"
+    match: not_contains
+
+  # --- Judged ------------------------------------------------------------------
+  - name: agreement-settles-the-story
+    type: llm
+    focus: { source: file, path: docs/stories/usr-002-edit-note.md }
+    criteria: |
+      This is the agreement a refinement session wrote for USR-002, "Edit a
+      note", on a node:http notes API whose errors use the envelope
+      { "error": { "code", "message" } }, whose unknown note is 404
+      note_not_found and whose invalid title on create is 422
+      validation_failed. A coding agent will build the story from this text
+      alone.
+      PASS only if all of these hold:
+      - The method is PATCH on /notes/:id, it can change the title, the body
+        or both, and a field not sent stays unchanged.
+      - Success is 200 with the full updated note.
+      - An unknown id is 404 with error code note_not_found.
+      - An empty (after trimming) or over-200-character title is 422 with
+        error code validation_failed, and 200 characters is accepted.
+      - Each acceptance criterion is written as Given / When / Then with an
+        AC-n id, and the QE section gives every AC a scenario and evidence.
+      - The decisions log records choosing PATCH and what was rejected.
+      FAIL if any of these is missing or contradicted, or if the agreement
+      leaves a decision to the builder that the session settled.
+  - name: run-finished-ready
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of an unattended refinement session on story
+      USR-002 with a BA, a Dev Lead and a QE.
+      PASS if it reports the story as jidoka-ready, signed off by all three
+      roles, and names building it with /jidoka:line as the next step.
+      FAIL if it ends on a question waiting for an answer, or reports the
+      story as not ready.

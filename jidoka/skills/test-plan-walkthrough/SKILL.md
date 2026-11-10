@@ -2,7 +2,7 @@
 name: test-plan-walkthrough
 description: Internal - Phase 9 Playwright walkthrough playbook. Invoked by test-plan-walker.
 user-invocable: false
-allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash
 ---
 
 # Test Plan Walkthrough
@@ -21,7 +21,9 @@ Runs after Phase 8 is fully green (this is the story's first and only end-to-end
 demo, against the integrated stack) and before `raise-pr`. Inputs: the demo
 steps and `e2e`-type cases in `05-test-plan.md`, the slice list in
 `04-task-plan.md`, credentials/seed data per `02-technical-plan.md`'s "Dev/Demo
-Data Recovery", and the app URL. Ask rather than guess if any is missing.
+Data Recovery", the app URL, and the story's `story.md` (the evidence each AC
+needs, in section 5). If any is missing, return `PARTIAL` naming it rather
+than guessing; nobody is there to ask.
 
 ## Outputs
 
@@ -66,7 +68,7 @@ slice order:
 - One `test()` per slice, named after its behaviour, using the project's login
   fixture and `baseURL`. Locators from the concrete roles, labels and expected
   text in `05-test-plan.md` (`getByRole`, `getByLabel`, `getByTestId`); a step
-  too vague to locate is a test-plan gap - ask, do not improvise. Assert the
+  too vague to locate is a test-plan gap - report it, do not improvise. Assert the
   same expected states the plan lists, cover the slice's `e2e`-type cases, and
   screenshot after each assertion passes:
 
@@ -125,12 +127,18 @@ only their rows and screenshots.
 |---|------|--------|------------|
 | 1 | Sign in as an editor | ✅ Redirected to `/drafts` | ![](screenshots/slice-01-01-login.png) |
 
+## Evidence by AC
+| AC | Evidence asked for (story.md § 5) | Evidence | Result |
+|---|---|---|---|
+| AC-1 | screenshot of the list after cancel | ![](screenshots/slice-01-03-cancelled.png), `{spec}` | ✅ |
+
 ## Issues found during walkthrough
 | Slice | Severity | Issue | Status |
 |---|---|---|---|
 (write "None" if everything passed)
 
 ## Summary
+- Verdict: {ALL_GREEN | FIXES_NEEDED | PARTIAL}
 - Slices walked: {N} · all AC demos passed: ✅/❌
 - Persisted specs added: {N} (all green: ✅/❌) - or "none: no e2e suite"
 - New bugs surfaced: {N}
@@ -138,7 +146,8 @@ only their rows and screenshots.
 
 Every slice in `04-task-plan.md` appears; BE-only slices get _"BE only - no UI;
 verified via API smoke."_ Demo lines are pasted verbatim so the report stands
-alone. Never paste credentials.
+alone. Never paste credentials. The verdict is the one your return report
+gives: `raise-pr` and a resumed run read this file, never the report.
 
 ### 6. Commit
 

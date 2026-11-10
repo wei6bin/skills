@@ -2,7 +2,7 @@
 name: backend-implementer
 description: Internal - TDD loop for one slice's backend half. Invoked by impl-backend.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Backend Implementer
@@ -40,8 +40,11 @@ randomness), never internal collaborators.
 - Stay inside the named slice and the backend half; hand frontend needs to the
   FE half with a note.
 - Follow the reference patterns; do not invent new ones.
-- Every AC the slice covers gets at least one test. Ask (`AskUserQuestion`) when
-  an AC is ambiguous instead of guessing.
+- Every AC the slice covers gets at least one test, which cites the AC's ID
+  (`AC-2`) in its name or as the framework's tag. When an AC is ambiguous, do
+  not guess silently: build the reading the slice card and the agreement
+  support, and report it under "Flagged" with the other readings. Nobody is
+  there to ask; the orchestrator decides.
 
 Report per the calling agent's Return Report format: ACs backed by tests, files
 touched, anything flagged for the FE half or orchestrator.

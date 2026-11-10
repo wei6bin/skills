@@ -1,15 +1,30 @@
 ---
 name: raise-pr
-description: Internal - final CI gate, PR body and worktree cleanup once implementation and walkthrough are done. Invoked by the orchestrator.
+description: Internal - final CI gate, the pull request's summary with AC coverage and the line's decisions, the recorded exit, worktree cleanup, and the story's close-out. Invoked by the orchestrator.
 user-invocable: false
-allowed-tools: Read, Bash, AskUserQuestion
+allowed-tools: Read, Write, Bash
 ---
 
 # Raise PR
 
 **Announce at start:** "I'm using the raise-pr skill to complete this work."
 
+This runs at the end of an unattended line run: nobody is there to answer a
+menu or a question. Where this skill says **stop**, return to the orchestrator
+with what you found; it decides between a fix and an andon stop.
+`agreement.py` is the refine skill's `scripts/agreement.py`, the same script
+the orchestrator uses.
+
 ## Step 1: Verify the CI gate
+
+If the regression row in `docs/new-feature/{folder}/07-progress.md` names a
+commit (`✅ at 1a2b3c4`) and `git diff --name-only {commit} HEAD` shows only
+files under `docs/` and the walker's own commit (its persisted specs, which
+Phase 9 just ran), skip the test suite and cite that commit as its result.
+Run every other check below anyway: nothing has linted, typechecked or
+format-checked the specs and docs written since, and those checks are quick
+next to the suite. Anything else changed since, such as a fix from a
+`FIXES_NEEDED` round: run the whole gate.
 
 A green test suite is not a green pipeline: format and lint checks usually run
 after tests, so a branch can pass every test and still turn CI red on
@@ -33,74 +48,85 @@ touching the file.
 Phase 9 should have produced `docs/new-feature/{folder}/06-walkthrough.md` and
 `screenshots/`.
 
-- Present: read `06-walkthrough.md`. Any ❌ slice row or Blocker in "Issues
-  found" → stop and send the user back to Phase 8; this skill does not fix bugs.
-- Missing, or slices from `04-task-plan.md` absent from it: dispatch
-  `agent_type: "jidoka:test-plan-walker"` (scoped to the missing slices
-  if partial) and wait for its Return Report. Never run the
-  `test-plan-walkthrough` skill inline; it needs a clean context. Exception: a
-  refactor-tier story (no `05-test-plan.md` in the folder) has its walkthrough
-  written by the orchestrator from the story's own Verification section - one
-  row per slice or task with a verdict - and needs no walker; only a missing
-  file or a ❌ row is a stop.
-- For any `Type: HITL` slice needing physical verification (printing, QR
-  scanning): ask _"Run the HITL-only verification for SLICE-NN now? [Y/skip]"_
-  and note a skip in the PR body.
+- **Present:** read `06-walkthrough.md`. Any ❌ slice row, a Blocker in
+  "Issues found", or a verdict other than `ALL_GREEN` → stop. Phase 8 owns
+  the fix; this skill does not fix bugs.
+- **Missing, or slices from `04-task-plan.md` absent from it:** dispatch
+  `agent_type: "jidoka:test-plan-walker"`, scoped to the missing slices if
+  partial, and wait for its Return Report. Never run the
+  `test-plan-walkthrough` skill inline; it needs a clean context.
+  - Exception: a refactor-tier story (no `05-test-plan.md` in the folder) has
+    its walkthrough written by the orchestrator from the story's own
+    Verification section, one row per slice or task with a verdict. It needs
+    no walker; only a missing file or a ❌ row is a stop.
+- **A `Type: HITL` slice** needing physical verification (printing, QR
+  scanning) cannot be verified unattended. List it in the summary under
+  "Needs a person", with the steps to check it.
 
 ## Step 2: Base branch
 
 Read the `Base:` line of `docs/new-feature/{folder}/07-progress.md`
-(`grep -m1 '^Base:'`): the branch the orchestrator cut the worktree from. If the
-line is missing (a ledger written before it existed), ask; never assume `main`
-and do not derive it from git - `@{upstream}` is the feature branch's own remote
-after `push -u`, and the branch reflog says `Created from HEAD` unless the base
-was named. A story cut from a release or integration branch and merged into
-`main` unattended is the wrong merge, with the feature branch deleted behind it.
+(`grep -m1 '^Base:'`): the branch the orchestrator cut the worktree from.
+
+- **If the line is missing, stop.** Never assume `main`, and do not derive the
+  base from git. `@{upstream}` is the feature branch's own remote after
+  `push -u`, and the branch reflog says `Created from HEAD` unless the base was
+  named.
+- A story cut from a release or integration branch and merged into `main`
+  unattended is the wrong merge, with the feature branch deleted behind it.
+
 The branch point for the diff is `git merge-base HEAD {base}`.
 
-## Step 3: Execute the recorded exit, or present the options
+## Step 3: The recorded exit
 
-If `docs/new-feature/{folder}/07-progress.md` has an `Exit:` line
-(`grep -m1 '^Exit:'`) reading `pr` or `merge`, that decision was taken at plan
-confirmation (orchestrator Phase 4): announce it in one line and go straight to
-Step 4 with that option. Present the menu only when the line is absent or reads
-`ask`. The menu at the end of a long unattended run is idle time measured in
-hours, not a decision.
+Read the `Exit:` line of `07-progress.md` (`grep -m1 '^Exit:'`). It comes
+from the agreement, which BA, Dev Lead and QE signed:
 
-```text
-Implementation complete. What would you like to do?
+- **`merge`**: merge into `{base}` locally (Step 5, option 1);
+- **`pr`**: push and open a pull request (Step 5, option 2).
 
-1. Merge back to <base-branch> locally
-2. Push and create a Pull Request
-3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
-```
+Anything else, or no line, is a stop. Announce the exit in one line and go on.
 
-## Step 4: Execute
+## Step 4: Write the summary, and update a story file
 
-**1. Merge locally**: in the main worktree (the first `worktree` entry of
-`git worktree list --porcelain`; `{base}` is checked out there, so
-`git checkout {base}` fails inside the feature worktree),
-`git checkout {base} && git pull`, merge the feature branch and re-run the CI
-gate on the merged result. Then Step 5, which deletes the branch.
+The summary is `docs/new-feature/{folder}/10-summary.md`. It is the pull
+request's body, the merge commit's message, and the story comment's source.
+Build it from the files, never from memory. Summarise the walkthrough; never
+paste it raw.
 
-**2. Push and create PR**: `git push -u origin <feature-branch>`, then detect
-the host from `git remote get-url origin`: `github.com` →
-`gh pr create --base {base} --body-file`; `dev.azure.com` / `*.visualstudio.com`
-→ `az repos pr create --target-branch {base} --description "$(cat body.md)"`;
-anything else → ask. Title `{USR-NNN}: {short verb-phrase}`, under 70 chars.
-Body from this template (summarise the walkthrough; never paste it raw):
+**AC coverage, by ID.** For each active AC in `story.md`'s section 4:
+
+- **Tests:** find the tests that cite its ID (`AC-n`) in the diff
+  (`git diff {branch-point}..HEAD -- {test files}`), and the persisted
+  walkthrough spec.
+- **Result:** from the Phase 8 regression run's result files and
+  `06-walkthrough.md`.
+- **Evidence:** the evidence section 5 asks for, as a link: a screenshot, the
+  test that asserts the response body, the report.
+
+An active AC with no test that cites it is a stop, not a blank row.
 
 ```markdown
-## Summary
-- {1-3 bullets from 00-overview.md}
+# {id}: {title}
 
-## Acceptance Criteria
-{verbatim from 01-business-plan.md}
+Built against story {id} rev {rev} ({hash}), signed by {BA}, {Dev Lead} and {QE}.
+Opened by jidoka:line ({scheduled run on {$JIDOKA_HOST} | run by {git config user.name}}).
+
+## Summary
+- {1-3 bullets from story.md: the why from section 1, the change from section 3}
+
+## Acceptance criteria
+| AC | Then | Tests | Result | Evidence |
+|---|---|---|---|---|
+| AC-1 | {Then, shortened} | `{test name}`, `{spec name}` | ✅ | [screenshot]({absolute link}) |
+
+## Decisions made by the line
+{the table from 09-decisions.md, or "None."} Each is pending until its role
+confirms it through /jidoka:refine; none blocks this merge.
 
 ## Slices shipped
-| Slice | Behaviour | e2e status |
-|---|---|---|
+| Slice | Behaviour | ACs | e2e status |
+|---|---|---|---|
 
 ## Test Plan Walkthrough
 Full report and screenshots: [06-walkthrough.md]({absolute link})
@@ -112,18 +138,27 @@ Full report and screenshots: [06-walkthrough.md]({absolute link})
 - Smoke: per-slice `Smoke:` sequences → all ✅
 - E2E (Playwright): {N} persisted specs added, all green
 
+## Needs a person
+{HITL checks, or "Nothing."}
+
+## Follow-ups
+{non-blocker findings from the reviews and the walkthrough}
+
 ## Rollback
 {verbatim from 05-test-plan.md}
 ```
 
-**Refactor tier** (no `01-business-plan.md` or `05-test-plan.md` in the folder):
-the template's sources do not exist, so do not invent them. `## Summary` and
-`## Acceptance Criteria` come from `00-overview.md` (its success criteria are
-the ACs); `## Slices shipped` and `## Test Plan Walkthrough` collapse into one
-`## Verification` table copied from `06-walkthrough.md` (command · observed ·
-✅) under the full-report link, with no screenshots; `## Test Plan (automated)`
-keeps the suite-count line only; `## Rollback` is a revert of the merge unless
-`00-overview.md` says otherwise.
+**Refactor tier** (no `05-test-plan.md` in the folder): the template's
+sources do not exist, so do not invent them.
+
+- `## Acceptance criteria` still lists the agreement's ACs, with the
+  verification that proves each.
+- `## Slices shipped` and `## Test Plan Walkthrough` collapse into one
+  `## Verification` table, copied from `06-walkthrough.md` (command, observed,
+  ✅) under the full-report link, with no screenshots.
+- `## Test Plan (automated)` keeps the suite-count line only.
+- `## Rollback` is a revert of the merge, unless `04-task-plan.md` ends
+  with a `## Rollback` section; then it is that section, verbatim.
 
 **Screenshot and file links must be absolute and pinned to the head branch.** PR
 descriptions are not rendered against the head branch on either host, so
@@ -134,48 +169,121 @@ relative paths 404.
   for images, `.../blob/{branch}/...` for markdown files.
 - Azure DevOps:
   `https://dev.azure.com/{org}/{project}/_apis/git/repositories/{repo}/items?path=/docs/new-feature/{folder}/screenshots/{file}.png&versionDescriptor.version={branch}&versionDescriptor.versionType=branch&api-version=7.1`.
+- With no remote (a local merge), link the files by their repository paths.
 
-If the head branch is deleted after merge, switch links to the merge commit SHA
-or `{base}`. Return the PR URL, then Step 5.
+**A story file** (`Tracker: file` in `story.md`) travels with the branch, so
+update it now, before the merge or the push carries it:
 
-**3. Keep as-is**: report the branch and worktree path; do not clean up.
+1. `agreement.py record {folder}/story.md --decisions {folder}/09-decisions.md`
+   (skip it when the table has no rows).
+2. `agreement.py status {folder}/story.md --set jidoka-done` for `merge`, or
+   `--set jidoka-pr` for `pr`.
 
-**4. Discard**: require the user to type `discard`, then Step 5 with
-`git worktree remove --force` and `git branch -D`.
+Commit the summary, and the story file if it changed:
+`docs({slug}): summary and story close-out`.
 
-## Step 5: Clean up the worktree
+## Step 5: Execute
 
-Options 1, 2 and 4, from the main worktree (removing the worktree you are
-standing in strands the shell): `git worktree remove <path>` (find it with
-`git worktree list`), then delete the branch - `-d` for Option 1, `-D` for
-Option 4; Option 2 keeps it for the PR. Remove the worktree first: git refuses
-to delete a branch a worktree still has checked out. Option 3 keeps both.
+**1. Merge locally.** In the main worktree, merge the feature branch and
+re-run the CI gate on the merged result. The main worktree is the first
+`worktree` entry of `git worktree list --porcelain`; `{base}` is checked out
+there, so `git checkout {base}` fails inside the feature worktree.
 
-## Step 6: Close out the backlog tracker
+```bash
+git checkout {base}
+git pull                                   # only when there is a remote
+git merge --no-ff {slug} -m "{id}: {title}" -m "$(cat docs/new-feature/{folder}/10-summary.md)"
+```
 
-Options 1 and 2 only. Everything written so far (`07-progress.md`, the plan
-folder, `docs/new-feature/README.md`) describes _this_ story; the project's
-**backlog tracker** is what the next session reads to choose the next story, and
-if it is not updated here it never is.
+**2. Push and create the PR.** Run `git push -u origin {slug}`, then detect
+the host from `git remote get-url origin`. The title is
+`{id}: {short verb-phrase}`, under 70 characters, and the body is
+`10-summary.md`. The `jidoka` label marks the pull requests the line opened.
 
-1. **Find it**:
+A run that resumes after an andon stop already has a **draft** pull request
+on this branch. Update that one instead of opening another: its title, its
+body, the label, and mark it ready.
+
+- `github.com`:
+
+  ```bash
+  gh label create jidoka --description "Opened by jidoka:line" --force
+  gh pr view {slug} --json number,isDraft     # an earlier run's PR, if any
+  # none:
+  gh pr create --base {base} --title "{title}" --body-file docs/new-feature/{folder}/10-summary.md --label jidoka
+  # one: update it, and take it out of draft
+  gh pr edit {number} --title "{title}" --body-file docs/new-feature/{folder}/10-summary.md --add-label jidoka
+  gh pr ready {number}
+  ```
+
+- `dev.azure.com` or `*.visualstudio.com`: Azure DevOps keeps at most 4000
+  characters of a pull request's description. When `10-summary.md` is longer
+  (`wc -m`), the description is the summary up to the end of its
+  `## Decisions made by the line` section, then a link to the whole file on
+  the branch.
+
+  ```bash
+  az repos pr list --source-branch {slug} --status active --query "[0].pullRequestId" -o tsv
+  # none:
+  az repos pr create --target-branch {base} --title "{title}" --labels jidoka --description "$(cat {description})"
+  # one: update it, and take it out of draft
+  az repos pr update --id {id} --title "{title}" --description "$(cat {description})" --draft false
+  ```
+
+- **Any other host:** stop.
+
+If the head branch is deleted after merge, switch the links to the merge commit
+SHA or `{base}`.
+
+## Step 6: Close out the story and the backlog tracker
+
+Run this from the feature worktree, before Step 7 removes it: the plan folder,
+`story.md` and `09-decisions.md` are there, and on a pull request the base
+branch has none of them.
+
+Everything written so far (`07-progress.md`, the plan folder,
+`docs/new-feature/README.md`) describes _this_ story. The story and the
+project's **backlog tracker** are what the next session and the next scheduled
+pick-up read. If they are not updated here, they never are.
+
+1. **The work item** (`Tracker: ado ...` in `story.md`):
+   - `agreement.py record {folder}/story.md --decisions {folder}/09-decisions.md`,
+     when the table has rows.
+   - `agreement.py comment {folder}/story.md --file {comment}`, where
+     `{comment}` is a short Markdown file. It holds the pull request URL (or
+     the merge commit), the AC coverage table, and the decisions made by the
+     line.
+   - `agreement.py status {folder}/story.md --set jidoka-pr` for a pull
+     request, or `--set jidoka-done` for a merge.
+
+   A story file was closed out in Step 4.
+2. **Find the backlog tracker**, if the project keeps one besides the story:
 
    ```bash
    grep -rniE "single source of truth|backlog|story status|_index" CLAUDE.md AGENTS.md README.md
    ls user-stories/_index.* docs/backlog.* BACKLOG.md
    ```
 
-   If the story id looks like a work-item reference, the tracker may be external
-   (`az boards work-item update --id <n> --state Resolved`). No tracker found →
-   say so and skip; do not invent one.
-2. **Update exactly one record** with evidence: merged → done/closed + merge
+   No tracker found: say so and skip; do not invent one. A work item's own
+   state (Resolved, Done) belongs to the project's process; change it only
+   when that is the tracker CLAUDE.md names.
+3. **Update exactly one record** with evidence: merged → done/closed + merge
    commit SHA; PR raised → in review + PR number and URL. Add a short note of
-   what actually shipped: ACs delivered, decisions the story did not anticipate,
-   anything left out. The plan folder records intent; this is the only record of
+   what actually shipped: the ACs delivered, the decisions made by the line,
+   anything left out. The plan folder records intent; this is the record of
    outcome.
-3. **Never leave a story parked at "PR raised".** Either check whether the PR
+4. **Never leave a story parked at "PR raised".** Check whether the PR has
    already merged (`gh pr view <n> --json state,mergeCommit`) and record the
-   commit, or tell the user in one line to set it to done once PR #n lands.
-4. **Status in more than one file → stop and report** the copies by name.
-   Recommend collapsing to one record; do not quietly update all of them, and
-   ask before consolidating - it is the user's backlog.
+   commit; otherwise say in the final report that the record moves to done
+   once PR #n lands.
+5. **Status in more than one file:** update none of them. Name the copies in
+   the summary's Follow-ups and in the final report, and recommend collapsing
+   them to one record. It is the team's backlog to consolidate, not this run's.
+
+## Step 7: Clean up
+
+From the main worktree; removing the worktree you are standing in strands the
+shell. Run `git worktree remove <path>` (find it with `git worktree list`).
+For a merge, then `git branch -d {slug}`; a pull request keeps its branch.
+Remove the worktree first: git refuses to delete a branch a worktree still has
+checked out.

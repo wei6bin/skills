@@ -102,19 +102,25 @@ smoke-claude *args:
 
 # ---- eval ----------------------------------------------------------------------
 
-# every eval case end to end, a /jidoka:line run each: HOST, ARGS, EVAL_ENV, EXTRA_CA
+# every eval case end to end, a /jidoka:line or /jidoka:refine run each: HOST, ARGS, EVAL_ENV, EXTRA_CA
 [group('eval')]
 eval-claude *args: (_eval-image HOST)
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p jidoka/evals/results
-    # --ablation none: a no-plugin arm cannot run /jidoka:line, it would only
+    # --ablation none: a no-plugin arm cannot run a jidoka skill, it would only
     # double the cost. --scaffold and --trust-plugin: the fixtures and the plugin
     # are this repo's own. --allow-tools: the workflow edits files and runs git,
     # npm and dotnet, and fetches only from eval_domains.
     flags=(--ablation none --scaffold --trust-plugin --allow-tools Bash Write Edit)
     for d in {{ eval_domains }}; do flags+=("WebFetch(domain:$d)"); done
+    # The eval makes each run's workspace under TMPDIR, and its Bash sandbox
+    # denies writes to /tmp, which beats its own grant to the workspace: with
+    # the workspace under /tmp, every write in the run fails. So the workspace
+    # goes elsewhere: a cache directory here, /eval-tmp in the image.
     if [ -n {{ quote(HOST) }} ]; then
+      export TMPDIR="${XDG_CACHE_HOME:-$HOME/.cache}/jidoka/eval-tmp"
+      mkdir -p "$TMPDIR"
       exec claude plugin eval ./jidoka "${flags[@]}" {{ ARGS }} "$@"
     fi
     # The repo mounts read-only; only the results directory is writable. The
@@ -132,6 +138,13 @@ eval-claude *args: (_eval-image HOST)
     fi
     if [ -n {{ quote(EXTRA_CA) }} ]; then
       run+=(-v {{ quote(EXTRA_CA) }}:/etc/ssl/extra-ca.pem:ro -e NODE_EXTRA_CA_CERTS=/etc/ssl/extra-ca.pem)
+    fi
+    # On WSL the container shares the WSL kernel, so the eval takes it for WSL
+    # and refuses a Bash grant unless /proc/mounts shows a Windows drive to put
+    # out of the sandbox's reach. The container has none; an empty tmpfs whose
+    # source reads C: stands in for one, and the sandbox denies it like a drive.
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+      run+=(--mount 'type=volume,dst=/mnt/c,volume-driver=local,volume-opt=type=tmpfs,volume-opt=device=C:,volume-opt=o=size=1m')
     fi
     exec "${run[@]}" {{ quote(EVAL_IMAGE) }} claude plugin eval ./jidoka "${flags[@]}" --no-publish {{ ARGS }} "$@"
 

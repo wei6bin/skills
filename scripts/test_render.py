@@ -395,6 +395,18 @@ class WorkerRenderTests(unittest.TestCase):
         self.assertEqual(lines[2:], ["echo crew"])
         self.assertTrue(path.stat().st_mode & 0o111)
 
+    def test_python_bytecode_beside_a_skill_script_is_not_rendered(self):
+        # `just test` imports skill scripts (the refine skill's agreement.py),
+        # which leaves __pycache__ in src/; CI runs `just check` after it.
+        cache = self.fx.root / "src/skills/herdr-crew/scripts/__pycache__"
+        cache.mkdir()
+        (cache / "crew.cpython-312.pyc").write_bytes(b"\x00")
+        (self.fx.root / "src/skills/herdr-crew/scripts/stray.pyc").write_bytes(b"\x00")
+        out = self.fx.render()
+        rendered = render.relative_files(out / render.PLUGIN / "skills/herdr-crew")
+        self.assertIn("scripts/crew.sh", rendered)
+        self.assertFalse([name for name in rendered if name.endswith(".pyc")], rendered)
+
     def test_hand_written_worker_files_are_rejected(self):
         (self.fx.root / "src/skills/herdr-crew/agents").mkdir()
         with self.assertRaises(render.SourceError):
@@ -417,16 +429,30 @@ class RealTreeTests(unittest.TestCase):
             self.assertIn(agent.resolve("claude"), ("fable", "opus", "sonnet", "haiku"), agent.name)
 
     def test_entry_skills_are_user_only_and_companions_are_model_only(self):
-        # The entry skills (`line`, and the `check` self-check) stay out of
-        # every session's skill listing and run only when the user types them.
+        # The entry skills (`line`, `refine` before it, and the `check`
+        # self-check) stay out of every session's skill listing and run only
+        # when the user types them.
         # A companion stays out of the `/` menu but must stay model-invocable:
         # disable-model-invocation also blocks the Skill tool and subagent
         # preloading, which is how the orchestrator and the agents reach it.
         for skill in render.load_skills():
             fm = frontmatter(skill / "SKILL.md")
-            entry = skill.name in ("line", "check")
+            entry = skill.name in ("line", "refine", "check")
             self.assertEqual(fm.get("disable-model-invocation", False), entry, skill.name)
             self.assertEqual(fm.get("user-invocable", True), entry, skill.name)
+
+    def test_only_the_skills_people_run_may_ask_anything(self):
+        # The line runs unattended from a signed agreement: nothing it
+        # invokes may stop to ask. Only `refine` (the BA, Dev Lead and QE's
+        # session) and `check` (the self-check) talk to a person.
+        talkers = {"refine", "check"}
+        for skill in render.load_skills():
+            text = (skill / "SKILL.md").read_text(encoding="utf-8")
+            if skill.name not in talkers:
+                self.assertNotIn("AskUserQuestion", text, skill.name)
+        for agent in render.load_agents(render.load_routing()):
+            path = render.SRC / "agents" / f"{agent.name}.md"
+            self.assertNotIn("AskUserQuestion", path.read_text(encoding="utf-8"), agent.name)
 
     def test_skill_and_agent_bodies_have_no_positional_placeholders(self):
         # Claude Code substitutes a skill's invocation arguments into its body:

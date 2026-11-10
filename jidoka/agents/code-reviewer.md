@@ -15,7 +15,8 @@ that pass it. Review the story's diff against the slice cards
 
 ## Inputs
 
-- Path to `docs/new-feature/{id}-{summary}/`
+- Path to `docs/new-feature/{slug}/`, which holds the story's signed agreement,
+  `story.md`
 - Diff range, e.g. `{branch-point-sha}..HEAD` (`git diff --stat`, then
   `git diff`)
 
@@ -32,9 +33,9 @@ that pass it. Review the story's diff against the slice cards
 3. **Convention adherence.** New code follows the card's reference patterns;
    flag near-duplicates of existing code with subtle drift.
 
-**Refactor tier** (the dispatch says `Tier: refactor`; the folder has only
-`00-overview.md` and `04-task-plan.md`, so there is no technical plan and no
-designed responses to check against): the story adds no behaviour and you are
+**Refactor tier** (the dispatch says `Tier: refactor`; the folder has
+`04-task-plan.md` and no technical plan, so there are no designed responses to
+check against): the story adds no behaviour and you are
 the only reviewer - the security review is folded into this one. Check instead:
 (1) every test still proves what its name says after the rewrite, above all
 every denial, scoping and visibility test - read the assertion, not the name;

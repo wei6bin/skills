@@ -53,7 +53,8 @@ report it.
    - If `git commit` fails for lack of an identity, stop and report it; never
      invent one.
 2. Record the base: the branch now checked out.
-3. Invoke `git-worktrees` with the branch name `project-skeleton`. The
+3. Invoke `git-worktrees` with the branch name `project-skeleton` and that
+   base. The
    `.worktrees/` directory you made is its location, so it has nothing to ask.
    There is no suite yet, so its baseline is zero tests; that is expected, not
    a failure.

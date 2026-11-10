@@ -2,7 +2,7 @@
 name: react-best-practices
 description: Internal - React 19 + TypeScript house conventions. Invoked by impl-simplify.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # React Best Practices

@@ -1,0 +1,98 @@
+# End-to-end check of andon: USR-001's agreement says any change to the note
+# store stops the line, and deleting a note needs one (the store has no
+# delete). The line must stop before implementing, write its question down
+# where a resumed run looks, mark the story blocked, and leave the worktree.
+# Resuming is not covered here: an eval run is one session.
+schema_version: "1.1"
+name: line-andon-stop
+description: /jidoka:line stops on a condition the agreement names, and leaves the question on record
+tags: [e2e, line, andon]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  The line claims USR-001, creates its branch and worktree, and stops before
+  any implementation because deleting a note needs a change to the note
+  store, which the agreement says stops the line: andon.md and an open Andon
+  row on the branch, the story file there at Status jidoka-blocked, the
+  store untouched, the worktree kept, and a last message naming the question
+  and /jidoka:refine.
+
+execution:
+  model: opus
+  max_turns: 120
+  timeout_seconds: 1800
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # No append_system_prompt: nobody stands in for anyone, and the line must
+  # ask nothing.
+  prompt: |
+    /jidoka:line docs/stories/usr-001-delete-note.md
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+  - name: claim-attempted
+    type: tool_used
+    tool: Bash
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
+  # --- Claimed and branched, then stopped before any implementation ----------
+  - name: no-implementation
+    type: tool_used
+    tool: Agent
+    input_match: "jidoka:impl-backend"
+    min: 0
+    max: 0
+  - name: story-snapshot-committed
+    type: regex
+    target: { source: file, path: .worktrees/usr-001-delete-a-note/docs/new-feature/usr-001-delete-a-note/story.md }
+    pattern: "^Hash: sha256:[0-9a-f]{16}$"
+    flags: m
+  - name: andon-question-written
+    type: regex
+    target: { source: file, path: .worktrees/usr-001-delete-a-note/docs/new-feature/usr-001-delete-a-note/andon.md }
+    pattern: "store"
+    flags: i
+  - name: andon-row-open-in-the-ledger
+    type: regex
+    target: { source: file, path: .worktrees/usr-001-delete-a-note/docs/new-feature/usr-001-delete-a-note/07-progress.md }
+    pattern: "^## Andon[\\s\\S]*\\| open \\|"
+    flags: m
+  - name: story-blocked-on-the-branch
+    type: regex
+    target: { source: file, path: .worktrees/usr-001-delete-a-note/docs/stories/usr-001-delete-note.md }
+    pattern: "^Status: jidoka-blocked$"
+    flags: m
+  - name: store-untouched-on-the-branch
+    type: regex
+    target: { source: file, path: .worktrees/usr-001-delete-a-note/src/store.js }
+    pattern: "delete"
+    flags: i
+    match: not_contains
+  - name: store-untouched-on-main
+    type: regex
+    target: { source: file, path: src/store.js }
+    pattern: "delete"
+    flags: i
+    match: not_contains
+  - name: stop-reported
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of an unattended /jidoka:line run on story
+      USR-001 (delete a note), whose signed agreement says any change to the
+      note store must stop the line. Deleting a note needs such a change.
+      PASS if it reports that the line stopped because the story needs a
+      change to the note store, names the question and the role who owns the
+      answer, and says to answer it with /jidoka:refine before the line
+      resumes.
+      FAIL if it reports the story as built or merged, changes the store
+      anyway, or asks a question and waits for an answer instead of ending
+      the run.

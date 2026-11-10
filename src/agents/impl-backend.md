@@ -16,7 +16,7 @@ wrong, flag it in your Return Report instead of shipping a different shape.
 
 ## Inputs
 
-- Path to `docs/new-feature/{id}-{summary}/04-task-plan.md`
+- Path to `docs/new-feature/{slug}/04-task-plan.md`
 - Scope, e.g. `"SLICE-01 backend half - lean: full"`, or
   `"SLICE-03 backend half - lean: full - kind: sweep"` for a mechanical rewrite
   slice
@@ -48,8 +48,8 @@ If a change is needed outside scope, stop and report it under "Flagged".
 2. Read your slice's card in `04-task-plan.md`. Feature tier: also its contract
    and data notes in `02-technical-plan.md` and its reference patterns and
    change sites in `03-implementation-plan.md` (targets, not an order).
-   `kind: sweep`, or a refactor-tier story (the folder has only `00-overview.md`
-   and `04-task-plan.md`): there is no contract and no conformance test; the
+   `kind: sweep`, or a refactor-tier story (the folder has no
+   `02-technical-plan.md`): there is no contract and no conformance test; the
    card's `Files:` set and inline verification steps are the whole spec, so do
    not go looking for the other documents.
 3. Read the relevant `docs/project_context/` files and follow the project's own

@@ -2,7 +2,7 @@
 name: sweep-implementer
 description: Internal - mechanical rewrite of one sweep slice's file set, backend or frontend. Invoked by impl-backend and impl-frontend.
 user-invocable: false
-allowed-tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
 # Sweep Implementer

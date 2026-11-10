@@ -1,0 +1,70 @@
+# End-to-end check of the line's first gate: a story that never went through
+# refinement (Status: draft) is refused at the claim, before any branch,
+# worktree or agent exists. Cheap: the run should end within a few turns.
+schema_version: "1.1"
+name: line-not-ready
+description: /jidoka:line refuses a story that is not jidoka-ready, before any branch exists
+tags: [e2e, line, gate]
+# jidoka/ ships no plugin.json (versioning comes from the marketplace commit;
+# see CLAUDE.md), so point the loader at the plugin root explicitly.
+plugins: ["../.."]
+runs: 1
+expected_outcome: >-
+  No branch, worktree or agent dispatch; the story file still reads Status:
+  draft; the last message says the story is not ready and points at
+  /jidoka:refine.
+
+execution:
+  model: opus
+  max_turns: 30
+  timeout_seconds: 900
+  # Bash, Write and Edit also need the operator grant: --allow-tools.
+  allowed_tools:
+    [Read, Glob, Grep, Skill, Agent, TodoWrite, TaskCreate, TaskGet, TaskList, TaskUpdate, Bash, Write, Edit]
+  # No append_system_prompt: nobody stands in for anyone, and the line must
+  # ask nothing.
+  prompt: |
+    /jidoka:line docs/stories/usr-001-delete-note.md
+
+context:
+  scaffold_script: scaffold.sh
+
+graders:
+  - name: line-skill-announced
+    type: regex
+    target: trace
+    pattern: "using the jidoka:line skill"
+  - name: claim-attempted
+    type: tool_used
+    tool: Bash
+    input_match: '(agreement\.py|\$\{?\w+\}?)(\\"|'')?\s+claim\b'
+  # --- Refused before any work: no agent, no worktree, no branch ------------
+  - name: nothing-dispatched
+    type: tool_used
+    tool: Agent
+    min: 0
+    max: 0
+  - name: no-worktree
+    type: file_exists
+    path: ".worktrees/**"
+    exists: false
+  - name: no-story-branch
+    type: file_exists
+    path: ".git/refs/heads/usr-001-delete-a-note"
+    exists: false
+  - name: story-file-untouched
+    type: regex
+    target: { source: file, path: docs/stories/usr-001-delete-note.md }
+    pattern: "^Status: draft$"
+    flags: m
+  - name: refusal-points-at-refine
+    type: llm
+    focus: last_message
+    criteria: |
+      This is the final message of /jidoka:line run on story USR-001, whose
+      agreement is still a draft that never went through refinement.
+      PASS if it says the story is not ready to build (not jidoka-ready, or
+      not refined) and points at /jidoka:refine, and it did not start
+      building anything.
+      FAIL if it builds or plans the story, asks a question and waits for an
+      answer, or does not name /jidoka:refine.
