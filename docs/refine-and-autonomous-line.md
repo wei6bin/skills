@@ -315,7 +315,9 @@ Refinements that came out of building it:
   Amendments are now edits, on `opus`. The PR step then re-ran CI's checks
   for 6.5 minutes on code the regression run had passed twelve minutes
   earlier, with only docs and the walkthrough's specs changed since; that run
-  now carries the CI checks and records its commit. And the resume began with
+  now carries the CI checks and records its commit, and the PR step skips the
+  suite on it. It still runs the quick checks: nothing else lints the specs
+  the walkthrough adds. And the resume began with
   165k tokens of the stopped run's context, so the andon report now says to
   `/clear` first.
 

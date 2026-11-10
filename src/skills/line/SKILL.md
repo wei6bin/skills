@@ -709,9 +709,11 @@ sweep waits on another.
    - the coverage gate;
    - the container-budget pin;
    - the "after" half of any before/after diff the story requires;
-   - `raise-pr`'s CI gate: run CI's other checks (build, typecheck, lint,
+   - the test suite of `raise-pr`'s CI gate, when only docs and the walker's
+     specs change after it. Run CI's other checks (build, typecheck, lint,
      format-check) in the same pass, from CI's working directories and in
-     CI's order, as its Step 1 describes.
+     CI's order, as its Step 1 describes, so a red one shows here; `raise-pr`
+     runs them again.
 
    Its passing count must be at least the baseline `git-worktrees` reported at
    worktree creation plus the story's new tests. A lower total is a lost

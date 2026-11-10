@@ -19,9 +19,12 @@ the orchestrator uses.
 
 If the regression row in `docs/new-feature/{folder}/07-progress.md` names a
 commit (`✅ at 1a2b3c4`) and `git diff --name-only {commit} HEAD` shows only
-files under `docs/` and the files the walkthrough committed, which Phase 9
-just ran, that run is the gate: cite its commit and go on to Step 1.5.
-Anything else changed: run the gate.
+files under `docs/` and the walker's own commit (its persisted specs, which
+Phase 9 just ran), skip the test suite and cite that commit as its result.
+Run every other check below anyway: nothing has linted, typechecked or
+format-checked the specs and docs written since, and those checks are quick
+next to the suite. Anything else changed since, such as a fix from a
+`FIXES_NEEDED` round: run the whole gate.
 
 A green test suite is not a green pipeline: format and lint checks usually run
 after tests, so a branch can pass every test and still turn CI red on
